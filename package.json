@@ -1,0 +1,22 @@
+{
+  "name": "create-dsh-plugin-cli",
+  "version": "0.1.0",
+  "description": "Scaffold DeepSeek Harness (dsh) plugin projects interactively",
+  "type": "module",
+  "license": "MIT",
+  "bin": {
+    "dshp": "./dist/cli.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "dev": "tsdown --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests"
+  }
+}
