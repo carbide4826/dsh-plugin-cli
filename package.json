@@ -3,6 +3,10 @@
   "version": "0.0.0",
   "description": "Scaffold DeepSeek Harness (dsh) plugin projects interactively",
   "type": "module",
+  "author": {
+    "name": "carbide4826",
+    "url": "https://github.com/carbide4826"
+  },
   "license": "MIT",
   "bin": {
     "dshp": "./dist/cli.mjs"
