@@ -1,12 +1,13 @@
 #!/usr/bin/env node
 import { Command } from 'commander'
+import pkg from '../package.json'
 
 const program = new Command()
 
 program
   .name('dshp')
   .description('Scaffold DeepSeek Harness (dsh) plugin projects interactively')
-  .version('0.1.0')
+  .version(pkg.version)
 
 program
   .command('create [name]')
