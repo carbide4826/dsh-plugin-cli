@@ -10,9 +10,10 @@ export type AtomId = "tool" | "events" | "service" | "ui" | "protocol";
 export type ConfigMode = "none" | "static" | "dynamic";
 
 export interface Answers {
-    name: string; // 插件名
-    namePascal: string; // PascalCase 派生
-    nameCamel: string; // camelCase 派生
+    dirName: string; // 项目目录
+    pkgName: string; // npm 包名
+    pluginId: string; // 插件 id(Cordis 的 name 导出,inject 用;patch 行 id 默认复用)
+    toolName: string; // 工具名(defineTool 的 name;勾 Tool 时才问,未勾为空)
     description: string; // 描述
     author: string; // 作者
     pkgPosition: PkgPosition; // 包定位
