@@ -9,11 +9,11 @@
 
 ```sh
 pnpm install          # 安装依赖
-pnpm build            # 构建(输出 dist/cli.js)
+pnpm build            # 构建(输出 dist/cli.mjs)
 pnpm dev              # 构建并监听变更
 pnpm typecheck        # 类型检查
 pnpm test             # vitest
-node dist/cli.js --help   # 本地验证 bin
+node dist/cli.mjs --help   # 本地验证 bin
 ```
 
 ## 用法(规划中)

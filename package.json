@@ -12,7 +12,8 @@
     "dshp": "./dist/cli.mjs"
   },
   "files": [
-    "dist"
+    "dist",
+    "templates"
   ],
   "engines": {
     "node": "^22.19.0 || >=24.0.0"
@@ -28,6 +29,7 @@
     "commander": "^15.0.0"
   },
   "devDependencies": {
+    "@deepseek-ai/dsh": "0.1.5-rc.2",
     "@types/node": "^22.20.2",
     "tsdown": "^0.23.0",
     "typescript": "^7.0.2",

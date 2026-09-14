@@ -20,9 +20,14 @@ export interface DepBuckets {
 export const SUPPORTED_DSH_VERSION = "0.1.5-rc.2"; // 所有 @deepseek-ai/dsh-* 统一钉死
 export const SUPPORTED_CORDIS_VERSION = "^4.0.2"; // cordis 独立版本线,跟随官方主包声明
 
-// 工程设施恒定项
-const DEV_TOOLS = ["tsdown", "typescript", "vitest"];
+// 工程设施恒定项(不预装 vitest:模板不带测试,用户有需求自行添加)
+const DEV_TOOLS = ["tsdown", "typescript"];
 const DEV_TYPED_NODE = "@types/node";
+
+// 缝片段直接 import 的额外包(SEAMS.pkgs 之外;与 templates/atoms/service/src/seams/ 保持同步)
+const SEAM_FRAGMENT_DEPS: Partial<Record<string, readonly string[]>> = {
+    subagents: ["@deepseek-ai/dsh-agent", "@deepseek-ai/dsh-llm", "@deepseek-ai/dsh-session"],
+};
 
 /**
  * 按问卷答案收集全部依赖:Set 并集去重,按 peer/deps/dev 三桶输出
@@ -40,6 +45,14 @@ export function collectDeps(answers: Answers): DepBuckets {
         peer.add("@deepseek-ai/dsh-tools");
     }
 
+    // ②-b Protocol 原子:agents 注册面 + 协议桥骨架直接 import 的包(brand/llm/session)
+    if (answers.atoms.includes("protocol")) {
+        peer.add("@deepseek-ai/dsh-agent");
+        peer.add("@deepseek-ai/dsh-brand");
+        peer.add("@deepseek-ai/dsh-llm");
+        peer.add("@deepseek-ai/dsh-session");
+    }
+
     // ③ Events 域:勾选域的 pkgs 全给(定义包+实现包,用户不挑)
     for (const domainId of answers.eventDomains) {
         const domain = EVENT_DOMAINS.find((x) => x.id === domainId);
@@ -48,21 +61,27 @@ export function collectDeps(answers: Answers): DepBuckets {
         }
     }
 
-    // ④ UI 原子:槽注册 API + 各界面位 Owner 包进 peer(react 由 client 基线提供,插件不声明)
+    // ④ UI 原子:slots/renderers 类型来源 + 各界面位 Owner 包进 peer;
+    // react 系进 dev(官方 ui 插件声明在 devDependencies,运行时由 client 基线提供)
     if (answers.atoms.includes("ui")) {
         peer.add("@deepseek-ai/dsh-client-ui-slots");
+        peer.add("@deepseek-ai/dsh-client-ui-renderer");
         for (const surfaceId of answers.uiSurfaces) {
             const surface = UI_SURFACES.find((x) => x.id === surfaceId);
             if (surface) peer.add(surface.pkg);
         }
+        dev.add("react");
+        dev.add("react-dom");
+        dev.add("@types/react");
     }
 
-    // ⑤ 服务:新建服务无额外包;扩展缝按缝的 pkgs 全给
+    // ⑤ 服务:新建服务无额外包;扩展缝按缝的 pkgs 全给 + 片段直接 import 的额外包
     for (const seamId of answers.serviceSeams) {
         const seam = SEAMS.find((x) => x.id === seamId);
         if (seam) {
             for (const pkg of seam.pkgs) peer.add(pkg);
         }
+        for (const pkg of SEAM_FRAGMENT_DEPS[seamId] ?? []) peer.add(pkg);
     }
 
     // ⑥ 配置方式:静态起装 schemastery;动态再加 settings 服务

@@ -5,6 +5,7 @@ export const SEAMS = [
     {
         id: "llm",
         ctxKey: "ctx.llm",
+        inject: "llm",
         label: "模型接入(llm)",
         desc: "注册 LLM 适配器,接入新的模型/供应商",
         pkgs: [
@@ -16,6 +17,7 @@ export const SEAMS = [
     {
         id: "systemPrompt",
         ctxKey: "ctx.systemPrompt",
+        inject: "systemPrompt",
         label: "提示注入(systemPrompt)",
         desc: "往系统提示注册 section(记忆/知识库)",
         pkgs: ["@deepseek-ai/dsh-system-prompt"],
@@ -23,6 +25,7 @@ export const SEAMS = [
     {
         id: "subagents",
         ctxKey: "ctx.subagents",
+        inject: "subagents",
         label: "子代理(subagents)",
         desc: "注册新的子代理提供者",
         pkgs: ["@deepseek-ai/dsh-subagent"],
@@ -30,6 +33,7 @@ export const SEAMS = [
     {
         id: "web",
         ctxKey: "ctx.web",
+        inject: "web",
         label: "网络提供者(web)",
         desc: "注册搜索/网页抓取提供者",
         pkgs: [
@@ -40,6 +44,7 @@ export const SEAMS = [
     {
         id: "commands",
         ctxKey: "ctx.commands",
+        inject: "commands",
         label: "人类命令(commands)",
         desc: "注册人类 slash 命令(/goal、/plan 这类,不走模型)",
         pkgs: ["@deepseek-ai/dsh-commands"],
@@ -47,6 +52,7 @@ export const SEAMS = [
     {
         id: "storage",
         ctxKey: "ctx.storage",
+        inject: "storage",
         label: "持久存储(storage)",
         desc: "提供持久化存储后端",
         pkgs: [
@@ -58,6 +64,8 @@ export const SEAMS = [
 ] as const satisfies readonly {
     id: string;
     ctxKey: string;
+    /** 该缝要求的就绪服务名(生成器并入插件入口 inject 并集) */
+    inject: string;
     label: string;
     desc: string;
     pkgs: readonly string[];

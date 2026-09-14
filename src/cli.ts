@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+import { existsSync } from "node:fs";
+import { resolve } from "node:path";
 import { Command } from "commander";
 import * as p from "@clack/prompts";
 import type { Answers } from "./domain/types";
@@ -6,13 +8,17 @@ import { askBasic } from "./prompts/basic";
 import { askCapabilities } from "./prompts/capabilities";
 import { askConfig } from "./prompts/config";
 import { printSummary } from "./prompts/summary";
+import { writeProject } from "./generate/project";
+import pkgJson from "../package.json" with { type: "json" };
 
 const program = new Command();
 
 program
     .name("dshp")
-    .description("Scaffold DeepSeek Harness (dsh) plugin projects interactively")
-    .version("0.1.0");
+    .description(
+        "Scaffold DeepSeek Harness (dsh) plugin projects interactively",
+    )
+    .version(pkgJson.version);
 
 program
     .command("create [name]")
@@ -45,12 +51,27 @@ program
             config,
         };
 
-        // ② 全景汇总:人工确认页(M2 渲染管线的输入形态)
+        // ② 全景汇总:人工确认页
         printSummary(answers);
 
-        // ③ M2 里程碑:模板渲染与文件生成(当前到此为止)
+        // ③ 确认后落盘(M2:渲染模板 + 动态文件生成)
+        const ok = await p.confirm({ message: "按以上答案生成项目?", initialValue: true });
+        if (p.isCancel(ok) || !ok) {
+            p.cancel("已取消,未生成任何文件。");
+            return;
+        }
+
+        const targetDir = resolve(process.cwd(), answers.dirName);
+        if (answers.dirName !== "." && existsSync(targetDir)) {
+            p.cancel(`目录已存在:${targetDir}(换一个目录名,或删除后重试)`);
+            return;
+        }
+
+        const files = writeProject(answers, targetDir);
+        p.log.info(`已生成 ${files.length} 个文件 → ${targetDir}`);
+        p.note(files.map((f) => `  ${f}`).join("\n"), "文件清单");
         p.outro(
-            "问卷完成。文件生成将在 M2 里程碑提供,当前仅收集与预览答案。",
+            "下一步:pnpm install → pnpm build | 本地调试:dsh web --patch ./dev.patch.yml | 建议:git init && git add -A",
         );
     });
 
