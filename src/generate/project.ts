@@ -11,12 +11,20 @@ import { generatePackageJson } from "./packageJson";
 import { generateCordisPatch, generateDevPatch } from "./patches";
 import { generateAggregator, generateHostIndex } from "./indexTs";
 
-// base 平铺模板文件(templates/ 根与 atoms/scenarios 混居,故显式列文件而非整目录渲染)
-const BASE_FILES = ["tsconfig.json", "README.md", ".gitignore", "tsdown.config.ts"] as const;
+// base 平铺模板文件(templates/ 根平铺着案例库 README 等非渲染文件,故显式列文件而非整目录渲染)
+// `_` 前缀是点文件素材的素材名,落盘时换 `.` 开头(见 destName):npm 内置排除表把 .gitignore
+// 硬踢出 tarball 且无法用 .npmignore 反向加回,素材必须以非点名才能随包发布。约定同 create-vite。
+const BASE_FILES = ["tsconfig.json", "README.md", "_gitignore", "tsdown.config.ts"] as const;
+
+/** 素材名 → 落盘名:`_` 前缀的点文件素材换 `.` 开头,其余原样 */
+function destName(source: string): string {
+    return source.startsWith("_") ? "." + source.slice(1) : source;
+}
 
 // templates/ 目录锚点:src 下与打包后的 dist 深度不同,向上探测到含 atoms 的 templates 为止
 let cachedRoot: string | undefined;
-function templatesRoot(): string {
+/** templates/ 目录绝对路径(案例拷贝等模块共用;探测失败直接抛错) */
+export function templatesRoot(): string {
     if (cachedRoot !== undefined) return cachedRoot;
     let dir = dirname(fileURLToPath(import.meta.url));
     for (let i = 0; i < 6; i++) {
@@ -49,10 +57,11 @@ export function writeProject(answers: Answers, targetDir: string): string[] {
     const vars: Vars = buildVars(answers, plan.readmeStructure.join("\n"));
     const root = templatesRoot();
 
-    // ① base 模板(tsconfig / README / .gitignore)
+    // ① base 模板(tsconfig / README / _gitignore→.gitignore / tsdown)
     for (const base of BASE_FILES) {
-        writeFile(targetDir, base, renderString(readTemplate(join(root, base)), vars));
-        written.push(base);
+        const dest = destName(base);
+        writeFile(targetDir, dest, renderString(readTemplate(join(root, base)), vars));
+        written.push(dest);
     }
 
     // ② 原子实现文件(拷贝 + 占位符渲染;copy.from 相对 templates/atoms/)
