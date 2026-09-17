@@ -2,9 +2,11 @@ import { createServer, type IncomingMessage, type ServerResponse } from 'node:ht
 import { randomUUID } from 'node:crypto'
 import type { Context } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-agent' // ctx.agents 的类型来源
+import type {} from '@deepseek-ai/dsh-agent-default-model' // ctx.agentDefaultModel 的类型来源
 import { brandString } from '@deepseek-ai/dsh-brand'
 import { boundContextSummary, createUserMessage } from '@deepseek-ai/dsh-llm'
 import type { SessionId } from '@deepseek-ai/dsh-session'
+import type {} from '@deepseek-ai/dsh-workspace' // ctx.workspaceRegistry 的类型来源
 
 /**
  * 协议桥:HTTP webhook 入口(参考官方 dsh-webhook 包的对接方式)。
@@ -37,10 +39,17 @@ export function registerProtocol(ctx: Context, port: number): void {
                 return
             }
             const text = await readBody(req)
-            // agentOptions 不填时用默认模型;要指定则传 { provider: '...', model: '...' }
+            const sessionId = brandString<SessionId>(`webhook-bridge-${randomUUID()}`)
+            // 创建 workspace 并把 session 绑定进去;缺失此步 session 数据不落盘、UI 加载历史失败
+            const workspace = await ctx.workspaceRegistry.create(process.cwd())
+            // 从默认模型配置取 provider 和 model;缺失此参数 prompt 模板变量 {{model}} 无值
+            const selected = ctx.agentDefaultModel.currentSelection()
             const handleAgent = await ctx.agents.create({
-                sessionId: brandString<SessionId>(`webhook-bridge-${randomUUID()}`),
+                sessionId,
+                meta: { cwd: workspace.path },
+                agentOptions: { provider: selected.provider, model: selected.model },
             })
+            await workspace.attachSession(sessionId)
             // followup 排队一轮新对话;steer/send 用于插话,详见 AgentHandle 类型
             handleAgent.agent.followup(
                 createUserMessage({

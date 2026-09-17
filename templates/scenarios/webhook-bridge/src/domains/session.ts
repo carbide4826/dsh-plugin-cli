@@ -14,8 +14,7 @@ export function registerSessionListeners(ctx: Context): void {
 
     // emit:会话日志追加(post-commit;监听器失败被 containment,不影响提交)
     ctx.on('session/event', (session, event) => {
-        // TODO: 按事件类型做投影、统计、转发等
-        void session
-        void event
+        // 打印事件类型,让测试员能在终端看到 agent turn 的流向
+        console.log(`[webhook-bridge] event: ${event.type}`)
     })
 }

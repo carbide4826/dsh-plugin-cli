@@ -8,7 +8,7 @@ import { registerProtocol } from "./protocol.ts"
 export const name = 'webhook-bridge'
 
 // 要求就绪的服务(决定加载顺序)
-export const inject = ['agents']
+export const inject = ['agents', 'workspaceRegistry', 'agentDefaultModel']
 
 /** 插件配置(静态:写进 cordis.yml,加载时生效)。 */
 export interface Config {
