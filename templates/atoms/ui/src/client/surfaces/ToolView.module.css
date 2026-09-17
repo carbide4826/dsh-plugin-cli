@@ -1,0 +1,7 @@
+/* 工具视图样式:约定同 SettingsCard.module.css 头注释 */
+.card {
+    padding: 4px 8px;
+    font-size: 12px;
+    opacity: 0.8;
+    color: var(--dsw-alias-label-secondary, inherit);
+}

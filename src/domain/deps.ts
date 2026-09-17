@@ -23,6 +23,8 @@ export const SUPPORTED_CORDIS_VERSION = "^4.0.2"; // cordis 独立版本线,跟�
 // 工程设施恒定项(不预装 vitest:模板不带测试,用户有需求自行添加)
 const DEV_TOOLS = ["tsdown", "typescript"];
 const DEV_TYPED_NODE = "@types/node";
+// tsdown 的 CSS 管线(@tsdown/css 缺位时构建直接报错),仅 UI 项目需要
+const DEV_TSDOWN_CSS = "@tsdown/css";
 
 // 缝片段直接 import 的额外包(SEAMS.pkgs 之外;与 templates/atoms/service/src/seams/ 保持同步)
 const SEAM_FRAGMENT_DEPS: Partial<Record<string, readonly string[]>> = {
@@ -73,6 +75,7 @@ export function collectDeps(answers: Answers): DepBuckets {
         dev.add("react");
         dev.add("react-dom");
         dev.add("@types/react");
+        dev.add(DEV_TSDOWN_CSS);
     }
 
     // ⑤ 服务:新建服务无额外包;扩展缝按缝的 pkgs 全给 + 片段直接 import 的额外包

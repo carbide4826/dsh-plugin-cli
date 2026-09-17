@@ -3,6 +3,7 @@
 // 视图是 block 的纯函数——运行中、失败、成功三种形态都从这里读出。
 import { memo } from 'react'
 import type { ToolCallViewProps } from '@deepseek-ai/dsh-client-ui-tool/client'
+import styles from './ToolView.module.css'
 
 /** 从结果 content 里取第一个 text 块(defensive:内容块形状后续可能扩展) */
 function resultText(block: ToolCallViewProps['block']): string | null {
@@ -19,21 +20,11 @@ export const ToolView = memo(function ToolView(props: ToolCallViewProps) {
     const text = resultText(props.block)
 
     return (
-        <div
-            style={{
-                margin: '4px 0',
-                padding: '8px 12px',
-                fontSize: 12,
-                lineHeight: 1.6,
-                border: '1px solid #d0d7de',
-                borderRadius: 8,
-                background: '#f6f8fa',
-            }}
-        >
-            <div style={{ fontWeight: 600, opacity: 0.75 }}>
+        <div className={styles.card}>
+            <div className={styles.title}>
                 {running ? '⏳ count_chars 统计中…' : failed ? '❌ count_chars 失败' : '✅ count_chars'}
             </div>
-            {text !== null && <div style={{ whiteSpace: 'pre-wrap' }}>{text}</div>}
+            {text !== null && <div className={styles.result}>{text}</div>}
         </div>
     )
 })

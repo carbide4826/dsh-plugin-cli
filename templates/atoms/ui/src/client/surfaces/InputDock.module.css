@@ -1,0 +1,7 @@
+/* 输入区挂件样式:约定同 SettingsCard.module.css 头注释 */
+.dock {
+    padding: 4px 8px;
+    font-size: 12px;
+    opacity: 0.8;
+    color: var(--dsw-alias-label-secondary, inherit);
+}

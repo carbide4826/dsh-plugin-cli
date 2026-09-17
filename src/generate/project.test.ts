@@ -126,7 +126,12 @@ describe("writeProject", () => {
         expect(tsdownCfg).toContain("entry: ['src/index.ts']");
         expect(tsdownCfg).toContain("outExtensions");
 
+        // 非 UI 项目:UI 专属物不得泄漏(无 CSS 内联段、无 @tsdown/css)
+        expect(tsdownCfg).not.toContain("dshp-inline-client-css");
+        expect(tsdownCfg).not.toContain("style.css");
         const pkg = JSON.parse(readFileSync(join(dir, "package.json"), "utf8"));
+        expect(pkg.devDependencies["@tsdown/css"]).toBeUndefined();
+
         expect(pkg.exports["."]).toBe("./dist/index.js");
 
         // 入口拼装:name/inject/Config/apply 双参
@@ -152,20 +157,30 @@ describe("writeProject", () => {
         expect(existsSync(join(dir, "dev.patch.yml"))).toBe(true);
     });
 
-    it("勾 UI:界面位按注册层 .ts + 组件 .tsx 成对落盘", () => {
+    it("勾 UI:界面位按注册层 .ts + 组件 .tsx + 样式 .module.css 三件套落盘", () => {
         const dir = freshDir();
         writeProject({ ...base, atoms: ["ui"], uiSurfaces: ["sidebar"] }, dir);
         expect(existsSync(join(dir, "src/client/surfaces/sidebar-panel.ts"))).toBe(true);
         expect(existsSync(join(dir, "src/client/surfaces/SidebarPanel.tsx"))).toBe(true);
+        expect(existsSync(join(dir, "src/client/surfaces/SidebarPanel.module.css"))).toBe(true);
         expect(existsSync(join(dir, "src/client/index.ts"))).toBe(true);
+        // CSS Modules 的 TS 契约随 UI 生成
+        expect(existsSync(join(dir, "src/css-modules.d.ts"))).toBe(true);
 
         // client 出口必须是 __ModuleLoader__ 注册式 CJS 段(聚合 bundle 非 ESM 上下文)
         const tsdownCfg = readFileSync(join(dir, "tsdown.config.ts"), "utf8");
         expect(tsdownCfg).toContain("__ModuleLoader__");
         expect(tsdownCfg).toContain("format: 'cjs'");
         expect(tsdownCfg).toContain("{ index: 'src/index.ts' }");
+        // CSS 内联插件在场,注入标签锚定到本项目包名
+        expect(tsdownCfg).toContain("dshp-inline-client-css");
+        expect(tsdownCfg).toContain('style[data-plugin-css="demo"]');
         // 渲染完整性:注释里误写字面占位符会被引擎当真替换,产物不得残留任何 {{...}}
         expect(tsdownCfg).not.toContain("{{");
+
+        // UI 专属工具链:@tsdown/css 进 devDeps(tsdown 的 CSS 管线,缺位即构建报错)
+        const pkg = JSON.parse(readFileSync(join(dir, "package.json"), "utf8"));
+        expect(pkg.devDependencies["@tsdown/css"]).toBe("^0.23.0");
     });
 
     // 手工工具:DSH_GEN_E2E_DIR 指向装好全部 host 依赖的检查工程时,生成宿主组合供真实 tsc。

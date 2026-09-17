@@ -4,6 +4,44 @@ import { SUPPORTED_CORDIS_VERSION, SUPPORTED_DSH_VERSION } from "../domain/deps"
 import type { Vars } from "../render/render";
 
 /**
+ * client 出口的 CSS 内联插件段(渲染进生成的 tsdown.config.ts)。
+ * 机制:@tsdown/css 把 .module.css 抽成独立 style.css,而宿主聚合只拼 client.js、
+ * 没有插件 CSS 通道(官方插件不带 CSS,全用宿主全局类名)——所以在写盘后把样式文本
+ * 回灌到 client.js 尾部(运行时注入 <style>,按 data-plugin-css 幂等防重),再删独立文件。
+ * 约定与社区 UI 插件 @linxin666/dsh-client-ui-git-graph 同款(同为 tsdown 工具链)。
+ */
+function inlineCssPlugin(pkgName: string): string {
+    // 生成的是"配置源码文本",三层求值:此处拼源码 → 构建 css 读入 → 运行时注入
+    return [
+        "        plugins: [{",
+        "            name: 'dshp-inline-client-css',",
+        "            writeBundle() {",
+        "                const cssPath = join('dist', 'style.css')",
+        "                if (!existsSync(cssPath)) return",
+        "                const css = readFileSync(cssPath, 'utf8')",
+        "                const jsPath = join('dist', 'client.js')",
+        "                const inject = [",
+        "                    \"\",",
+        "                    \";(function () {\",",
+        "                    \"  var d = document\",",
+        "                    \"  if (!d) return\",",
+        `                    '  var k = \\'style[data-plugin-css="${pkgName}"]\\'',`,
+        "                    \"  if (d.querySelector(k)) return\",",
+        "                    \"  var s = d.createElement(\\\"style\\\")\",",
+        `                    '  s.dataset.plugin = "${pkgName}"',`,
+        `                    '  s.dataset.pluginCss = "${pkgName}"',`,
+        "                    \"  s.textContent = \" + JSON.stringify(css),",
+        "                    \"  d.head.appendChild(s)\",",
+        "                    \"})();\",",
+        "                ].join(\"\\n\")",
+        "                writeFileSync(jsPath, readFileSync(jsPath, 'utf8') + inject, 'utf8')",
+        "                rmSync(cssPath)",
+        "            },",
+        "        }],",
+    ].join("\n");
+}
+
+/**
  * client 出口的 tsdown 配置段(勾 UI 时注入,前导逗号与 host 段拼成多配置数组)。
  * 协议:client 产物必须是 window.__ModuleLoader__.load({id, factory}) 注册式——
  * 聚合加载器在非 ESM 上下文执行各包 client.js,纯 ESM 的 export 语句会让整个聚合炸掉;
@@ -34,6 +72,7 @@ function clientSegment(pkgName: string): string {
         `        banner: ${JSON.stringify(banner)},`,
         `        footer: ${JSON.stringify(footer)},`,
         "        clean: false,",
+        inlineCssPlugin(pkgName),
         "    }",
     ].join("\n");
 }

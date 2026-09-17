@@ -10,6 +10,7 @@ import {
 // 工具链版本(dsh rc 线之外;react 系对齐官方 ui 包的声明)
 const TOOLCHAIN: Record<string, string> = {
     tsdown: "^0.23.0",
+    "@tsdown/css": "^0.23.0", // tsdown 的 CSS 管线(仅 UI 项目进 devDeps),与 tsdown 同版线
     typescript: "^5.6.0",
     "@types/node": "^22.10.0",
     "@types/react": "~18.3.1",

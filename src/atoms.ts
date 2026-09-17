@@ -154,12 +154,16 @@ export function planGeneration(answers: Answers): GenerationPlan {
                 // host 侧零贡献;client 半边:聚合入口生成,按勾选拷实现与组件
                 const surfaces = UI_SURFACES.filter((s) => answers.uiSurfaces.includes(s.id));
                 const aggregate: AggregatePlan = { file: "src/client/index.ts", imports: [], calls: [] };
+                // CSS Modules 的 TS 契约:.module.css 导入返回类名映射(组件样式文件的配套声明)
+                plan.copy.push({ from: "ui/src/css-modules.d.ts", to: "src/css-modules.d.ts" });
                 for (const s of surfaces) {
                     const w = SURFACE_WIRING[s.id];
                     plan.copy.push(
                         // 注册层不含 JSX,文件用 .ts(与导入后缀字面一致,直载安全);组件层保持 .tsx
                         { from: `ui/src/client/${w.file}.ts`, to: `src/client/${w.file}.ts` },
                         { from: `ui/src/client/${w.component}`, to: `src/client/${w.component}` },
+                        // 组件样式与组件成对拷贝(构建期内联进 client.js,见 tsdown 配置的内联插件)
+                        { from: `ui/src/client/${w.component.replace(/\.tsx$/, ".module.css")}`, to: `src/client/${w.component.replace(/\.tsx$/, ".module.css")}` },
                     );
                     wire(aggregate, w.file, w.fn, `${w.fn}(ctx) // 界面位:${s.label}`);
                 }

@@ -4,7 +4,7 @@
 // 命名,生成时换回 `.` 开头(约定同 create-vite 的 _gitignore)。
 // 两条断言必须成对存在:只禁点文件会被"删掉素材"满足,只查素材会在某天被加点文件绕开。
 import { describe, expect, it } from "vitest";
-import { existsSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { templatesRoot } from "./project";
 import { listScenarioCases } from "./scenarioCase";
@@ -41,6 +41,31 @@ describe("templates 素材可打包性", () => {
                 existsSync(join(templatesRoot(), "scenarios", caseId, "_gitignore")),
                 `${caseId}/_gitignore`,
             ).toBe(true);
+        }
+    });
+
+    it("UI 组件与样式素材成对在位(组件 .tsx 必有同名 .module.css)", () => {
+        const surfaces = join(templatesRoot(), "atoms", "ui", "src", "client", "surfaces");
+        const components = walk(surfaces).filter((f) => f.endsWith(".tsx"));
+        expect(components.length).toBeGreaterThan(0);
+        for (const rel of components) {
+            const css = rel.replace(/\.tsx$/, ".module.css");
+            expect(existsSync(join(surfaces, css)), `${css} 缺失`).toBe(true);
+        }
+        // CSS Modules 的 TS 契约声明在位(组件里 import "*.module.css" 依赖它)
+        expect(existsSync(join(templatesRoot(), "atoms", "ui", "src", "css-modules.d.ts"))).toBe(true);
+    });
+
+    it("UI 精选案例:样式与类型契约、@tsdown/css 在位", () => {
+        for (const caseId of ["quick-tool", "model-gateway"]) {
+            const root = join(templatesRoot(), "scenarios", caseId);
+            expect(existsSync(join(root, "src", "css-modules.d.ts")), `${caseId}/css-modules.d.ts`).toBe(true);
+            const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8")) as {
+                devDependencies?: Record<string, string>;
+            };
+            expect(pkg.devDependencies?.["@tsdown/css"], `${caseId} devDeps @tsdown/css`).toBe("^0.23.0");
+            const tsdownCfg = readFileSync(join(root, "tsdown.config.ts"), "utf8");
+            expect(tsdownCfg).toContain("dshp-inline-client-css");
         }
     });
 });

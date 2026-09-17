@@ -15,6 +15,7 @@ Curated case: custom query tool with a result card (tool + tool-view)
 | `src/tool.ts` | defineTool 三要素:schema(description 决定模型何时调用)、execute、output render |
 | `src/client/surfaces/tool-view.ts` | keyed 槽位注册:`key: 'count_chars'` 对准工具名 |
 | `src/client/surfaces/ToolView.tsx` | 卡片组件:从 `props.block` 读运行中/失败/成功三种形态 |
+| `src/client/surfaces/ToolView.module.css` | 卡片样式(CSS Modules,构建后内联进 client.js,见防坑第 13 条) |
 
 ## 如何验证起效
 
@@ -76,6 +77,7 @@ dsh plugin --profile <name> add ./  # 在本项目父目录执行(相对路径�
 10. **祖先 `pnpm-workspace.yaml` 劫持 install**:上级任意目录存在该文件时,`pnpm install` 会被提升到那个 workspace 根执行,本项目的 `node_modules` 不会被创建(typecheck 报一堆 Cannot find module)。在本项目内用 `pnpm install --ignore-workspace` 独立安装即可。
 11. **client 出口是注册式模块,不是 ESM**:宿主把各包 client.js 拼进同一聚合脚本执行(非 ESM 上下文),产物必须是 `window.__ModuleLoader__.load({id, factory})` 外壳——生成配置已用 CJS + banner/footer 实现,别改成纯 ESM;`react`/`react-dom`/`react/jsx-runtime` 必须 external(宿主经 factory 的 require 供应,打进 bundle 会双实例)。
 12. **槽位注册选项按槽型分形**:keyed 槽 = `{key, priority?}`,list 槽 = `{id, order?, label?, priority?}`,single 槽 = `{priority?}`——没有统一形状,注册项一律没有 `inject` 字段(面数据走组件的 owner props)。`priority` 是 shadowing rank(升序,最低者渲染,same key+same priority 会 throw):要接管官方已注册的 single 槽(如会话头,官方在 0),用更低值。`conversation.chat.node` 的 key 在 rc.2 类型里是官方节点枚举,自定义节点 key 类型未开放(生成代码用 `as never` 断言,类型放开后移除)。
+13. **组件样式走 CSS Modules,构建后内联进 client.js**:每个表面组件配一个同名 `.module.css`——类名构建期哈希隔离;样式值优先宿主设计令牌 `var(--dsw-alias-*)` 并带字面量兜底(主题/暗色自动跟随)。tsdown 配置里的内联插件会把样式文本回灌进 `dist/client.js`(运行时注入 `<style>`,按 `data-plugin-css` 幂等防重)并删除独立文件——宿主聚合只拼 client.js、没有插件 CSS 通道,别把样式改回 inline style 或独立 .css 引用。`.module.css` 的 TS 类型由 `src/css-modules.d.ts` 提供。
 
 ## 代码结构
 

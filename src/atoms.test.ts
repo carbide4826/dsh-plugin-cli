@@ -64,12 +64,21 @@ describe("planGeneration", () => {
         expect(seamsAgg?.calls).toHaveLength(1);
         expect(seamsAgg?.calls[0]).toContain("registerLlmSeam");
 
-        // ui:勾 2 个界面位 → 各拷注册层(.ts)+ 组件(.tsx),共 4 个文件;聚合只含 2 行
+        // ui:勾 2 个界面位 → 各拷注册层(.ts)+ 组件(.tsx)+ 组件样式(.module.css),
+        // 另加 css-modules.d.ts 一份,共 7 个文件;聚合只含 2 行
         const uiCopies = plan.copy.filter((c) => c.from.startsWith("ui/"));
-        expect(uiCopies).toHaveLength(4);
+        expect(uiCopies).toHaveLength(7);
         expect(uiCopies).toContainEqual({
             from: "ui/src/client/surfaces/sidebar-panel.ts",
             to: "src/client/surfaces/sidebar-panel.ts",
+        });
+        expect(uiCopies).toContainEqual({
+            from: "ui/src/client/surfaces/SidebarPanel.module.css",
+            to: "src/client/surfaces/SidebarPanel.module.css",
+        });
+        expect(uiCopies).toContainEqual({
+            from: "ui/src/css-modules.d.ts",
+            to: "src/css-modules.d.ts",
         });
         const clientAgg = plan.aggregates.find((a) => a.file === "src/client/index.ts");
         expect(clientAgg?.calls).toHaveLength(2);
