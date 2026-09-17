@@ -1,0 +1,18 @@
+/* 设置卡片:样式值优先宿主设计令牌 var(--dsw-alias-*)(带字面量兜底),
+   主题与暗色自动跟随;类名构建期哈希隔离,构建后内联进 client.js,无独立 .css 产物。 */
+.card {
+    padding: 4px 8px;
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.title {
+    font-weight: 600;
+    color: var(--dsw-alias-label-primary, inherit);
+}
+
+.desc {
+    margin-top: 2px;
+    opacity: 0.8;
+    color: var(--dsw-alias-label-secondary, inherit);
+}

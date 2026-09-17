@@ -6,22 +6,23 @@ Curated case: bring your own model service (llm seam + dynamic settings card)
 
 ## 本案例演示什么
 
-接入自有模型服务(公司网关/第三方):llm 缝注册 adapter 出现在模型选择器,apiKey 等配置走**设置页动态表单**(改配置实时生效,不重启)。演示态为回显,真实实现只需把 `stream` 换成对 `baseUrl` 的流式 HTTP 调用。
+接入自有模型服务(公司网关/第三方):llm 缝注册 adapter 出现在模型选择器,配置走**设置页动态表单**(改配置实时生效,不重启)。API key 不落盘:配置里只放**环境变量名**(`apiKeyEnv`,官方 web-search-deepseek/llm-deepseek 同款),key 本体 `export` 到环境里按请求解析。演示态为回显,真实实现只需把 `stream` 换成对 `baseUrl` 的流式 HTTP 调用。
 
 ## 关键文件导览
 
 | 文件 | 看什么 |
 |---|---|
-| `src/index.ts` | Config(apiKey/baseUrl/model)+ `installSection` 动态配置 + 热更新注入 adapter |
-| `src/seams/llm.ts` | adapter 三方法:`providerInfo`(显示名)、`listModels`(进选择器,必 override)、`stream`(生成) |
+| `src/index.ts` | Config(apiKeyEnv/baseUrl/model)+ `installSection` 动态配置 + 热更新注入 adapter |
+| `src/seams/llm.ts` | adapter 三方法:`providerInfo`(显示名)、`listModels`(进选择器,必 override)、`stream`(生成,key 从 `process.env[config.apiKeyEnv]` 按请求取) |
 | `src/client/surfaces/SettingsCard.tsx` | 设置卡片:Config 表单由宿主自动渲染,卡片放说明文字 |
+| `src/client/surfaces/SettingsCard.module.css` | 卡片样式(CSS Modules,构建后内联进 client.js,见防坑第 13 条) |
 
 ## 如何验证起效
 
 1. `pnpm install --ignore-workspace && pnpm build && dsh plugin add .`(UI 半边必须 add 轨道)
-2. 打开 设置 → 插件 → model-gateway:填写 apiKey(patch 里的样例配置也行)
+2. `export GATEWAY_API_KEY=any-non-empty`(echo 模式只检查非空;真网关放真 key)
 3. 点输入框旁"模型"入口:列表出现 **Model Gateway → gateway-chat** 分组,选中
-4. 发消息 → 回复带 `[model-gateway] …(echo 模式)` 即全链路通;改 apiKey 后直接再发消息验证热更新
+4. 发消息 → 回复带 `[model-gateway] …(echo 模式)` 即全链路通;在设置页把 `apiKeyEnv` 指到别的变量再发消息,验证热更新
 
 ## 开发
 
@@ -77,6 +78,7 @@ dsh plugin --profile <name> add ./  # 在本项目父目录执行(相对路径�
 10. **祖先 `pnpm-workspace.yaml` 劫持 install**:上级任意目录存在该文件时,`pnpm install` 会被提升到那个 workspace 根执行,本项目的 `node_modules` 不会被创建(typecheck 报一堆 Cannot find module)。在本项目内用 `pnpm install --ignore-workspace` 独立安装即可。
 11. **client 出口是注册式模块,不是 ESM**:宿主把各包 client.js 拼进同一聚合脚本执行(非 ESM 上下文),产物必须是 `window.__ModuleLoader__.load({id, factory})` 外壳——生成配置已用 CJS + banner/footer 实现,别改成纯 ESM;`react`/`react-dom`/`react/jsx-runtime` 必须 external(宿主经 factory 的 require 供应,打进 bundle 会双实例)。
 12. **槽位注册选项按槽型分形**:keyed 槽 = `{key, priority?}`,list 槽 = `{id, order?, label?, priority?}`,single 槽 = `{priority?}`——没有统一形状,注册项一律没有 `inject` 字段(面数据走组件的 owner props)。`priority` 是 shadowing rank(升序,最低者渲染,same key+same priority 会 throw):要接管官方已注册的 single 槽(如会话头,官方在 0),用更低值。`conversation.chat.node` 的 key 在 rc.2 类型里是官方节点枚举,自定义节点 key 类型未开放(生成代码用 `as never` 断言,类型放开后移除)。
+13. **组件样式走 CSS Modules,构建后内联进 client.js**:每个表面组件配一个同名 `.module.css`——类名构建期哈希隔离;样式值优先宿主设计令牌 `var(--dsw-alias-*)` 并带字面量兜底(主题/暗色自动跟随)。tsdown 配置里的内联插件会把样式文本回灌进 `dist/client.js`(运行时注入 `<style>`,按 `data-plugin-css` 幂等防重)并删除独立文件——宿主聚合只拼 client.js、没有插件 CSS 通道,别把样式改回 inline style 或独立 .css 引用。`.module.css` 的 TS 类型由 `src/css-modules.d.ts` 提供。
 
 ## 代码结构
 

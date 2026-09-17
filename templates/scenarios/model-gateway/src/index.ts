@@ -12,10 +12,10 @@ export const name = 'model-gateway'
 // 要求就绪的服务(决定加载顺序)
 export const inject = ['llm', 'settings']
 
-/** 网关接入配置(动态:改 apiKey/切网关无需重启)。 */
+/** 网关接入配置(动态:换网关/换 key 的环境变量名无需重启)。 */
 export interface Config {
-    /** 网关 API Key(转发时做鉴权;echo 模式仅检查非空) */
-    apiKey: string
+    /** 存放网关 API Key 的环境变量名(官方 apiKeyEnv 同款;key 本身不落盘) */
+    apiKeyEnv: string
     /** 网关 base URL(真实实现在此发 HTTP 请求) */
     baseUrl: string
     /** 模型选择器里展示的模型名 */
@@ -23,7 +23,7 @@ export interface Config {
 }
 
 export const Config: z<Config> = z.object({
-    apiKey: z.string().required(),
+    apiKeyEnv: z.string().default('GATEWAY_API_KEY'),
     baseUrl: z.string().default('https://gateway.example.com/v1'),
     model: z.string().default('gateway-chat'),
 })
