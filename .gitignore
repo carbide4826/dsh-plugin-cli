@@ -6,3 +6,6 @@ dist/
 # agent/session local artifacts
 .mimosa/
 .v2c/
+
+# browser MCP session artifacts
+.playwright-mcp/
