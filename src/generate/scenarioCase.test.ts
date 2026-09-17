@@ -83,13 +83,14 @@ describe("copyScenarioCase 拷贝与身份重写", () => {
         const target = mkdtempSync(join(tmpdir(), "dshp-case-"));
         try {
             const files = copyScenarioCase(caseId, target, pkgName);
-            // 点文件素材按 `_`→`.` 落成:源文件集经同一规则映射后应与产物集一文不落
+            // 点文件素材按 `_`→`.` 落成:源文件集经同一规则映射后应与产物集一文不落;
+            // dev.patch.yml 不随案例入库,由 CLI 现场生成,故在映射集之外多一份
             const toDest = (p: string) =>
                 p.split("/").map((seg) => (seg.startsWith("_") ? "." + seg.slice(1) : seg)).join("/");
             const sourceFiles = walk(join(casesRoot, caseId))
                 .map((f) => toDest(f.replaceAll("\\", "/")))
                 .sort();
-            expect(files).toEqual(sourceFiles); // 一文不落
+            expect(files).toEqual([...sourceFiles, "dev.patch.yml"].sort());
             expect(files).toContain(".gitignore"); // 素材 `_gitignore` 落成标准点文件名
 
             // 身份三处 + 全库无旧 id 残留
@@ -101,6 +102,12 @@ describe("copyScenarioCase 拷贝与身份重写", () => {
                 const text = readFileSync(join(target, file), "utf8");
                 expect(text.includes(caseId), `${file} 仍残留旧案例 id`).toBe(false);
             }
+
+            // 现场生成的 dev.patch.yml:id 随身份重写、name 指向源码入口绝对路径、config 块保留
+            const devPatch = readFileSync(join(target, "dev.patch.yml"), "utf8");
+            expect(devPatch).toContain(`id: ${pkgName}`);
+            expect(devPatch).toContain(`name: '${join(target, "src", "index.ts")}'`);
+            expect(devPatch).not.toContain("分发配置层"); // 头部说明换成 overlay 语境
         } finally {
             rmSync(target, { recursive: true, force: true });
         }
@@ -113,6 +120,20 @@ describe("copyScenarioCase 拷贝与身份重写", () => {
             expect(files.length).toBeGreaterThan(0);
             expect(readFileSync(join(target, "package.json"), "utf8")).toContain('"notebook"');
             expect(() => copyScenarioCase("nope", target, "nope")).toThrow("nope");
+        } finally {
+            rmSync(target, { recursive: true, force: true });
+        }
+    });
+
+    it("dev.patch.yml 原样保留案例 config 块(model-gateway)", () => {
+        const target = mkdtempSync(join(tmpdir(), "dshp-case-"));
+        try {
+            copyScenarioCase("model-gateway", target, "gw-demo");
+            const devPatch = readFileSync(join(target, "dev.patch.yml"), "utf8");
+            expect(devPatch).toContain("id: gw-demo");
+            expect(devPatch).toContain("config:");
+            expect(devPatch).toContain("baseUrl: 'https://gateway.example.com/v1'");
+            expect(devPatch).toContain("model: 'gateway-chat'");
         } finally {
             rmSync(target, { recursive: true, force: true });
         }

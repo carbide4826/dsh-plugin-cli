@@ -23,6 +23,12 @@ export function generateCordisPatch(answers: Answers): string {
     ].join("\n") + "\n";
 }
 
+// dev.patch.yml 头部说明(预设管线与案例拷贝两条路径共用,避免文案漂移)
+export const DEV_PATCH_NOTES = [
+    "# 本地调试 overlay:dsh web --patch ./dev.patch.yml 直载源码,无需构建。",
+    "# name 指向源码入口文件(必须绝对路径,Node ESM 不支持目录导入)。",
+] as const;
+
 /**
  * 生成 dev.patch.yml(本地调试 overlay:直载源码,无需构建)。
  * 官方约定(index.md):name 必须是源码入口文件的绝对路径——Node ESM 不支持目录导入,
@@ -33,8 +39,7 @@ export function generateCordisPatch(answers: Answers): string {
  */
 export function generateDevPatch(answers: Answers, entryFile: string): string {
     return [
-        "# 本地调试 overlay:dsh web --patch ./dev.patch.yml 直载源码,无需构建。",
-        "# name 指向源码入口文件(必须绝对路径,Node ESM 不支持目录导入)。",
+        ...DEV_PATCH_NOTES,
         "- insert:",
         `    - id: ${answers.pluginId}`,
         `      name: '${entryFile}'${configYaml(answers, "      ")}`,
