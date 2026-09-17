@@ -21,7 +21,8 @@ export function registerStorageSeam(ctx: Context): void {
             units.clear()
         },
     }
-    ctx.storage.backend.register('notebook', backend) // 后端名(部署配置以此选择)
+    // 后端名 = 案例名(纯字符串参数位置):身份重写时 register/get 两处一致替换,自洽
+    ctx.storage.backend.register('notebook', backend)
 }
 
 // ---- 内存介质:单元名 → 已打开单元 ----

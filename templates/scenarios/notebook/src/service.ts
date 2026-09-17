@@ -19,7 +19,9 @@ export class NotebookService extends Service {
     private unitPromise?: Promise<KvUnit>
 
     constructor(ctx: Context) {
-        super(ctx, 'notebook')
+        // 服务键 = <案例名>Service:身份重写用词边界正则只换独立的案例 id,
+        // notebookService 作为整体词不会被误换,声明合并键/访问处三处保持一致
+        super(ctx, 'notebookService')
     }
 
     /** 打开(或复用)notes 单元;懒初始化,首次使用时才触碰介质 */
@@ -29,7 +31,7 @@ export class NotebookService extends Service {
     }
 
     private openUnit(): Promise<KvUnit> {
-        const backend = this.ctx.storage.backend.get('notebook') // seams/storage.ts 注册的后端名
+        const backend = this.ctx.storage.backend.get('notebook') // seams/storage.ts 注册的后端名(随身份一致替换,自洽)
         if (backend.kv === undefined) {
             return Promise.reject(new Error('notebook 后端未提供 kv 能力'))
         }
@@ -57,9 +59,10 @@ export class NotebookService extends Service {
     }
 }
 
-// 声明合并:让工具等处能用 ctx.notebook 访问本服务
+// 声明合并:供其他插件经 ctx.notebookService 跨插件访问本服务
+// (本插件内部的工具不走此路径——工具直接持有实例,见 index.ts/registerTool)
 declare module '@deepseek-ai/cordis' {
     interface Context {
-        notebook: NotebookService
+        notebookService: NotebookService
     }
 }

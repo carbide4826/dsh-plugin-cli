@@ -1,5 +1,6 @@
 import type { Context } from '@deepseek-ai/cordis'
 import { defineTool } from '@deepseek-ai/dsh-tools'
+import type { NotebookService } from "./service.ts"
 
 // 工具名:模型靠它点名调用(下划线风格)
 export const toolName = 'note'
@@ -21,10 +22,12 @@ export interface ToolResult {
 }
 
 /**
- * 注册工具:execute 闭包持有 ctx,经 ctx.notebook(NotebookService)读写存储。
+ * 注册工具:execute 闭包直接持有 NotebookService 实例(不走 ctx 服务查找)。
+ * 原因:ctx.plugin(Service) 会把服务注册进【子作用域】,本插件沿父链查找永远碰不到它,
+ * 必报 "cannot get property ... without inject";实例直传是官方姿势(schedule 插件同款)。
  * 改业务逻辑直接改本函数内部。
  */
-export function registerTool(ctx: Context): void {
+export function registerTool(ctx: Context, notes: NotebookService): void {
     ctx.tools.register(
         defineTool({
             name: toolName,
@@ -57,7 +60,6 @@ export function registerTool(ctx: Context): void {
             },
 
             async execute(args: ToolArgs): Promise<ToolResult> {
-                const notes = ctx.notebook // NotebookService(声明合并提供类型)
                 if (args.action === 'put') {
                     if (args.key === undefined || args.text === undefined) {
                         return { result: 'put 需要 key 和 text 两个参数。' }

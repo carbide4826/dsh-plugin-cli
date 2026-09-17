@@ -15,7 +15,10 @@ export const inject = ['tools', 'storage']
  * @param ctx - Cordis 上下文
  */
 export function apply(ctx: Context): void {
-    registerTool(ctx)
-    ctx.plugin(NotebookService) // 挂载笔记服务(工具经 ctx.notebook 使用)
     registerServiceSeams(ctx)
+    // 直接实例化(而非 ctx.plugin):ctx.plugin 会开子作用域,服务注册进去后本插件沿父链
+    // 查不到(报 without inject);new 则注册进当前作用域,且实例直接交给工具闭包持有。
+    // ⚠️ 变量名避开案例名(notebook 会被身份重写换成带连字符的项目名,落在变量名位置即语法错)
+    const notes = new NotebookService(ctx)
+    registerTool(ctx, notes)
 }
