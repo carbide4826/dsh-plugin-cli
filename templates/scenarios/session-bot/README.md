@@ -6,21 +6,26 @@ Curated case: react to session events automatically (events + llm seam)
 
 ## 本案例演示什么
 
-事件驱动的会话机器人:监听 `session/event`,用户消息以 `/bot` 开头时,经 agents 服务向当前会话**自动投递一条插件来源的回复**——不需要模型点名、不经过工具,插件自己发起动作。
+事件驱动的会话机器人:监听 `session/event`,用户消息以 `/bot` 开头时,直接向会话日志**追加一条插件来源的回复**(`session.append` + 插件 notice 来源)——不需要模型点名、不经过工具,插件自己发起动作。
 
 ## 关键文件导览
 
 | 文件 | 看什么 |
 |---|---|
-| `src/domains/session.ts` | 事件监听:`user/message` 判别 + 触发词匹配 + 异步投递(失败被 containment) |
-| `src/service.ts` | BotService:每会话缓存一个 agent 句柄,`followup` 投递插件消息(`source.kind: 'plugin'`) |
-| `src/index.ts` | `inject: ['agents', 'llm']`:服务依赖决定加载顺序 |
+| `src/domains/session.ts` | 事件监听:`user/message` 判别 + 触发词匹配 + 投递回复;两个监听都带 `{ global: true }` |
+| `src/service.ts` | `sendBotReply`:用 `session.append('user/message', …, { surfaceOp: 'append' })` 落一条插件 notice(轨迹里以「上下文注入 <插件名>」可见) |
+| `src/index.ts` | `inject: ['llm']`:服务依赖决定加载顺序 |
+
+> ⚠️ 本案例踩过的三个坑(写自己的会话事件插件前先读):
+> ① 监听 `session/created` / `session/event` **必须带 `{ global: true }`**——`session/event` 在会话 fiber 内派发,根上下文的普通监听收不到;
+> ② global 回调里**不要读 `ctx.<服务属性>`**——cordis 按当前激活插件的 inject 做访问检查,未声明会抛 `cannot get property … without inject`,且被 containment 静默吞掉(logger.warn 不进终端 stdout),表现为"事件没到"的假象;
+> ③ 回复要用 `session.append`;`agent.followup` 是"排给下一轮的用户输入"(会触发新一轮模型调用),不是回复通道。
 
 ## 如何验证起效
 
 1. `pnpm install --ignore-workspace && pnpm build && dsh plugin add .`
 2. 启动后开个会话,输入 **`/bot 你好`**
-3. 会话流里出现"[session-bot] 收到指令:你好 …"的插件消息卡片;宿主终端同时能看到 `session created` 日志
+3. 会话轨迹里出现「上下文注入 session-bot」条目,内容为"[session-bot] 收到指令:你好 …";宿主终端同时能看到 `session created` 日志
 4. 不带 `/bot` 的普通消息不触发——这就是"按事件条件响应"的最小样板
 
 ## 开发
@@ -85,6 +90,6 @@ src/index.ts        插件入口(name/inject/apply)
 ```
 src/events.ts        事件域聚合(按勾选接线)
 src/domains/         各事件域监听(ctx.on)
-src/service.ts       自有服务(extends Service)
+src/service.ts       插件回复投递(纯函数 session.append,见文件头三条硬约束)
 src/seams/index.ts   能力缝聚合(按勾选接线)
 src/seams/           各能力缝注册实现

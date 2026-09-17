@@ -1,32 +1,23 @@
-import { Context, Service } from '@deepseek-ai/cordis'
-import type { AgentHandle } from '@deepseek-ai/dsh-agent'
 import { boundContextSummary, createUserMessage } from '@deepseek-ai/dsh-llm'
-import type { SessionId } from '@deepseek-ai/dsh-session'
+import type { Session } from '@deepseek-ai/dsh-session'
 
 /**
- * Bot 服务:每个会话持有一个 agent 代理,负责把插件的自动回复投递进会话。
- * 卸载随所属 fiber 自动清理,无需手动管理生命周期。
+ * 把插件的自动回复直接写入会话日志(surface 追加,轨迹里以「上下文注入 <插件名>」可见)。
+ * 不走 agent 轮次、不调模型。
+ *
+ * ⚠️ 实测(0.1.5-rc.2)三条硬约束:
+ * 1. 必须用 session.append 落一条 surface 事件;agent.followup 是"排给下一轮的
+ *    用户输入"(会开新一轮模型调用),不是回复通道。
+ * 2. global 事件回调里禁止读 ctx.<服务属性>——cordis 要求当前激活插件 inject 声明过
+ *    该服务,否则抛 "cannot get property ... without inject" 且被 containment 静默吞掉
+ *    (logger.warn 不进终端 stdout)。所以这里用纯函数,由监听器闭包直接引用。
+ * 3. 回复以 user-role notice 落盘,会进模型上下文——模型可能读到并响应它,
+ *    文案里带"[test-sb] 收到指令"前缀即为此故;不要往里写会诱导模型执行任务的指令文本。
  */
-export class BotService extends Service {
-    // agent 能力来自宿主 agents 服务(决定加载顺序)
-    static inject: readonly string[] = ['agents']
-
-    // 会话 id → 已创建的 agent 句柄(一会话一代理,复用避免重复 create)
-    private readonly handles = new Map<string, AgentHandle>()
-
-    constructor(ctx: Context) {
-        super(ctx, 'session-bot')
-    }
-
-    /** 向指定会话投递一条插件来源的自动回复 */
-    async say(sessionId: SessionId, text: string): Promise<void> {
-        let handle = this.handles.get(sessionId)
-        if (handle === undefined) {
-            handle = await this.ctx.agents.create({ sessionId })
-            this.handles.set(sessionId, handle)
-        }
-        handle.agent.followup(
-            createUserMessage({
+export function sendBotReply(session: Session, text: string): void {
+    queueMicrotask(() => {
+        try {
+            session.append('user/message', createUserMessage({
                 content: [{ type: 'text', text }],
                 source: {
                     kind: 'plugin',
@@ -34,14 +25,9 @@ export class BotService extends Service {
                     form: 'notice',
                     summary: boundContextSummary(text), // 摘要超 120 字符自动截断
                 },
-            }),
-        )
-    }
-}
-
-// 声明合并:让事件监听等处能用 ctx.sessionBot 访问本服务
-declare module '@deepseek-ai/cordis' {
-    interface Context {
-        sessionBot: BotService
-    }
+            }), { surfaceOp: 'append' })
+        } catch (error) {
+            console.error('[session-bot] 自动回复失败:', error)
+        }
+    })
 }
