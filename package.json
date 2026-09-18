@@ -25,9 +25,7 @@
   "files": [
     "dist",
     "templates",
-    "docs/dsh-command-builder.html",
-    "!**/.mimosa/**",
-    "!**/.v2c/**"
+    "docs/dsh-command-builder.html"
   ],
   "engines": {
     "node": "^22.19.0 || >=24.0.0"
