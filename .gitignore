@@ -9,3 +9,6 @@ dist/
 
 # browser MCP session artifacts
 .playwright-mcp/
+
+# workbuddy session artifacts
+.workbuddy/

@@ -1,4 +1,3 @@
-// webhook-bridge — 插件入口。
 import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import { registerEventListeners } from "./events.ts"
@@ -21,7 +20,7 @@ export const Config: z<Config> = z.object({
 })
 
 /**
- * 插件入口:各原子的注册调用(由 dshp 按勾选拼装)。
+ * 插件入口:各能力的注册调用。
  * @param ctx - Cordis 上下文
  * @param config - 已解析的插件配置
  */

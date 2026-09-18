@@ -1,6 +1,6 @@
-// 【M2-c】占位符变量表:问卷答案 + 版本常量 → 渲染引擎的 Vars
+// 占位符变量表:问卷答案 + 版本常量 → 渲染引擎的 Vars
 import type { Answers } from "../domain/types";
-import { SUPPORTED_CORDIS_VERSION, SUPPORTED_DSH_VERSION } from "../domain/deps";
+import { SUPPORTED_DSH_VERSION } from "../domain/deps";
 import type { Vars } from "../render/render";
 
 /**
@@ -86,15 +86,11 @@ function clientSegment(pkgName: string): string {
 export function buildVars(answers: Answers, extraStructure: string): Vars {
     const ui = answers.atoms.includes("ui");
     return {
-        DIR_NAME: answers.dirName,
         PKG_NAME: answers.pkgName,
         PLUGIN_ID: answers.pluginId,
         TOOL_NAME: answers.toolName,
         DESCRIPTION: answers.description,
-        AUTHOR: answers.author,
         DSH_VERSION: SUPPORTED_DSH_VERSION,
-        CORDIS_VERSION: SUPPORTED_CORDIS_VERSION,
-        CONFIG_MODE: answers.config,
         EXTRA_STRUCTURE: extraStructure,
         // 项目自带 tsdown 配置(就近优先),避免被祖先目录的 tsdown.config.ts 劫持 entry。
         // host 出口 UI 时用对象形式:key 即输出文件名(index → dist/index.js 平铺,

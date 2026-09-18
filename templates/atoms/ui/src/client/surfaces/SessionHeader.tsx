@@ -1,4 +1,3 @@
-// TODO: 替换成你的会话头扩展(动作按钮、角标……)
 import { memo } from 'react'
 import styles from './SessionHeader.module.css'
 

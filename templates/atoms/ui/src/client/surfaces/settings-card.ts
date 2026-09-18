@@ -1,5 +1,3 @@
-// 设置卡片:keyed 槽位,key = 插件 namespace(与 host 侧 installSection() 自动配对)。
-// 动态配置(⑤ dynamic)时 host 半边自动生成,浏览器半边由这里渲染。
 import type { Context } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-client-ui-settings-plugins/client'
 import { SettingsCard } from './SettingsCard.tsx'

@@ -1,6 +1,4 @@
-// 【M1-03】常用缝清单(ctx key → 相关包)
-// 数据快照:官方 deepseek-harness@0.1.5-rc.1 的 docs/capability-seams.md
-
+// 常用缝清单(ctx key → 相关包)
 export const SEAMS = [
     {
         id: "llm",
@@ -71,5 +69,4 @@ export const SEAMS = [
     pkgs: readonly string[];
 }[];
 
-// 缝 id 联合:从数据推导,新增条目自动纳入
 export type SeamId = (typeof SEAMS)[number]["id"];

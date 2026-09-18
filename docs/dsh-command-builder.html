@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-page-node-id="DJREPAwNWoTNZkhSG7aw1h" data-dm-ref="1"><head data-page-node-id="QTOMsZUgVgGWdUVHLn1ZA2">
+<meta charset="utf-8" data-page-node-id="JcRkb7prBFggPZ4QosAMfT">
+<meta name="viewport" content="width=device-width, initial-scale=1" data-page-node-id="W3jQDDQDvLtAkzxtm8pqbk">
+<title>dsh 命令块组装器 · flag 可增删版</title>
+<style>
+  :root{
+    --bg:#fff; --bg2:#f6f7f9; --line:rgba(0,0,0,.15); --line2:rgba(0,0,0,.30);
+    --fg:#1a1a1a; --fg2:#5f5e5a; --fg3:#8b8a86;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;padding:32px 20px 64px;background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:14px;line-height:1.6}
+  .wrap{max-width:1680px;margin:0 auto}
+  h1{font-size:17px;font-weight:500;margin:0 0 6px}
+  .sub{font-size:13px;color:var(--fg2);margin:0 0 26px}
+  h2{font-size:14px;font-weight:500;margin:34px 0 12px}
+  .banner{border-radius:10px;padding:10px 14px;margin-bottom:16px;font-size:12px;border:1px solid}
+  .chain{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end}
+  .grp{display:flex;flex-direction:column;align-items:stretch}
+  .grpblocks{display:flex;gap:8px;margin-top:4px;align-items:center;padding:18px 0}
+  .blk{position:relative;display:inline-flex;align-items:center;justify-content:center;
+       border-radius:10px;border:1px solid;padding:8px 15px;font-family:var(--mono);font-size:13px;
+       white-space:nowrap;overflow:visible}
+  
+  .blk.can::before{content:"";position:absolute;left:0;right:0;top:-18px;height:18px}
+  .blk.can::after {content:"";position:absolute;left:0;right:0;bottom:-18px;height:18px}
+  
+  .blk .ar{position:absolute;left:0;right:0;top:-18px;bottom:-18px;display:none;z-index:1;
+           flex-direction:column;align-items:center;justify-content:space-between;
+           line-height:1;pointer-events:none}
+  .blk.can:hover .ar{display:flex}
+  .blk .ar b{cursor:pointer;display:flex;align-items:center;justify-content:center;
+             width:100%;height:18px;font-size:15px;line-height:1;padding:0;
+             color:var(--fg2);user-select:none;font-weight:400;pointer-events:auto}
+  .blk .ar b:hover{color:var(--fg)}
+  
+  
+  .blk .tx.ed{cursor:text;-webkit-user-select:none;user-select:none}
+  .blk .tx .lbl{display:inline-flex;align-items:baseline;justify-content:center}
+  .blk .tx .mk{font-family:var(--sans);font-size:10px;line-height:1;color:var(--fg3);margin-left:2px}
+  .blk .tx .fin{display:block;font-family:inherit;font-size:inherit;line-height:inherit;
+                color:inherit;background:transparent;border:0;outline:0;padding:0;
+                text-align:center;min-width:0}
+  .tx{display:grid;justify-items:center;overflow:hidden;flex:0 0 auto}
+  
+  
+  .tx>span{grid-area:1/1;white-space:nowrap;text-align:center}
+  @keyframes rollOutDn{from{transform:translateY(0);opacity:1}to{transform:translateY(105%);opacity:0}}
+  @keyframes rollInDn {from{transform:translateY(-105%);opacity:0}to{transform:translateY(0);opacity:1}}
+  @keyframes rollOutUp{from{transform:translateY(0);opacity:1}to{transform:translateY(-105%);opacity:0}}
+  @keyframes rollInUp {from{transform:translateY(105%);opacity:0}to{transform:translateY(0);opacity:1}}
+  .tx.rd>.ro{animation:rollOutDn .2s cubic-bezier(.22,.61,.36,1) both}
+  .tx.rd>.rn{animation:rollInDn  .2s cubic-bezier(.22,.61,.36,1) both}
+  .tx.ru>.ro{animation:rollOutUp .2s cubic-bezier(.22,.61,.36,1) both}
+  .tx.ru>.rn{animation:rollInUp  .2s cubic-bezier(.22,.61,.36,1) both}
+  @media (prefers-reduced-motion:reduce){
+    .tx>.ro{display:none}
+    .tx>span{animation:none!important}
+  }
+  .ctl{display:inline-flex;align-items:center;justify-content:center;
+       width:15px;height:15px;border-radius:4px;border:1px solid var(--line2);background:transparent;
+       color:var(--fg3);font-size:11px;line-height:1;cursor:pointer;font-family:var(--mono);
+       padding:0;flex:0 0 auto}
+  .ctl:hover{color:var(--fg);border-color:var(--fg2)}
+  .add{display:inline-flex;align-items:center;gap:5px;border-radius:8px;border:1px dashed var(--line2);
+       background:transparent;color:var(--fg2);font-size:12px;padding:6px 11px;cursor:pointer;font-family:inherit}
+  .add:hover{color:var(--fg);border-color:var(--fg2)}
+  .add.off{opacity:.4;cursor:default}
+  .sw{width:13px;height:13px;border-radius:2px;border:1px solid;display:inline-block;flex:0 0 auto}
+  .outbox{background:var(--bg2);border-radius:12px;padding:15px 17px;margin:18px 0}
+  .outlabel{display:flex;align-items:center;justify-content:space-between;
+            font-size:12px;color:var(--fg2);margin-bottom:9px}
+  .copy{display:inline-flex;align-items:center;gap:5px;font-family:inherit;font-size:12px;
+        padding:4px 11px;border-radius:7px;border:1px solid var(--line2);background:transparent;
+        color:var(--fg2);cursor:pointer;transition:color .15s,border-color .15s,background .15s}
+  .copy:hover{color:var(--fg);border-color:var(--fg2);background:rgba(0,0,0,.03)}
+  .copy.done{color:#0f6e56;border-color:#5dcaa5;background:#e1f5ee}
+  .copy.off{opacity:.4;cursor:default}
+  .copy.off:hover{color:var(--fg2);border-color:var(--line2);background:transparent}
+  .term{font-family:var(--mono);font-size:13px;line-height:1.9;white-space:nowrap;overflow-x:auto;
+        -webkit-user-select:all;user-select:all;color:var(--fg);
+        padding:2px 6px;margin:-2px -6px;border-radius:6px;transition:background .15s}
+  .term.copiable:hover{background:rgba(0,0,0,.04)}
+  
+  .explain{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line2);
+           font-size:12.5px;line-height:1.7;color:var(--fg2)}
+  .explain .sep{color:var(--fg3)}
+  .term .ps{color:var(--fg3);margin-right:9px;-webkit-user-select:none;user-select:none}
+  .term .mt{color:var(--fg3)}
+  .legend{display:flex;flex-wrap:wrap;gap:18px;margin-bottom:14px;font-size:12px;color:var(--fg2)}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  
+  .notes{border:1px solid var(--line);border-radius:12px;padding:0;overflow:hidden}
+  .row{padding:11px 16px;border-bottom:1px solid rgba(0,0,0,.06);
+       border-left:3px solid transparent}
+  .rowh{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap}
+  .role{font-size:12px;font-weight:500}
+  .val{font-size:12px;color:var(--fg2);font-family:var(--mono)}
+  .tag{font-size:11px;color:var(--fg3)}
+  .why{font-size:12px;color:var(--fg2);margin-top:3px}
+  .tip{font-size:13px;color:var(--fg2);border-left:2px solid var(--line2);padding-left:14px;margin:18px 0}
+  code{font-family:var(--mono);font-size:12.5px;background:var(--bg2);padding:1px 5px;border-radius:4px}
+  .ev{font-size:12.5px;font-family:var(--mono);background:var(--bg2);border-radius:8px;padding:11px 14px;margin:9px 0;line-height:1.75}
+  .bad{color:#a32d2d}
+  .ok{color:#0f6e56}
+</style>
+<style id="__dm_no_drag_style__">* { -webkit-user-drag: none !important; }</style><style id="__dm_bindable_badge_style__">[data-sp-bindable="database"]{outline:1px dashed #0088ff;outline-offset:2px;border-radius:4px;}[data-sp-bindable="database"] *{pointer-events:none !important;transition:none !important;animation:none !important;}[data-sp-bindable="database"]{transition:none !important;animation:none !important;}</style></head>
+<body data-page-node-id="a9iG9IiMw86rXfExJPO61J" style="">
+<div class="wrap" data-page-node-id="4Dnt2Z2zbqWt5QD0vrLPlq">
+  <h1 data-page-node-id="jvmSrQNMbRlGZZ4JYcrb5o">dsh 命令块组装器</h1>
+  <p class="sub" data-page-node-id="z1BNrG6pBEQZ3iCw7yKdvL">前 5 块是命令骨架（固定）；中间的 flag 组可随时增删 —— <code data-page-node-id="nwuVcO87kHDvdriEDK6hV6">--patch</code> 可重复，flag 数量没有上限。</p>
+
+  <div id="banner" class="banner" data-page-node-id="avjXsoDBpPZAu8MhdIy8Zn" style="border-radius:10px;padding:10px 14px;margin-bottom:16px;font-size:12px;border:1px solid #5dcaa5;background:#e1f5ee;color:#0f6e56">pnpm 形态：run 可省 · 绝不能加 -- —— 两条都已实测</div>
+  <div id="chain" class="chain" data-page-node-id="hyCYdeuuqATTAtkCDdkb4c"><div class="grp"><div style="font-size:11px;line-height:1.35;text-align:center;color:#4a4945;white-space:nowrap;overflow:hidden">包管理器调用</div><div style="height:6px;border-top:1px solid #888780;border-left:1px solid #888780;border-right:1px solid #888780;border-radius:2px 2px 0 0"></div><div class="grpblocks"><div class="blk can" style="width:144px;background:#f1efe8;border-color:#888780;color:#4a4945"><span class="tx" title="">pnpm</span><div class="ar"><b>▲</b><b>▼</b></div></div><div class="blk can" style="width:144px;background:transparent;border-color:#888780;border-style:dashed;color:#4a4945"><span class="tx" title="">(无)</span><div class="ar"><b>▲</b><b>▼</b></div></div></div></div><div class="grp"><div style="font-size:11px;line-height:1.35;text-align:center;color:#3730a3;white-space:nowrap;overflow:hidden">脚本名</div><div style="height:6px;border-top:1px solid #4f46e5;border-left:1px solid #4f46e5;border-right:1px solid #4f46e5;border-radius:2px 2px 0 0"></div><div class="grpblocks"><div class="blk" style="width:144px;background:#e8eafd;border-color:#4f46e5;color:#3730a3;border-style:dotted"><span class="tx" title="">dsh</span></div></div></div><div class="grp"><div style="font-size:11px;line-height:1.35;text-align:center;color:#0d6b62;white-space:nowrap;overflow:hidden">分隔符</div><div style="height:6px;border-top:1px solid #0d9488;border-left:1px solid #0d9488;border-right:1px solid #0d9488;border-radius:2px 2px 0 0"></div><div class="grpblocks"><div class="blk" style="width:144px;background:transparent;border-color:#0d9488;border-style:dashed;color:#0d6b62"><span class="tx" title="">(无)</span></div></div></div><div class="grp"><div style="font-size:11px;line-height:1.35;text-align:center;color:#0c447c;white-space:nowrap;overflow:hidden">子命令</div><div style="height:6px;border-top:1px solid #185fa5;border-left:1px solid #185fa5;border-right:1px solid #185fa5;border-radius:2px 2px 0 0"></div><div class="grpblocks"><div class="blk can" style="width:144px;background:transparent;border-color:#185fa5;border-style:dashed;color:#0c447c"><span class="tx" title="">(无)</span><div class="ar"><b>▲</b><b>▼</b></div></div></div></div><div class="grp"><div style="font-size:11px;line-height:1.35;text-align:center;color:#0f6e56;white-space:nowrap;overflow:hidden">flag</div><div style="height:6px;border-top:1px solid #0f9d70;border-left:1px solid #0f9d70;border-right:1px solid #0f9d70;border-radius:2px 2px 0 0"></div><div class="grpblocks"><div class="blk" style="width:144px;background:#e3f5ee;border-color:#0f9d70;color:#0f6e56;border-style:dotted"><span class="tx" title="">--profile</span></div><div class="blk" style="width:144px;background:#e3f5ee;border-color:#0f9d70;color:#0f6e56;border-style:dotted"><span class="tx ed" title="双击填具体值（块上仍显示占位符，只影响下方结果）">[name]</span></div><button class="ctl" title="删掉这一组 flag">×</button></div></div><div class="grp"><div style="font-size:11px;line-height:1.35;text-align:center;color:#6b3f06;white-space:nowrap;overflow:hidden">载荷</div><div style="height:6px;border-top:1px solid #a16207;border-left:1px solid #a16207;border-right:1px solid #a16207;border-radius:2px 2px 0 0"></div><div class="grpblocks"><div class="blk" style="width:144px;background:transparent;border-color:#a16207;border-style:dashed;color:#6b3f06"><span class="tx" title="">(无)</span></div><div class="blk can" style="width:144px;background:#f7f0e6;border-color:#a16207;color:#6b3f06"><span class="tx ed" title="双击填具体值（块上仍显示占位符，只影响下方结果）">[task]</span><div class="ar"><b>▲</b><b>▼</b></div></div></div></div><div class="grp"><div style="font-size:11px;line-height:1.35;visibility:hidden">&nbsp;</div><div style="height:6px;border-top:1px solid transparent;border-left:1px solid transparent;border-right:1px solid transparent"></div><div class="grpblocks"><span style="visibility:hidden;font-family:var(--mono);font-size:13px;padding:8px 0;border:1px solid transparent;width:0;white-space:nowrap;margin-right:-8px"> </span><button class="add" title="点一下加下一个可用 flag">+ flag</button></div></div></div>
+
+  <div class="outbox" data-page-node-id="meVxvAN7Sx1p5N0PEQf19c">
+    <div class="outlabel" data-page-node-id="UNYqsL0nmTaDNSZNL0390E">组装结果<button id="copy" class="copy" type="button" data-page-node-id="e898EipMK71MQR6cGJdf5j">复制命令</button></div>
+    <div class="term copiable" data-page-node-id="eiTvFTB8ehDy1wPjyQCxEX" id="term" title="点一下复制整条命令"><span class="ps" data-page-node-id="pmzTzDwzGXC8FU4jNBAzZP">$</span><span id="out" data-page-node-id="6B1fIwWkWG068aWxbdmREW" class="">pnpm dsh --profile [name] [task]</span></div>
+    <div class="explain" id="explain"></div>
+  </div>
+
+  <p class="tip">
+    双击<b>带方括号的块</b>填具体值（<code>[name]</code> / <code>[port]</code> / <code>[pkg]</code> / <code>[task]</code>）；
+    悬停块的<b>上 / 下边缘</b>出 <b>▲</b> / <b>▼</b> 换值。
+  </p>
+
+  <div id="legend" class="legend"></div>
+  <div id="notes" class="notes"></div>
+
+</div>
+
+<script>
+(function(){
+  var N = "\u2205", NL = "(\u65e0)";
+
+  var TONES = [
+    { bg:"#f1efe8", bd:"#888780", fg:"#4a4945" },
+    { bg:"#e6f1fb", bd:"#185fa5", fg:"#0c447c" },
+    { bg:"#efe9fb", bd:"#7c5cd6", fg:"#5b3fa8" },
+    { bg:"#e0f2f1", bd:"#0d9488", fg:"#0d6b62" },
+    { bg:"#e3f5ee", bd:"#0f9d70", fg:"#0f6e56" },
+    { bg:"#faeeda", bd:"#d97706", fg:"#8a4d09" },
+    { bg:"#fdeaf1", bd:"#d6457a", fg:"#9d174d" },
+    { bg:"#e8eafd", bd:"#4f46e5", fg:"#3730a3" },
+    { bg:"#f7f0e6", bd:"#a16207", fg:"#6b3f06" },
+    { bg:"#e0f2fe", bd:"#0284c7", fg:"#075985" }
+  ];
+
+  var TONE_OF = { pmcall:0, script:7, sep:3, sub:1, payload:8 };
+
+  var FLAG_TONE = {
+    "--profile":4, "--from-default-profile":6, "--patch":2,
+    "--dump-config":5, "--dump-default-config":9
+  };
+
+  function toneOf(key){
+    if(key && key.indexOf("flag:") === 0){
+      var n = key.slice(5);
+      return TONES[FLAG_TONE[n] != null ? FLAG_TONE[n] : 4];
+    }
+    return TONES[TONE_OF[key] != null ? TONE_OF[key] : 0];
+  }
+
+  function toneStyle(key, none, locked){
+    var t = toneOf(key);
+    if(none) return "background:transparent;border-color:" + t.bd + ";border-style:dashed;color:" + t.fg;
+    return "background:" + t.bg + ";border-color:" + t.bd + ";color:" + t.fg
+         + (locked ? ";border-style:dotted" : "");
+  }
+
+  var FLAGS = {
+    "--profile":              { v:"[name]",      repeat:false },
+    "--from-default-profile": { v:"[name]",      repeat:false },
+    "--patch":                { v:"[path]",      repeat:true  },
+    "--dump-config":          { v:null,          repeat:false },
+    "--dump-default-config":  { v:null,          repeat:false },
+    "--port":                 { v:"[port]",      repeat:false },
+    "--host":                 { v:"[host]",      repeat:false },
+    "--trusted-host":         { v:"[authority]", repeat:true  },
+    "--no-open":              { v:null,          repeat:false }
+  };
+  var LAUNCHER = ["--profile","--from-default-profile","--patch","--dump-config","--dump-default-config"];
+  var WEBPOOL  = ["--port","--host","--no-open","--trusted-host","--patch","--dump-config","--dump-default-config"];
+  var APPFLAGS = ["--port","--host","--no-open","--trusted-host"];
+  var VERBS    = ["add","remove","why","update","i"];
+
+
+  var st = { pm:"pnpm", runOn:false, sub:"\u2205", flags:[{ n:"--profile" }], verb:"add", tail:"[task]", tailFill:null };
+
+  function has(n){ for(var i=0;i<st.flags.length;i++) if(st.flags[i].n===n) return true; return false }
+  function drop(n){
+    for(var i=st.flags.length-1;i>=0;i--) if(st.flags[i].n===n) st.flags.splice(i,1);
+  }
+  function dumpActive(){ return has("--dump-config") || has("--dump-default-config") }
+
+  var ADD_PREF = ["--dump-config","--patch","--no-open","--trusted-host",
+                  "--from-default-profile","--dump-default-config","--port","--host"];
+
+  function okSet(list){
+    var has2 = function(x){ return list.indexOf(x) >= 0 };
+    if(has2("--dump-config") && has2("--dump-default-config")) return false;
+    if(has2("--dump-default-config") && has2("--patch")) return false;
+    if((has2("--dump-config") || has2("--dump-default-config")) && APPFLAGS.some(has2)) return false;
+    return true;
+  }
+  function names(){ return st.flags.map(function(o){ return o.n }) }
+
+  function compatible(n){ return okSet(names().concat([n])) }
+
+  function okWithOthers(f, n){
+    var list = [];
+    st.flags.forEach(function(o){ if(o !== f) list.push(o.n) });
+    list.push(n);
+    return okSet(list);
+  }
+  function remaining(){ return pool().filter(function(n){ return !has(n) }) }
+
+  function addable(){ return remaining().filter(compatible) }
+  function nextFlag(){
+    var a = addable();
+    if(!a.length) return null;
+    for(var i=0;i<ADD_PREF.length;i++) if(a.indexOf(ADD_PREF[i]) >= 0) return ADD_PREF[i];
+    return a[0];
+  }
+  function pool(){
+    if(st.sub==="plugin") return ["--profile"];
+    if(st.sub==="web") return WEBPOOL;
+    return LAUNCHER;
+  }
+  function runVal(){
+    if(st.pm===N) return N;
+    if(st.pm==="npm") return "run";
+    return st.runOn ? "run" : N;
+  }
+  function sepVal(){ return st.pm==="npm" ? "--" : N }
+
+  function normalize(){
+    var p = pool();
+    st.flags = st.flags.filter(function(f){ return p.indexOf(f.n) >= 0 });
+    var seen = {};
+    st.flags = st.flags.filter(function(f){
+      if(FLAGS[f.n].repeat) return true;
+      if(seen[f.n]) return false;
+      seen[f.n] = true; return true;
+    });
+    if(has("--dump-config") && has("--dump-default-config")) drop("--dump-default-config");
+    if(has("--dump-default-config")) drop("--patch");
+    if(dumpActive()) APPFLAGS.forEach(drop);
+    if((st.sub==="plugin" || st.sub==="\u2205") && !has("--profile")) st.flags.unshift({ n:"--profile" });
+    st.flags.sort(function(a,b){ return p.indexOf(a.n) - p.indexOf(b.n) });
+    st.flags.forEach(function(f){ f.hasVal = FLAGS[f.n].v !== null; f.v = FLAGS[f.n].v });
+    if(st.sub==="web"){ st.verb = N; st.tail = N; }
+    else if(st.sub==="plugin"){
+      if(VERBS.indexOf(st.verb) < 0) st.verb = "add";
+      if(st.verb === "update") st.tail = N;
+      else if(st.tail !== N && st.tail !== "[pkg]") st.tail = "[pkg]";
+      else if(st.tail === N) {  }
+    }
+    else { st.verb = N; if(dumpActive()) st.tail = N; else if(st.tail !== "[task]" && st.tail !== N) st.tail = "[task]"; }
+  }
+
+
+  function flagOpts(f){
+    if(f.n === "--profile" && (st.sub === "plugin" || st.sub === "\u2205")) return ["--profile"];
+    var taken = {};
+    st.flags.forEach(function(o){ if(o !== f) taken[o.n] = 1 });
+
+    var a = pool().filter(function(n){
+      return n === f.n || (!taken[n] && okWithOthers(f, n));
+    });
+    return a.length ? a : [f.n];
+  }
+
+  function tailOpts(){
+    if(st.sub==="plugin") return st.verb === "update" ? [N] : ["[pkg]", N];
+    if(st.sub==="\u2205") return dumpActive() ? [N] : ["[task]", N];
+    return [N];
+  }
+
+  var PAD = 15, SAFE = 2;
+
+  function estWidth(s){
+    var w = 0;
+    for(var k=0;k<s.length;k++){
+      var c = s.charCodeAt(k);
+      w += ((c>0x2e80 && c<0x9fff) || (c>=0xff00 && c<=0xffef)) ? 13 : 7.9;
+    }
+    return w;
+  }
+
+  function natW(txt){
+    return Math.ceil((estWidth(txt) + PAD*2 + SAFE) / 2) * 2;
+  }
+
+  var LONG_AT = 15;
+  var W_SHORT = 0, W_LONG = 0;
+  (function(){
+    var all = ["pnpm","npm","dsh","run","--","plugin","web",
+               "add","remove","why","update","i","[name]","[port]","[host]",
+               "[authority]","[path]","[pkg]","[task]", NL];
+    Object.keys(FLAGS).forEach(function(k){
+      all.push(k);
+      if(FLAGS[k].v) all.push(FLAGS[k].v);
+    });
+    all.forEach(function(c){
+      var w = natW(c);
+      if(c.length >= LONG_AT){ if(w > W_LONG) W_LONG = w }
+      else { if(w > W_SHORT) W_SHORT = w }
+    });
+  })();
+
+  function tierW(txt){
+    return (txt && txt.length >= LONG_AT) ? W_LONG : W_SHORT;
+  }
+
+
+  function groups(){
+    var g = [];
+
+    g.push({ from:0, to:1, label:"\u5305\u7ba1\u7406\u5668\u8c03\u7528" , tone:"pmcall" });
+    g.push({ from:2, to:2, label:"\u811a\u672c\u540d" , tone:"script" });
+    g.push({ from:3, to:3, label:"\u5206\u9694\u7b26" , tone:"sep" });
+    g.push({ from:4, to:4, label:"\u5b50\u547d\u4ee4" , tone:"sub" });
+    var i = 5;
+    st.flags.forEach(function(f, k){
+      g.push({ from:i, to:i+1, label:"flag", tone:"flag:" + f.n, flagIndex:k });
+      i += 2;
+    });
+    g.push({ from:i, to:i+1, label:"载荷", tone:"payload" });
+    return g;
+  }
+
+  function blocks(){
+    var out = [];
+    out.push({ r:"包管理器", tone:"pmcall", w:tierW("pnpm"), opts:["pnpm","npm",N],
+               get:function(){ return st.pm },
+               set:function(v){ st.pm = v } });
+    var runOpts = (st.pm===N ? [N] : (st.pm==="npm" ? ["run"] : [N,"run"]));
+    out.push({ r:"隐式 run", tone:"pmcall", w:tierW("run"), opts:runOpts,
+               get:function(){ return runVal() },
+               set:function(v){ st.runOn = (v === "run") } });
+    out.push({ r:"脚本名", tone:"script", w:tierW("dsh"), opts:["dsh"], get:function(){ return "dsh" } });
+    out.push({ r:"参数分隔符", tone:"sep", w:tierW("--"), opts:[sepVal()], get:function(){ return sepVal() } });
+    out.push({ r:"dsh 子命令", tone:"sub", w:tierW("plugin"), opts:["plugin","web",N],
+               get:function(){ return st.sub },
+               set:function(v){ st.sub = v } });
+    st.flags.forEach(function(f, i){
+
+      var ftone = "flag:" + f.n;
+      out.push({ r:"选项名", tone:ftone, w:tierW(f.n), opts:flagOpts(f), flagIndex:i,
+                 get:function(){ return f.n },
+                 set:function(v){ f.n = v } });
+      out.push({ r:"选项值", tone:ftone, w:tierW(f.hasVal ? f.v : NL), opts:[f.hasVal ? f.v : N],
+
+                 fill:{ get:function(){ return f.fill }, set:function(v){ f.fill = v } },
+                 get:function(){ return f.hasVal ? f.v : N } });
+    });
+    var verbs = (st.sub==="plugin" ? VERBS : [N]);
+    out.push({ r:"二级动词", tone:"payload", w:tierW("remove"), opts:verbs,
+               get:function(){ return st.verb },
+               set:function(v){ st.verb = v } });
+    var topts = tailOpts();
+    out.push({ r:"剩余参数", tone:"payload", w:tierW("--no-open"), opts:topts,
+               fill:{ get:function(){ return st.tailFill }, set:function(v){ st.tailFill = v } },
+               get:function(){ return st.tail },
+               set:function(v){ st.tail = v } });
+    return out;
+  }
+
+  function el(tag, cls, txt){
+    var n = document.createElement(tag);
+    if(cls) n.className = cls;
+    if(txt != null) n.textContent = txt;
+    return n;
+  }
+
+  function textOf(b){ var v = b.get(); return v === N ? NL : v }
+
+  function fillOf(b, disp){
+    if(!b || !b.fill) return disp;
+    var v = b.fill.get();
+    return (v && v.length) ? v : disp;
+  }
+
+  function isPh(t){ return /^\[[^\]]+\]$/.test(t || "") }
+
+
+  var MK_W = 32;
+
+  function blockW(b, filled){
+    if(!filled) return b.w;
+    return (natW(textOf(b)) + MK_W <= W_SHORT) ? W_SHORT : W_LONG;
+  }
+  function skinOf(b){ return toneStyle(b.tone, b.get() === N, b.opts.length <= 1) }
+
+  function markEditable(d, tx, b, extraCls){
+    var disp = textOf(b), editable = !!(b.fill && isPh(disp));
+
+    var filled = !!(editable && b.fill.get());
+    tx.className = "tx" + (extraCls ? " " + extraCls : "") + (editable ? " ed" : "");
+    d.setAttribute("style", "width:" + blockW(b, filled) + "px;" + skinOf(b));
+    if(editable){
+      tx.title = "\u53cc\u51fb\u586b\u5177\u4f53\u503c\uff08\u5757\u4e0a\u4ecd\u663e\u793a\u5360\u4f4d\u7b26\uff0c\u53ea\u5f71\u54cd\u4e0b\u65b9\u7ed3\u679c\uff09";
+      tx.ondblclick = function(ev){
+        if(ev && ev.stopPropagation) ev.stopPropagation();
+        startEdit(d, tx, b);
+      };
+    } else {
+      tx.title = "";
+      tx.ondblclick = null;
+    }
+  }
+
+
+  function paintTx(d, tx, b){
+    var disp = textOf(b);
+    markEditable(d, tx, b, null);
+    tx.textContent = "";
+    if(b.fill && isPh(disp) && b.fill.get()){
+      var lbl = el("span","lbl");
+      lbl.appendChild(el("span", null, disp));
+      lbl.appendChild(el("span","mk","\u5df2\u7f16\u8f91"));
+      tx.appendChild(lbl);
+    } else {
+      tx.textContent = disp;
+    }
+  }
+
+  function snapshot(){
+    var m = [];
+    blocks().forEach(function(b){ m.push(textOf(b)) });
+    return m;
+  }
+
+  function renderOut(){
+    var out = document.getElementById("out");
+
+    var parts = [];
+    blocks().forEach(function(b){
+      var v = b.get();
+      if(v === N) return;
+      parts.push(fillOf(b, v));
+    });
+    parts = parts.filter(function(x){ return x && x !== N });
+    var hasCmd = parts.length > 0;
+    if(hasCmd){
+      out.textContent = parts.join(" ");
+      out.className = "";
+    } else {
+      out.textContent = "\u2014 \u6ca1\u6709\u53ef\u6267\u884c\u7684\u547d\u4ee4";
+      out.className = "mt";
+    }
+
+
+    var cbtn = document.getElementById("copy");
+    if(cbtn && cbtn.nodeName !== undefined){
+      if(!cbtn.__busy){
+        cbtn.className = "copy" + (hasCmd ? "" : " off");
+        cbtn.disabled = !hasCmd;
+      }
+      var tline = document.getElementById("term");
+      if(tline && tline.getAttribute) tline.className = "term" + (hasCmd ? " copiable" : "");
+
+
+    var ex = document.getElementById("explain");
+    if(ex && ex.appendChild){
+      ex.innerHTML = "";
+      var segs = hasCmd ? explainParts() : [];
+      if(!segs.length){
+        ex.setAttribute("style", "display:none");
+      } else {
+        ex.setAttribute("style", "");
+        segs.forEach(function(sg, i){
+          if(i) ex.appendChild(el("span", "sep", "\uff0c"));
+          var sp = el("span", null, sg.t);
+          sp.setAttribute("style", "color:" + toneOf(sg.tone).fg);
+          ex.appendChild(sp);
+        });
+      }
+    }
+    }
+  }
+
+
+  function startEdit(d, tx, b){
+    if(!tx || !tx.appendChild || !b.fill) return;
+    var disp = textOf(b);
+
+    var w = blockW(b, !!b.fill.get()) - 32;
+    var inp = document.createElement("input");
+    inp.className = "fin";
+    inp.setAttribute("type", "text");
+    inp.setAttribute("placeholder", disp);
+    inp.setAttribute("style", "width:" + Math.max(40, w) + "px;height:1.6em;line-height:1.6em");
+    inp.value = b.fill.get() || "";
+    tx.textContent = "";
+    tx.appendChild(inp);
+    try { inp.focus(); inp.select() } catch(e){}
+
+    var closed = false, cancelled = false;
+    function close(save){
+      if(closed) return;
+      closed = true;
+      if(save){
+        var val = String(inp.value == null ? "" : inp.value).replace(/^\s+|\s+$/g, "");
+        if(val) b.fill.set(val); else b.fill.set(null);
+      }
+      paintTx(d, tx, b);
+      renderOut();
+    }
+    inp.onblur = function(){ close(!cancelled) };
+
+
+    var composing = false, compEndAt = 0;
+    function inComposition(e){
+      if(composing) return true;
+      if(e && (e.isComposing === true || e.keyCode === 229)) return true;
+      return false;
+    }
+    inp.oncompositionstart = function(){ composing = true };
+    inp.oncompositionend = function(){ composing = false; compEndAt = Date.now() };
+
+    inp.onkeydown = function(e){
+      var k = e && e.key;
+      if(k !== "Enter" && k !== "Escape") return;
+      if(inComposition(e)) return;
+      if(k === "Enter" && Date.now() - compEndAt < 80) return;
+      if(k === "Enter") close(true);
+      else { cancelled = true; close(false) }
+    };
+  }
+
+
+  function act(fn, dir, keepFill){
+    var before = snapshot();
+    fn();
+
+    if(!keepFill) clearFill();
+    render(before, dir || 1);
+  }
+
+  function clearFill(){
+    st.flags.forEach(function(f){ f.fill = null });
+    st.tailFill = null;
+  }
+
+  function render(before, dir){
+    normalize();
+    var B = blocks();
+    var chain = document.getElementById("chain");
+    chain.innerHTML = "";
+
+    var prev = (before && before.length === B.length) ? before : null;
+
+
+    function rollDir(oldTxt, nowTxt){
+      if(!prev || oldTxt === undefined || oldTxt === nowTxt) return null;
+      return (dir !== undefined && dir < 0) ? "ru" : "rd";
+    }
+
+    function oneBlock(b, k){
+      var a = b.opts, can = a.length > 1;
+      var d = el("div", "blk" + (can ? " can" : ""));
+      d.setAttribute("style", "width:" + b.w + "px;" + skinOf(b));
+      var rd = rollDir(prev ? prev[k] : undefined, textOf(b));
+      var tx = el("span", "tx");
+      if(rd){
+
+        tx.appendChild(el("span", "ro", prev[k]));
+        tx.appendChild(el("span", "rn", textOf(b)));
+        d.appendChild(tx);
+        markEditable(d, tx, b, rd);
+      } else {
+        d.appendChild(tx);
+        paintTx(d, tx, b);
+      }
+      if(can){
+        var ar = el("div","ar");
+        var up = el("b",null,"\u25B2"), dn = el("b",null,"\u25BC");
+        up.onclick = function(){ act(function(){ var j = a.indexOf(b.get()); b.set(a[(j - 1 + a.length) % a.length]) }, -1) };
+        dn.onclick = function(){ act(function(){ var j = a.indexOf(b.get()); b.set(a[(j + 1) % a.length]) }, 1) };
+        ar.appendChild(up); ar.appendChild(dn); d.appendChild(ar);
+      }
+      return d;
+    }
+
+    groups().forEach(function(grp){
+
+      var GT = toneOf(grp.tone);
+      var wrap = el("div","grp");
+      var lab = el("div", null, grp.label);
+      lab.setAttribute("style","font-size:11px;line-height:1.35;text-align:center;color:" + GT.fg
+        + ";white-space:nowrap;overflow:hidden");
+      wrap.appendChild(lab);
+      var brk = el("div", null, null);
+      brk.setAttribute("style","height:6px;border-top:1px solid " + GT.bd
+        + ";border-left:1px solid " + GT.bd + ";border-right:1px solid " + GT.bd
+        + ";border-radius:2px 2px 0 0");
+      wrap.appendChild(brk);
+      var row = el("div","grpblocks");
+      for(var k = grp.from; k <= grp.to; k++) row.appendChild(oneBlock(B[k], k));
+      if(grp.flagIndex !== undefined){
+        var rm = el("button","ctl","\u00d7");
+        rm.title = "\u5220\u6389\u8fd9\u4e00\u7ec4 flag";
+
+        (function(i){ rm.onclick = function(){ act(function(){ st.flags.splice(i,1) }, 1, true) } })(grp.flagIndex);
+        row.appendChild(rm);
+      }
+      wrap.appendChild(row);
+      chain.appendChild(wrap);
+    });
+
+    var canAdd = nextFlag() !== null;
+    var add = el("button","add", canAdd ? "+ flag" : "+ flag \u00b7 \u65e0\u53ef\u52a0");
+    add.title = canAdd
+      ? "\u70b9\u4e00\u4e0b\u52a0\u4e0b\u4e00\u4e2a\u53ef\u7528 flag"
+      : "\u5f53\u524d\u5b50\u547d\u4ee4\u7684 flag \u5df2\u7ecf\u5168\u5728\u4e86";
+    if(!canAdd) add.className = "add off";
+    add.onclick = function(){
+      var n2 = nextFlag();
+      if(n2 === null) return;
+      act(function(){ st.flags.push({ n: n2 }) }, 1, true);
+    };
+
+    var tail = [add];
+    if(!canAdd){
+      var left = remaining();
+      var htxt = left.length
+        ? ("\u5269\u4e0b\u7684 " + left.join(" / ") + " \u4e0e\u5df2\u9009 flag \u4e92\u65a5\uff08\u4e24\u4e2a dump \u4e0d\u80fd\u540c\u4e0a\uff0c--dump-default-config \u4e5f\u4e0d\u80fd\u914d --patch\uff09")
+        : (pool().length === 1
+            ? ("\u5f53\u524d\u5b50\u547d\u4ee4\u53ea\u8ba4 " + pool().join(" / ") + "\uff0c\u5207\u5230\u300c(\u65e0)\u300d\u6216 web \u624d\u6709\u522b\u7684 flag")
+            : "\u8fd9\u4e2a\u5b50\u547d\u4ee4\u80fd\u52a0\u7684 flag \u90fd\u5df2\u7ecf\u52a0\u4e0a\u4e86");
+      var hint = el("span", null, htxt);
+      hint.setAttribute("style","font-size:11px;color:var(--fg3)");
+      tail.push(hint);
+    }
+    var addCell = el("div","grp");
+    var pad1 = el("div", null, "\u00a0");
+    pad1.setAttribute("style","font-size:11px;line-height:1.35;visibility:hidden");
+    var pad2 = el("div", null, null);
+    pad2.setAttribute("style","height:6px;border-top:1px solid transparent"
+      + ";border-left:1px solid transparent;border-right:1px solid transparent");
+    var addRow = el("div","grpblocks");
+    var ref = el("span", null, " ");
+    ref.setAttribute("style","visibility:hidden;font-family:var(--mono);font-size:13px;"
+      + "padding:8px 0;border:1px solid transparent;width:0;white-space:nowrap;margin-right:-8px");
+    addRow.appendChild(ref);
+    tail.forEach(function(x){ addRow.appendChild(x) });
+    addCell.appendChild(pad1); addCell.appendChild(pad2); addCell.appendChild(addRow);
+    chain.appendChild(addCell);
+
+    renderOut();
+
+    var lg = document.getElementById("legend");
+    lg.innerHTML = "";
+
+    var seenTone = {};
+    groups().forEach(function(grp){
+      if(seenTone[grp.tone]) return;
+      seenTone[grp.tone] = 1;
+      var GT = toneOf(grp.tone);
+      var w = el("span");
+      var sw = el("span","sw");
+      sw.setAttribute("style", "background:" + GT.bg + ";border:1px solid " + GT.bd);
+      w.appendChild(sw);
+      var nm = grp.tone.indexOf("flag:") === 0 ? grp.tone.slice(5) : grp.label;
+      w.appendChild(el("span", null, nm));
+      lg.appendChild(w);
+    });
+
+    var pm = st.pm;
+    var bn = document.getElementById("banner");
+    var msg, bg, bd, fg;
+    if(pm === "npm"){ msg = "npm 形态：run 必填不能选空 \u00b7 必须补 -- \u2014\u2014 两条都已实测"; bg="#faeeda"; bd="#ef9f27"; fg="#854f0b"; }
+    else if(pm === "pnpm"){ msg = "pnpm 形态：run 可省 \u00b7 绝不能加 -- \u2014\u2014 两条都已实测"; bg="#e1f5ee"; bd="#5dcaa5"; fg="#0f6e56"; }
+    else if(pm === N){ msg = "直接调用 dsh 二进制：没有包管理器，前面几块自动清空"; bg="#f1efe8"; bd="#b4b2a9"; fg="#5f5e5a"; }
+
+    if(dumpActive()){ msg = "dump 模式：只合成并打印配置树，不 boot \u00b7 " + msg; }
+    bn.textContent = msg;
+    bn.setAttribute("style","border-radius:10px;padding:10px 14px;margin-bottom:16px;font-size:12px;border:1px solid " + bd + ";background:" + bg + ";color:" + fg);
+
+    var nt = document.getElementById("notes");
+    nt.innerHTML = "";
+    B.forEach(function(b, bi){
+      var a = b.opts, v = b.get();
+      var T = toneOf(b.tone);
+      var r = el("div","row");
+      r.setAttribute("style", "background:" + T.bg + ";border-left:3px solid " + T.bd);
+      var h = el("div","rowh");
+      var role = el("span","role", b.r + " \u00b7 " + (bi + 1));
+      role.setAttribute("style", "color:" + T.fg);
+      h.appendChild(role);
+      h.appendChild(el("span","val", v === N ? "\u2014" : v));
+      h.appendChild(el("span","tag", a.length === 1 ? "唯一可选" : "可选 " + a.length + " 个"));
+      r.appendChild(h);
+      r.appendChild(el("div","why", noteFor(b)));
+      nt.appendChild(r);
+    });
+  }
+
+
+  function flagPhrase(n, v){
+    var q = "\u300c" + (v || "\u2026") + "\u300d";
+    switch(n){
+      case "--profile":              return "\u52a0\u8f7d\u540d\u53eb" + q + "\u7684 profile";
+      case "--from-default-profile": return "\u5148\u7528\u5185\u7f6e\u7684" + q + "\u6a21\u677f\u5efa\u4e00\u4e2a\u65b0 profile";
+      case "--patch":                return "\u518d\u53e0\u4e00\u5c42 patch\uff1a" + q;
+      case "--dump-config":          return "\u628a\u5408\u6210\u540e\u7684\u914d\u7f6e\u6811\u6253\u5370\u51fa\u6765\u5c31\u9000\u51fa\uff08\u4e0d\u542f\u52a8\uff09";
+      case "--dump-default-config":  return "\u53ea\u6253\u5370 bundle \u5c42\u914d\u7f6e\u5c31\u9000\u51fa\uff08\u8df3\u8fc7\u7528\u6237\u5c42\u4e0e patch\uff09";
+      case "--port":                 return "\u76d1\u542c" + q + "\u7aef\u53e3";
+      case "--host":                 return "\u7ed1\u5728" + q;
+      case "--trusted-host":         return "\u989d\u5916\u4fe1\u4efb" + q;
+      case "--no-open":              return "\u4e0d\u81ea\u52a8\u6253\u5f00\u6d4f\u89c8\u5668";
+      default:                       return n + (v ? q : "");
+    }
+  }
+
+
+  function explainParts(){
+    var P = [], pm = st.pm, sub = st.sub;
+    function add(t, tone){ if(t) P.push({ t: t, tone: tone }) }
+
+
+    if(pm === "npm") add("\u7528 npm \u8dd1 dsh\uff08run \u4e0e -- \u7f3a\u4e00\u4e0d\u53ef\uff09", "pmcall");
+    else if(pm === "pnpm") add(runVal() === "run" ? "\u7528 pnpm \u663e\u5f0f run \u8dd1 dsh" : "\u7528 pnpm \u8dd1 dsh", "pmcall");
+    else add("\u76f4\u63a5\u8dd1 dsh", "script");
+
+
+    if(sub === "plugin") add("\u8fdb plugin \u5b50\u547d\u4ee4", "sub");
+    else if(sub === "web") add("\u542f\u52a8 web \u670d\u52a1", "sub");
+
+
+    st.flags.forEach(function(f){
+      add(flagPhrase(f.n, f.hasVal ? (f.fill || f.v) : null), "flag:" + f.n);
+    });
+
+
+    if(sub === "plugin"){
+      var pk = "\u300c" + (st.tailFill || st.tail) + "\u300d";
+      if(st.verb === "update") add("\u8ba9\u5185\u5c42 pnpm \u628a\u63d2\u4ef6\u66f4\u65b0\u5230\u6700\u65b0", "payload");
+      else if(st.verb === "why") add("\u8ba9\u5185\u5c42 pnpm \u8bf4\u660e" + pk + "\u4e3a\u4ec0\u4e48\u4f1a\u88ab\u88c5\u4e0a", "payload");
+      else if(st.verb === "remove") add("\u8ba9\u5185\u5c42 pnpm \u5378\u6389" + pk, "payload");
+      else add("\u8ba9\u5185\u5c42 pnpm \u88c5\u4e0a" + pk, "payload");
+    } else if(sub === N && !dumpActive() && st.tail && st.tail !== N){
+      add("\u7136\u540e\u6267\u884c\u4efb\u52a1" + "\u300c" + (st.tailFill || st.tail) + "\u300d", "payload");
+    }
+
+    return P;
+  }
+
+  function noteFor(b){
+    var pm = st.pm;
+    switch(b.r){
+      case "包管理器": return "选哪个包管理器来跑 dsh，或直接调用 dsh 二进制";
+      case "隐式 run":
+        if(pm === "npm") return "npm 不会隐式跑脚本，run 必填、不能选空";
+        if(pm === N) return "没有包管理器这一层";
+        if(pm === "pnpm") return "pnpm 会把未知参数当成脚本名，run 可省";
+
+      case "脚本名": return "root package.json 里的 scripts.dsh";
+      case "参数分隔符":
+        if(pm === "npm") return "npm 会吞掉后面的 flag，必须补 --";
+        if(pm === N) return "没有包管理器，不需要分隔符";
+        return "pnpm 会把 -- 原样转给 dsh，反而让子命令失效，所以这里必须为空";
+      case "dsh 子命令": return "dsh 只有 3 个入口；选「(无)」就是默认命令。换它会重置可选 flag";
+      case "选项名": {
+        var n = b.get();
+        if(n === "--profile") return "必填（web 除外），所以这个名字锁死、不能改。profile 目录名，例如 tui / web / headless / sdk / rescue";
+        if(n === "--from-default-profile") return "用内置模板初始化一个新 profile 再启动，例如 web / headless / sdk";
+        if(n === "--patch") return "额外 patch 覆盖层，可重复。路径例如 ./extra.yml";
+        if(n === "--dump-config") return "合成并打印 profile 树后退出，不 boot。不接受 app 参数";
+        if(n === "--dump-default-config") return "只打印 bundle 层，跳过用户层与 --patch。不能和 --patch 同时用";
+        if(n === "--port") return "监听端口，例如 8080 / 3000；0 表示让系统挑一个";
+        if(n === "--host") return "绑定地址，例如 127.0.0.1；0.0.0.0 被显式拒绝";
+        if(n === "--trusted-host") return "/api 信任栅栏额外接受的 authority，例如 example.com，可重复";
+        if(n === "--no-open") return "不自动打开浏览器，布尔开关";
+        return "";
+      }
+      case "选项值": {
+        var v = b.get();
+        if(v === "[path]") return "patch 文件路径，例如 ./extra.yml";
+        if(v === "[authority]") return "authority，例如 example.com 或 host:port";
+        if(v === "[port]") return "端口号，例如 8080";
+        if(v === "[host]") return "绑定地址，例如 127.0.0.1";
+        if(v === "[name]") return "profile 名，例如 tui / web / headless / sdk / sdk-minimal / acp";
+        return "这个 flag 是布尔开关，本身没有值";
+      }
+      case "二级动词": return st.sub === "plugin"
+        ? "内层 pnpm 的动词，dsh 只转发不解析。update 不需要目标"
+        : "只有 plugin 子命令才有这一层";
+      case "剩余参数":
+        if(st.sub === "plugin") return "包规格，例如 github:deepseek-harness/turtle-ui、turtle-ui、.";
+        if(st.sub === "\u2205") return dumpActive() ? "dump 模式不接受 app 参数，已自动清空" : "任务文本，例如 \"run the tests\"";
+        return "web app 只认 flag、不收位置参数";
+      default: return "";
+    }
+  }
+
+
+  var copyBtn = document.getElementById("copy");
+  var termLine = document.getElementById("term");
+
+  function flash(){
+    copyBtn.textContent = "\u5df2\u590d\u5236 \u2713";
+    copyBtn.className = "copy done";
+    copyBtn.__busy = true;
+    clearTimeout(copyBtn.__t);
+    copyBtn.__t = setTimeout(function(){
+      copyBtn.__busy = false;
+      copyBtn.textContent = "\u590d\u5236\u547d\u4ee4";
+      copyBtn.className = "copy" + (document.getElementById("out").className === "mt" ? " off" : "");
+    }, 1300);
+  }
+  function flashFail(){
+    copyBtn.textContent = "\u8bf7\u624b\u52a8\u9009\u4e2d";
+    copyBtn.className = "copy off";
+    copyBtn.__busy = true;
+    clearTimeout(copyBtn.__t);
+    copyBtn.__t = setTimeout(function(){
+      copyBtn.__busy = false;
+      copyBtn.textContent = "\u590d\u5236\u547d\u4ee4";
+      copyBtn.className = "copy";
+    }, 1600);
+  }
+
+  function legacyCopy(txt){
+    var ta = document.createElement("textarea");
+    ta.value = txt;
+    ta.setAttribute("style", "position:fixed;left:-9999px;top:0;opacity:0");
+    document.body.appendChild(ta);
+    ta.select();
+    var ok = false;
+    try { ok = document.execCommand("copy") } catch(e){ ok = false }
+    if(ta.parentNode) ta.parentNode.removeChild(ta);
+    return ok;
+  }
+  function doCopy(){
+    var o = document.getElementById("out");
+    if(o.className === "mt") return;
+    var txt = o.textContent;
+    if(!txt) return;
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(txt).then(flash, function(){ legacyCopy(txt) ? flash() : flashFail() });
+    } else {
+      legacyCopy(txt) ? flash() : flashFail();
+    }
+  }
+  if(copyBtn && copyBtn.addEventListener) copyBtn.addEventListener("click", doCopy);
+  if(termLine && termLine.addEventListener) termLine.addEventListener("click", doCopy);
+
+  render();
+})();
+</script>
+
+
+
+</body></html>

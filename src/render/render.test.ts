@@ -1,4 +1,4 @@
-// 【M2-a】渲染引擎单元测试
+// 渲染引擎单元测试
 import { describe, expect, it, beforeEach, afterEach } from "vitest";
 import {
     existsSync,

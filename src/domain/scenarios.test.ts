@@ -1,4 +1,4 @@
-// 【M3】场景预设完整性:id 唯一、能力 id 合法、问卷硬约束成立、每个场景可产出非空生成计划
+// 场景预设完整性:id 唯一、能力 id 合法、问卷硬约束成立、每个场景可产出非空生成计划
 import { describe, expect, it } from "vitest";
 import { planGeneration } from "../atoms";
 import type { Answers } from "./types";

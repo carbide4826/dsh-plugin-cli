@@ -36,7 +36,7 @@ export function registerSessionListeners(ctx: Context): void {
 
         const reply = `[session-bot] 收到指令:${text.slice(TRIGGER.length).trim() || '(空)'} — 这是插件的自动回复。`
         // 直接落一条 surface 事件;⚠️ global 回调里不要读 ctx.<服务属性>,
-        // cordis 的 inject 检查会拦截并抛错(见 service.ts 注释)
+        // cordis 的 inject 检查会拦截并抛错
         sendBotReply(session, reply)
     }, { global: true })
 }

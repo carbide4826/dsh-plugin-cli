@@ -1,4 +1,3 @@
-// TODO: 替换成你的侧边栏面板
 import { memo } from 'react'
 import styles from './SidebarPanel.module.css'
 

@@ -1,12 +1,14 @@
-// 【M3】内置场景预设:--template 的值域与每个场景锁定的能力组合。
-// 场景 = 预定义的 Answers 组合,直调 writeProject 走 planGeneration 原子管线(与 scenarios/ 参考示例同构),
-// 不做整目录拷贝;基础信息(目录/包名/id)由命令行参数与目录名推导。
 import type { Answers } from "./types";
 
-/** 场景预设锁定的能力组合(Answers 的能力相关字段) */
 export type ScenarioCapabilities = Pick<
     Answers,
-    "atoms" | "eventDomains" | "uiSurfaces" | "serviceCreate" | "serviceSeams" | "config" | "toolName"
+    | "atoms"
+    | "eventDomains"
+    | "uiSurfaces"
+    | "serviceCreate"
+    | "serviceSeams"
+    | "config"
+    | "toolName"
 >;
 
 export interface ScenarioPreset {
@@ -41,7 +43,8 @@ export const SCENARIOS: ScenarioPreset[] = [
     {
         id: "llm",
         label: "LLM 服务示例",
-        description: "Example DSH plugin extending the llm seam via a service (scaffolded by dshp)",
+        description:
+            "Example DSH plugin extending the llm seam via a service (scaffolded by dshp)",
         defaultDirName: "my-llm",
         capabilities: {
             atoms: ["service"],
@@ -56,7 +59,8 @@ export const SCENARIOS: ScenarioPreset[] = [
     {
         id: "ui",
         label: "界面示例",
-        description: "Example DSH plugin with a settings-card UI surface (scaffolded by dshp)",
+        description:
+            "Example DSH plugin with a settings-card UI surface (scaffolded by dshp)",
         defaultDirName: "my-ui",
         capabilities: {
             atoms: ["ui"],
@@ -72,7 +76,8 @@ export const SCENARIOS: ScenarioPreset[] = [
     {
         id: "events",
         label: "事件监听示例",
-        description: "Example DSH plugin listening to session events (scaffolded by dshp)",
+        description:
+            "Example DSH plugin listening to session events (scaffolded by dshp)",
         defaultDirName: "my-events",
         capabilities: {
             atoms: ["events"],
@@ -87,7 +92,8 @@ export const SCENARIOS: ScenarioPreset[] = [
     {
         id: "protocol",
         label: "HTTP 协议示例",
-        description: "Example DSH plugin exposing an HTTP protocol endpoint (scaffolded by dshp)",
+        description:
+            "Example DSH plugin exposing an HTTP protocol endpoint (scaffolded by dshp)",
         defaultDirName: "my-protocol",
         capabilities: {
             atoms: ["protocol"],
@@ -105,10 +111,6 @@ export const SCENARIOS: ScenarioPreset[] = [
 export function findScenario(id: string): ScenarioPreset | undefined {
     return SCENARIOS.find((s) => s.id === id);
 }
-
-// ---------------------------------------------------------------------------
-// 场景 + 命令行覆盖 → 完整 Answers
-// ---------------------------------------------------------------------------
 
 /** 场景生成时可被命令行参数覆盖的字段(未提供的字段回落场景预设或推导值) */
 export interface ScenarioOverrides {
@@ -134,15 +136,22 @@ const CONFIG_MODES = ["none", "static", "dynamic"] as const;
 export function buildScenarioAnswers(
     preset: ScenarioPreset,
     o: ScenarioOverrides,
-): { answers: Answers; error?: undefined } | { answers?: undefined; error: string } {
-    if (o.pkgPosition && !(PKG_POSITIONS as readonly string[]).includes(o.pkgPosition)) {
+):
+    | { answers: Answers; error?: undefined }
+    | { answers?: undefined; error: string } {
+    if (
+        o.pkgPosition &&
+        !(PKG_POSITIONS as readonly string[]).includes(o.pkgPosition)
+    ) {
         return { error: `--pkg-position 仅支持:${PKG_POSITIONS.join(" | ")}` };
     }
     if (o.config && !(CONFIG_MODES as readonly string[]).includes(o.config)) {
         return { error: `--config 仅支持:${CONFIG_MODES.join(" | ")}` };
     }
-    // 硬约束:设置卡片必须有配置可展示(与问卷 askConfig 的规则一致)
-    if (o.config === "none" && preset.capabilities.uiSurfaces.includes("settings-card")) {
+    if (
+        o.config === "none" &&
+        preset.capabilities.uiSurfaces.includes("settings-card")
+    ) {
         return {
             error: `场景 ${preset.id} 含 settings-card,--config none 不可用(设置卡片必须有配置可展示)`,
         };

@@ -1,7 +1,3 @@
-// 【M2-b】生成计划:把问卷答案翻译成 M2-c 落盘所需的文件清单与拼装行。
-// 纯函数、无 IO——生成器只负责渲染占位符、按 copy 拷文件、按 aggregates 的行写聚合文件。
-// 融合知识(勾选 → 文件 + 行)全部收拢在本模块;行形状要调只改这里,不动生成器。
-
 import type { Answers } from "./domain/types";
 import { ATOMS } from "./domain/atoms";
 import { EVENT_DOMAINS, type EventDomainId } from "./domain/events";
@@ -55,7 +51,10 @@ const DOMAIN_WIRING: Record<EventDomainId, { file: string; fn: string }> = {
 /** 能力缝 → 接线 */
 const SEAM_WIRING: Record<SeamId, { file: string; fn: string }> = {
     llm: { file: "seams/llm", fn: "registerLlmSeam" },
-    systemPrompt: { file: "seams/systemPrompt", fn: "registerSystemPromptSeam" },
+    systemPrompt: {
+        file: "seams/systemPrompt",
+        fn: "registerSystemPromptSeam",
+    },
     subagents: { file: "seams/subagents", fn: "registerSubagentsSeam" },
     web: { file: "seams/web", fn: "registerWebSeam" },
     commands: { file: "seams/commands", fn: "registerCommandsSeam" },
@@ -63,13 +62,40 @@ const SEAM_WIRING: Record<SeamId, { file: string; fn: string }> = {
 };
 
 /** 界面位 → 接线(component = 随附组件模板文件) */
-const SURFACE_WIRING: Record<UISurfaceId, { file: string; fn: string; component: string }> = {
-    "settings-card": { file: "surfaces/settings-card", fn: "registerSettingsCard", component: "surfaces/SettingsCard.tsx" },
-    "chat-node": { file: "surfaces/chat-node", fn: "registerChatNode", component: "surfaces/ChatNode.tsx" },
-    "input-dock": { file: "surfaces/input-dock", fn: "registerInputDock", component: "surfaces/InputDock.tsx" },
-    sidebar: { file: "surfaces/sidebar-panel", fn: "registerSidebarPanel", component: "surfaces/SidebarPanel.tsx" },
-    "tool-view": { file: "surfaces/tool-view", fn: "registerToolView", component: "surfaces/ToolView.tsx" },
-    "session-header": { file: "surfaces/session-header", fn: "registerSessionHeader", component: "surfaces/SessionHeader.tsx" },
+const SURFACE_WIRING: Record<
+    UISurfaceId,
+    { file: string; fn: string; component: string }
+> = {
+    "settings-card": {
+        file: "surfaces/settings-card",
+        fn: "registerSettingsCard",
+        component: "surfaces/SettingsCard.tsx",
+    },
+    "chat-node": {
+        file: "surfaces/chat-node",
+        fn: "registerChatNode",
+        component: "surfaces/ChatNode.tsx",
+    },
+    "input-dock": {
+        file: "surfaces/input-dock",
+        fn: "registerInputDock",
+        component: "surfaces/InputDock.tsx",
+    },
+    sidebar: {
+        file: "surfaces/sidebar-panel",
+        fn: "registerSidebarPanel",
+        component: "surfaces/SidebarPanel.tsx",
+    },
+    "tool-view": {
+        file: "surfaces/tool-view",
+        fn: "registerToolView",
+        component: "surfaces/ToolView.tsx",
+    },
+    "session-header": {
+        file: "surfaces/session-header",
+        fn: "registerSessionHeader",
+        component: "surfaces/SessionHeader.tsx",
+    },
 };
 
 /**
@@ -86,12 +112,17 @@ export function planGeneration(answers: Answers): GenerationPlan {
     };
     // 追加一行 import + 一行调用的便捷闭包
     // 相对导入一律 .ts 后缀:dev 直载走 Node 原生类型剥离(要求 .ts),构建由 tsdown 原生解析
-    const wire = (block: LineBlock, file: string, fn: string, call: string): void => {
+    const wire = (
+        block: LineBlock,
+        file: string,
+        fn: string,
+        call: string,
+    ): void => {
         block.imports.push(`import { ${fn} } from "./${file}.ts"`);
         block.calls.push(call);
     };
 
-    // 按规范原子顺序遍历,保证输出稳定(不随勾选顺序浮动)
+    // 按固定原子顺序遍历,保证输出稳定(不随勾选顺序浮动)
     for (const atom of ATOMS) {
         if (!answers.atoms.includes(atom.id)) continue;
 
@@ -100,50 +131,99 @@ export function planGeneration(answers: Answers): GenerationPlan {
                 plan.copy.push({ from: "tool/src/tool.ts", to: "src/tool.ts" });
                 plan.index.injects.push("tools");
                 wire(plan.index, "tool", "registerTool", "registerTool(ctx)");
-                plan.readmeStructure.push("src/tool.ts          工具实现(defineTool + schema)");
+                plan.readmeStructure.push(
+                    "src/tool.ts          工具实现(defineTool + schema)",
+                );
                 break;
             }
 
             case "events": {
                 // 聚合文件由生成器渲染;只拷被勾选域的实现文件
-                const domains = EVENT_DOMAINS.filter((d) => answers.eventDomains.includes(d.id));
-                const aggregate: AggregatePlan = { file: "src/events.ts", imports: [], calls: [] };
+                const domains = EVENT_DOMAINS.filter((d) =>
+                    answers.eventDomains.includes(d.id),
+                );
+                const aggregate: AggregatePlan = {
+                    file: "src/events.ts",
+                    imports: [],
+                    calls: [],
+                };
                 for (const d of domains) {
                     const w = DOMAIN_WIRING[d.id];
-                    plan.copy.push({ from: `events/src/${w.file}.ts`, to: `src/${w.file}.ts` });
-                    wire(aggregate, w.file, w.fn, `${w.fn}(ctx) // 域:${d.label}`);
+                    plan.copy.push({
+                        from: `events/src/${w.file}.ts`,
+                        to: `src/${w.file}.ts`,
+                    });
+                    wire(
+                        aggregate,
+                        w.file,
+                        w.fn,
+                        `${w.fn}(ctx) // 域:${d.label}`,
+                    );
                 }
                 plan.aggregates.push(aggregate);
-                wire(plan.index, "events", "registerEventListeners", "registerEventListeners(ctx)");
+                wire(
+                    plan.index,
+                    "events",
+                    "registerEventListeners",
+                    "registerEventListeners(ctx)",
+                );
                 plan.readmeStructure.push(
-                    "src/events.ts        事件域聚合(按勾选接线)",
+                    "src/events.ts        事件域聚合",
                     "src/domains/         各事件域监听(ctx.on)",
                 );
                 break;
             }
 
             case "service": {
-                const seams = SEAMS.filter((s) => answers.serviceSeams.includes(s.id));
+                const seams = SEAMS.filter((s) =>
+                    answers.serviceSeams.includes(s.id),
+                );
                 if (answers.serviceCreate) {
-                    plan.copy.push({ from: "service/src/service.ts", to: "src/service.ts" });
-                    plan.index.imports.push(`import { ExampleService } from "./service.ts"`);
-                    plan.index.calls.push("ctx.plugin(ExampleService) // 挂载自有服务");
-                    plan.readmeStructure.push("src/service.ts       自有服务(extends Service)");
+                    plan.copy.push({
+                        from: "service/src/service.ts",
+                        to: "src/service.ts",
+                    });
+                    plan.index.imports.push(
+                        `import { ExampleService } from "./service.ts"`,
+                    );
+                    plan.index.calls.push(
+                        "ctx.plugin(ExampleService) // 挂载自有服务",
+                    );
+                    plan.readmeStructure.push(
+                        "src/service.ts       自有服务(extends Service)",
+                    );
                 }
                 if (seams.length > 0) {
                     // 聚合入口放 src/seams/index.ts(与 client/index.ts 同构),避免 seams.ts 与 seams/ 同名并存
-                    const aggregate: AggregatePlan = { file: "src/seams/index.ts", imports: [], calls: [] };
+                    const aggregate: AggregatePlan = {
+                        file: "src/seams/index.ts",
+                        imports: [],
+                        calls: [],
+                    };
                     for (const s of seams) {
                         const w = SEAM_WIRING[s.id];
-                        plan.copy.push({ from: `service/src/${w.file}.ts`, to: `src/${w.file}.ts` });
+                        plan.copy.push({
+                            from: `service/src/${w.file}.ts`,
+                            to: `src/${w.file}.ts`,
+                        });
                         plan.index.injects.push(s.inject); // 缝要求的服务就绪,并入入口 inject 并集
                         // 聚合入口已在 seams/ 目录内,各缝相对导入不含目录前缀
-                        wire(aggregate, w.file.replace(/^seams\//, ""), w.fn, `${w.fn}(ctx) // 缝:${s.label}`);
+                        wire(
+                            aggregate,
+                            w.file.replace(/^seams\//, ""),
+                            w.fn,
+                            `${w.fn}(ctx) // 缝:${s.label}`,
+                        );
                     }
                     plan.aggregates.push(aggregate);
-                    wire(plan.index, "seams/index", "registerServiceSeams", "registerServiceSeams(ctx)");
+                    wire(
+                        plan.index,
+                        "seams/index",
+                        "registerServiceSeams",
+                        "registerServiceSeams(ctx)",
+                    );
                     plan.readmeStructure.push(
-                        "src/seams/index.ts   能力缝聚合(按勾选接线)",
+                        "src/seams/index.ts   能力缝聚合",
                         "src/seams/           各能力缝注册实现",
                     );
                 }
@@ -152,31 +232,66 @@ export function planGeneration(answers: Answers): GenerationPlan {
 
             case "ui": {
                 // host 侧零贡献;client 半边:聚合入口生成,按勾选拷实现与组件
-                const surfaces = UI_SURFACES.filter((s) => answers.uiSurfaces.includes(s.id));
-                const aggregate: AggregatePlan = { file: "src/client/index.ts", imports: [], calls: [] };
+                const surfaces = UI_SURFACES.filter((s) =>
+                    answers.uiSurfaces.includes(s.id),
+                );
+                const aggregate: AggregatePlan = {
+                    file: "src/client/index.ts",
+                    imports: [],
+                    calls: [],
+                };
                 // CSS Modules 的 TS 契约:.module.css 导入返回类名映射(组件样式文件的配套声明)
-                plan.copy.push({ from: "ui/src/css-modules.d.ts", to: "src/css-modules.d.ts" });
+                plan.copy.push({
+                    from: "ui/src/css-modules.d.ts",
+                    to: "src/css-modules.d.ts",
+                });
                 for (const s of surfaces) {
                     const w = SURFACE_WIRING[s.id];
                     plan.copy.push(
                         // 注册层不含 JSX,文件用 .ts(与导入后缀字面一致,直载安全);组件层保持 .tsx
-                        { from: `ui/src/client/${w.file}.ts`, to: `src/client/${w.file}.ts` },
-                        { from: `ui/src/client/${w.component}`, to: `src/client/${w.component}` },
+                        {
+                            from: `ui/src/client/${w.file}.ts`,
+                            to: `src/client/${w.file}.ts`,
+                        },
+                        {
+                            from: `ui/src/client/${w.component}`,
+                            to: `src/client/${w.component}`,
+                        },
                         // 组件样式与组件成对拷贝(构建期内联进 client.js,见 tsdown 配置的内联插件)
-                        { from: `ui/src/client/${w.component.replace(/\.tsx$/, ".module.css")}`, to: `src/client/${w.component.replace(/\.tsx$/, ".module.css")}` },
+                        {
+                            from: `ui/src/client/${w.component.replace(/\.tsx$/, ".module.css")}`,
+                            to: `src/client/${w.component.replace(/\.tsx$/, ".module.css")}`,
+                        },
                     );
-                    wire(aggregate, w.file, w.fn, `${w.fn}(ctx) // 界面位:${s.label}`);
+                    wire(
+                        aggregate,
+                        w.file,
+                        w.fn,
+                        `${w.fn}(ctx) // 界面位:${s.label}`,
+                    );
                 }
                 plan.aggregates.push(aggregate);
-                plan.readmeStructure.push("src/client/          浏览器半边(client 聚合入口 + surfaces/ 界面位)");
+                plan.readmeStructure.push(
+                    "src/client/          浏览器半边(client 聚合入口 + surfaces/ 界面位)",
+                );
                 break;
             }
 
             case "protocol": {
-                plan.copy.push({ from: "protocol/src/protocol.ts", to: "src/protocol.ts" });
+                plan.copy.push({
+                    from: "protocol/src/protocol.ts",
+                    to: "src/protocol.ts",
+                });
                 plan.index.injects.push("agents");
-                wire(plan.index, "protocol", "registerProtocol", "registerProtocol(ctx)");
-                plan.readmeStructure.push("src/protocol.ts      外部协议桥(webhook → agents)");
+                wire(
+                    plan.index,
+                    "protocol",
+                    "registerProtocol",
+                    "registerProtocol(ctx)",
+                );
+                plan.readmeStructure.push(
+                    "src/protocol.ts      外部协议桥(webhook → agents)",
+                );
                 break;
             }
         }

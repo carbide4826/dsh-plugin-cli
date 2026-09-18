@@ -1,6 +1,3 @@
-// count_chars 的调用卡片:keyed 槽位按工具名分发,注册后整卡接管默认渲染。
-// props 契约 = ToolCallViewProps:callId / toolName / block(冻结的运行中或已落定调用节点),
-// 视图是 block 的纯函数——运行中、失败、成功三种形态都从这里读出。
 import { memo } from 'react'
 import type { ToolCallViewProps } from '@deepseek-ai/dsh-client-ui-tool/client'
 import styles from './ToolView.module.css'

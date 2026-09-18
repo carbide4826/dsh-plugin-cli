@@ -1,7 +1,13 @@
-// 【M3】精选案例(金样)拷贝:把 templates/scenarios/<案例> 整目录拷为目标项目,
-// 并把项目身份从案例 id 重写为用户项目名。精选案例所见即所得——只重写身份,
-// 不做任何配置改造(覆盖参数在 -s 模式下不适用)。
-import { cpSync, existsSync, readdirSync, readFileSync, renameSync, statSync, writeFileSync } from "node:fs";
+// 精选案例(金样)拷贝:把 templates/scenarios/<案例> 整目录拷为目标项目,
+import {
+    cpSync,
+    existsSync,
+    readdirSync,
+    readFileSync,
+    renameSync,
+    statSync,
+    writeFileSync,
+} from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { writeFile } from "../render/render";
 import { templatesRoot } from "./project";
@@ -22,20 +28,32 @@ export function listScenarioCases(): string[] {
     const root = casesRoot();
     if (!existsSync(root)) return [];
     return readdirSync(root)
-        .filter((n) => !n.startsWith(".") && statSync(join(root, n)).isDirectory())
+        .filter(
+            (n) => !n.startsWith(".") && statSync(join(root, n)).isDirectory(),
+        )
         .sort();
 }
 
 /**
  * 拷贝精选案例到目标目录并重写身份。
- * 重写规则:案例 id 在文件中的全部出现处替换为项目名——覆盖 package.json name、
- * cordis.patch.yml id、插件 name 导出、tsdown 配置里的 __ModuleLoader__ id 与 README 行文。
+ * 重写规则:案例 id 在文件中的全部出现处(词边界)替换为 identity(=插件 id)——覆盖插件 name 导出、
+ * cordis.patch.yml id、tsdown 配置里的 __ModuleLoader__ id 与 README 行文;包名不参与替换,
+ * 由 meta.pkgName 结构化写入 package.json(身份与包名解耦,单值替换不再互绑)。
+ * @param identity - 身份替换主词(=插件 id;未指定时由调用方回落为目录名)
+ * @param meta - 可选项目元信息:有值时写入生成物 package.json 的对应字段(案例默认值被覆盖)
  * @returns 拷贝的文件清单(相对 targetDir,字典序)
  */
-export function copyScenarioCase(caseId: string, targetDir: string, pkgName: string): string[] {
+export function copyScenarioCase(
+    caseId: string,
+    targetDir: string,
+    identity: string,
+    meta?: { description?: string; author?: string; pkgName?: string },
+): string[] {
     const sourceDir = join(casesRoot(), caseId);
     if (!existsSync(sourceDir)) {
-        throw new Error(`精选案例不存在:${caseId}(可用:${listScenarioCases().join(", ")})`);
+        throw new Error(
+            `精选案例不存在:${caseId}(可用:${listScenarioCases().join(", ")})`,
+        );
     }
 
     cpSync(sourceDir, targetDir, {
@@ -51,15 +69,15 @@ export function copyScenarioCase(caseId: string, targetDir: string, pkgName: str
 
     const files: string[] = [];
     // 词边界替换(非纯子串):语义名若以案例 id 作前缀(如 notebookService),
-    // 后面跟字母时边界断言失败不被误换;身份字段(包名/patch id/日志前缀等独立词)照常替换。
+    // 后面跟字母时边界断言失败不被误换;身份字段(插件 id/patch id/日志前缀等独立词)照常替换。
     // 案例 id 仅含小写字母与连字符,作为正则模式无特殊字符风险。
     const caseIdPattern = new RegExp(`\\b${caseId}\\b`, "g");
     walk(targetDir, (file) => {
         files.push(relative(targetDir, file));
-        if (pkgName !== caseId) {
+        if (identity !== caseId) {
             const text = readFileSync(file, "utf8");
             if (text.includes(caseId)) {
-                writeFileSync(file, text.replaceAll(caseIdPattern, pkgName));
+                writeFileSync(file, text.replaceAll(caseIdPattern, identity));
             }
         }
     });
@@ -69,19 +87,41 @@ export function copyScenarioCase(caseId: string, targetDir: string, pkgName: str
     // config 块原样保留——仅把 name 换成源码入口绝对路径(直载 .ts,Node ESM 不支持目录导入)。
     const distPatch = join(targetDir, "cordis.patch.yml");
     if (!existsSync(distPatch)) {
-        throw new Error(`案例 ${caseId} 缺少 cordis.patch.yml,无法生成 dev.patch.yml`);
+        throw new Error(
+            `案例 ${caseId} 缺少 cordis.patch.yml,无法生成 dev.patch.yml`,
+        );
     }
     const body = readFileSync(distPatch, "utf8");
     const insertAt = body.indexOf("- insert:");
     if (insertAt < 0) {
-        throw new Error(`案例 ${caseId} 的 cordis.patch.yml 缺少 "- insert:" 行,无法生成 dev.patch.yml`);
+        throw new Error(
+            `案例 ${caseId} 的 cordis.patch.yml 缺少 "- insert:" 行,无法生成 dev.patch.yml`,
+        );
     }
     const entryFile = resolve(targetDir, "src/index.ts");
     const named = body
         .slice(insertAt)
         .replace(/^(\s*name: ')[^']*(')$/m, `$1${entryFile}$2`);
-    writeFile(targetDir, "dev.patch.yml", [...DEV_PATCH_NOTES, named].join("\n") + "\n");
+    writeFile(
+        targetDir,
+        "dev.patch.yml",
+        [...DEV_PATCH_NOTES, named].join("\n") + "\n",
+    );
     files.push("dev.patch.yml");
+
+    // 项目元信息:描述/作者/包名与身份无关,是用户自己的信息,有值时覆盖案例默认值
+    // (包名默认=身份词,未显式给出时不写,保持替换产物一致)
+    if (meta?.description || meta?.author || meta?.pkgName) {
+        const pkgPath = join(targetDir, "package.json");
+        const pkg = JSON.parse(readFileSync(pkgPath, "utf8")) as Record<
+            string,
+            unknown
+        >;
+        if (meta.description) pkg.description = meta.description;
+        if (meta.author) pkg.author = meta.author;
+        if (meta.pkgName) pkg.name = meta.pkgName;
+        writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + "\n");
+    }
 
     return files.sort();
 }

@@ -1,4 +1,3 @@
-// quick-tool — 插件入口(由 dshp 按勾选拼装生成)。
 import type { Context } from '@deepseek-ai/cordis'
 import { registerTool } from "./tool.ts"
 
@@ -9,7 +8,7 @@ export const name = 'quick-tool'
 export const inject = ['tools']
 
 /**
- * 插件入口:各原子的注册调用(由 dshp 按勾选拼装)。
+ * 插件入口:各能力的注册调用。
  * @param ctx - Cordis 上下文
  */
 export function apply(ctx: Context): void {

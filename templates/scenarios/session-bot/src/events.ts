@@ -1,4 +1,3 @@
-// 事件域聚合入口(由 dshp 生成):每域一行调用,实现见 ./domains/*.ts。
 import type { Context } from '@deepseek-ai/cordis'
 import { registerSessionListeners } from "./domains/session.ts"
 

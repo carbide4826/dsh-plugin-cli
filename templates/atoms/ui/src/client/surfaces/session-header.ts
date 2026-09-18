@@ -1,4 +1,3 @@
-// 会话头:single 槽位(声明者独占渲染权,重复注册会冲突)。
 import type { Context } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import { SessionHeader } from './SessionHeader.tsx'

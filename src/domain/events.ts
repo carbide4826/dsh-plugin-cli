@@ -1,6 +1,4 @@
-// 【M1-04】事件域清单(按域勾选,域内事件由生成层展开)
-// 数据快照:官方 deepseek-harness@0.1.5-rc.1 的 docs/event-producer-consumer.md
-
+// 事件域清单
 export const EVENT_DOMAINS = [
     {
         id: "tools",
@@ -84,12 +82,4 @@ export const EVENT_DOMAINS = [
     }[];
 }[];
 
-// 域 id 联合:从数据推导
 export type EventDomainId = (typeof EVENT_DOMAINS)[number]["id"];
-
-// 按勾选域取依赖包集合(交给全局收集器并集去重)
-export function pkgsFor(domains: readonly string[]): string[] {
-    return EVENT_DOMAINS.filter((d) => domains.includes(d.id)).flatMap((d) => [
-        ...d.pkgs,
-    ]);
-}

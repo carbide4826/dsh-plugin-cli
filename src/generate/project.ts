@@ -1,4 +1,4 @@
-// 【M2-c】项目生成编排:base 模板渲染 + 原子文件拷贝 + 动态文件写入,产出完整生成项目
+// 项目生成编排:base 模板渲染 + 原子文件拷贝 + 动态文件写入,产出完整生成项目
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -14,7 +14,12 @@ import { generateAggregator, generateHostIndex } from "./indexTs";
 // base 平铺模板文件(templates/ 根平铺着案例库 README 等非渲染文件,故显式列文件而非整目录渲染)
 // `_` 前缀是点文件素材的素材名,落盘时换 `.` 开头(见 destName):npm 内置排除表把 .gitignore
 // 硬踢出 tarball 且无法用 .npmignore 反向加回,素材必须以非点名才能随包发布。约定同 create-vite。
-const BASE_FILES = ["tsconfig.json", "README.md", "_gitignore", "tsdown.config.ts"] as const;
+const BASE_FILES = [
+    "tsconfig.json",
+    "README.md",
+    "_gitignore",
+    "tsdown.config.ts",
+] as const;
 
 /** 素材名 → 落盘名:`_` 前缀的点文件素材换 `.` 开头,其余原样 */
 function destName(source: string): string {
@@ -29,7 +34,10 @@ export function templatesRoot(): string {
     let dir = dirname(fileURLToPath(import.meta.url));
     for (let i = 0; i < 6; i++) {
         const candidate = join(dir, "templates");
-        if (existsSync(join(candidate, "README.md")) && existsSync(join(candidate, "atoms"))) {
+        if (
+            existsSync(join(candidate, "README.md")) &&
+            existsSync(join(candidate, "atoms"))
+        ) {
             cachedRoot = candidate;
             return cachedRoot;
         }
@@ -57,20 +65,28 @@ export function writeProject(answers: Answers, targetDir: string): string[] {
     const vars: Vars = buildVars(answers, plan.readmeStructure.join("\n"));
     const root = templatesRoot();
 
-    // ① base 模板(tsconfig / README / _gitignore→.gitignore / tsdown)
+    // base 模板(tsconfig / README / _gitignore→.gitignore / tsdown)
     for (const base of BASE_FILES) {
         const dest = destName(base);
-        writeFile(targetDir, dest, renderString(readTemplate(join(root, base)), vars));
+        writeFile(
+            targetDir,
+            dest,
+            renderString(readTemplate(join(root, base)), vars),
+        );
         written.push(dest);
     }
 
-    // ② 原子实现文件(拷贝 + 占位符渲染;copy.from 相对 templates/atoms/)
+    // 原子实现文件(拷贝 + 占位符渲染;copy.from 相对 templates/atoms/)
     for (const c of plan.copy) {
-        writeFile(targetDir, c.to, renderString(readTemplate(join(root, "atoms", c.from)), vars));
+        writeFile(
+            targetDir,
+            c.to,
+            renderString(readTemplate(join(root, "atoms", c.from)), vars),
+        );
         written.push(c.to);
     }
 
-    // ③ 动态文件:package.json / patch / 入口 / 聚合
+    // 动态文件:package.json / patch / 入口 / 聚合
     writeFile(targetDir, "package.json", generatePackageJson(answers, deps));
     written.push("package.json");
 
@@ -78,10 +94,18 @@ export function writeProject(answers: Answers, targetDir: string): string[] {
         writeFile(targetDir, "cordis.patch.yml", generateCordisPatch(answers));
         written.push("cordis.patch.yml");
     }
-    writeFile(targetDir, "dev.patch.yml", generateDevPatch(answers, resolve(targetDir, "src/index.ts")));
+    writeFile(
+        targetDir,
+        "dev.patch.yml",
+        generateDevPatch(answers, resolve(targetDir, "src/index.ts")),
+    );
     written.push("dev.patch.yml");
 
-    writeFile(targetDir, "src/index.ts", generateHostIndex(answers, plan.index));
+    writeFile(
+        targetDir,
+        "src/index.ts",
+        generateHostIndex(answers, plan.index),
+    );
     written.push("src/index.ts");
     for (const agg of plan.aggregates) {
         writeFile(targetDir, agg.file, generateAggregator(agg));

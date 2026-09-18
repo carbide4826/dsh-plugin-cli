@@ -1,4 +1,3 @@
-// 【M1-07】clack 取消约定与终端超链接工具
 import * as p from "@clack/prompts";
 
 /**

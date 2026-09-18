@@ -1,4 +1,4 @@
-// 【M2-c】package.json 生成器:四名称 + 三桶依赖 + bundle 声明 + UI 的 client 出口
+// package.json 生成器:四名称 + 三桶依赖 + bundle 声明 + UI 的 client 出口
 import type { Answers } from "../domain/types";
 import { UI_SURFACES } from "../domain/uiSurfaces";
 import {
@@ -90,6 +90,12 @@ export function generatePackageJson(
                 ? { "./cordis.patch.yml": "./cordis.patch.yml" }
                 : {}),
         },
+        // 进包白名单:显式列出,否则 npm 会回落到 .gitignore 当黑名单——而 .gitignore 排除了 dist/,
+        // 结果是产物被漏、src/ 与构建配置反被打进包(README.md / package.json 为 npm 强制包含项,无需列出)
+        files: [
+            "dist",
+            ...(answers.pkgPosition === "bundle" ? ["cordis.patch.yml"] : []),
+        ],
         dependencies: bucketToRecord(deps.deps),
         peerDependencies: bucketToRecord(deps.peer),
         devDependencies: bucketToRecord(deps.dev),

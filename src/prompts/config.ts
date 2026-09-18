@@ -1,11 +1,11 @@
-// 【M1-09】第 3 组:配置方式 + 关联规则
+// 配置方式 + 关联规则
 import * as p from "@clack/prompts";
 import type { Answers } from "../domain/types";
 import { unwrap } from "../utils/prompt";
 
 /**
- * 第 3 组问卷入口:收集配置方式(静态默认/动态/无)
- * @param uiSurfaces - 第 2 组收集的界面位勾选;含 "settings-card" 时「无」被禁用(设置卡片必须配配置)
+ * 收集配置方式(静态默认/动态/无)
+ * @param uiSurfaces - 已选界面位;含 "settings-card" 时「无」被禁用(设置卡片必须配配置)
  * @returns 配置方式,Answers 的 config 字段
  */
 export async function askConfig(

@@ -1,5 +1,3 @@
-/* count_chars 调用卡片:样式值优先宿主设计令牌 var(--dsw-alias-*)(带字面量兜底),
-   主题与暗色自动跟随;类名构建期哈希隔离,构建后内联进 client.js,无独立 .css 产物。 */
 .card {
     margin: 4px 0;
     padding: 8px 12px;

@@ -1,12 +1,7 @@
-// 【M1-01】类型定义:问卷答案结构(Answers)——全流程数据契约
+// 类型定义:问卷答案结构(Answers)——全流程数据契约
 
-// 包定位
 export type PkgPosition = "bundle" | "library";
-
-// 原子 id
 export type AtomId = "tool" | "events" | "service" | "ui" | "protocol";
-
-// 配置方式
 export type ConfigMode = "none" | "static" | "dynamic";
 
 export interface Answers {

@@ -2,90 +2,97 @@
 
 Curated case: bring your own model service (llm seam + dynamic settings card)
 
-> 由 [dshp](https://github.com/carbide4826/dsh-plugin-cli) 生成 · 目标 DSH 0.1.5-rc.2
+> 由 [dshp](https://github.com/carbide4826/dsh-plugin-cli) 生成 · 依赖版本 DSH 0.1.5-rc.2
 
-## 本案例演示什么
+　　**版本跟随 dsh**:所有 `@deepseek-ai/dsh-*` 跟随 DSH 版本线,当前固定在 0.1.5-rc.2;后续随官方迭代跟踪更新。
 
-接入自有模型服务(公司网关/第三方):llm 缝注册 adapter 出现在模型选择器,配置走**设置页动态表单**(改配置实时生效,不重启)。API key 不落盘:配置里只放**环境变量名**(`apiKeyEnv`,官方 web-search-deepseek/llm-deepseek 同款),key 本体 `export` 到环境里按请求解析。演示态为回显,真实实现只需把 `stream` 换成对 `baseUrl` 的流式 HTTP 调用。
+　　**Node 要求**:`^22.19.0 || >=24.0.0`。
 
-## 关键文件导览
+## 快速开始
 
-| 文件 | 看什么 |
-|---|---|
-| `src/index.ts` | Config(apiKeyEnv/baseUrl/model)+ `installSection` 动态配置 + 热更新注入 adapter |
-| `src/seams/llm.ts` | adapter 三方法:`providerInfo`(显示名)、`listModels`(进选择器,必 override)、`stream`(生成,key 从 `process.env[config.apiKeyEnv]` 按请求取) |
-| `src/client/surfaces/SettingsCard.tsx` | 设置卡片:Config 表单由宿主自动渲染,卡片放说明文字 |
-| `src/client/surfaces/SettingsCard.module.css` | 卡片样式(CSS Modules,构建后内联进 client.js,见防坑第 13 条) |
-
-## 如何验证起效
-
-1. `pnpm install --ignore-workspace && pnpm build && dsh plugin add .`(UI 半边必须 add 轨道)
-2. `export GATEWAY_API_KEY=any-non-empty`(echo 模式只检查非空;真网关放真 key)
-3. 点输入框旁"模型"入口:列表出现 **Model Gateway → gateway-chat** 分组,选中
-4. 发消息 → 回复带 `[model-gateway] …(echo 模式)` 即全链路通;在设置页把 `apiKeyEnv` 指到别的变量再发消息,验证热更新
-
-## 开发
+### 1. 依赖安装到打包
 
 ```sh
-pnpm install          # 安装依赖
+pnpm install --ignore-workspace  # 安装依赖(①)
 pnpm build            # 构建
 pnpm typecheck        # 类型检查
 ```
 
-## 本地调试(直载源码,无需构建)
+### 2. 前置准备:项目内安装 dsh
 
-在**本项目根目录**执行(`--patch` 参数按当前目录解析):
+　　在**本项目根目录**执行:
 
 ```sh
-dsh web --patch ./dev.patch.yml
+pnpm add -D @deepseek-ai/dsh@0.1.5-rc.2  # 安装 dsh(②)
 ```
 
-> `dsh` 命令来自 harness 主包 `@deepseek-ai/dsh`。没装的话:全局 `npm i -g @deepseek-ai/dsh@0.1.5-rc.2`(主包的 `latest` 同样是过期占位,**别裸装**),或本项目内 `pnpm add -D @deepseek-ai/dsh@0.1.5-rc.2` 后改用 `pnpm dsh web --patch ./dev.patch.yml`。
-> 装完后 pnpm 会拦截依赖的构建脚本(供应链保护):按官方 harness 的裁决,放行 `node-pty` / `koffi` / `@deepseek-ai/dsh-subprocess-local`(`pnpm approve-builds` 勾选,或手写 `pnpm.onlyBuiltDependencies`),`@google/genai` / `protobufjs` 的脚本是 no-op,不用批。
+### 3. 不启动,只检查
 
-## 验证插件已加载
+> 这里先用下面「方式二」的 `--patch` 做一次临时注入,确认插件行进得了组合树。
 
 ```sh
 # 不启动,检查组合树里有本插件行:
 pnpm dsh web --patch ./dev.patch.yml --dump-config | grep -A 4 model-gateway
 ```
 
-启动后打印 Web 地址(默认 http://127.0.0.1:3080)即代表 apply 已执行;功能级验证:工具在对话里让模型调用(需已配置模型),界面位打开 Web UI 对应位置查看。
+### 4. 配置注入(两种,二选一)
 
-> 对话需要模型可用:启动前 `export DEEPSEEK_API_KEY=...`(llm-deepseek 默认从该环境变量读 key,缺失时加载正常、仅对话请求报 MISSING_CREDENTIAL)。
+　　两种方式都是让宿主知道有这个插件,区别只在「装产物」还是「直载源码」。
 
-## 安装到 profile
+#### 方式一 · 插件 add(持久,走构建产物)
+
+　　前提:第 1 步已 `pnpm build`(装的是 `dist/` 产物,loader 按 `exports` 解析)。**本案例的设置卡片必须走这条**(见 tip 3)。
 
 ```sh
-pnpm build                          # 先构建:安装的是 dist/ 的编译产物(.js),loader 按 exports 解析
-dsh plugin --profile <name> add ./  # 在本项目父目录执行(相对路径锚定调用目录)
+pnpm dsh plugin --profile web add .      # 在本项目根目录执行(③④⑧)
+pnpm dsh web                             # 启动(全走构建产物)
+```
+
+#### 方式二 · --patch 一次性注入(临时,直载源码)
+
+```sh
+pnpm dsh web --patch ./dev.patch.yml  # 启动(直载源码)(⑤⑥)
 ```
 
 > 开发期用 `--patch` 直载 .ts 源码;`plugin add` 装的是构建产物,两条轨道互不影响。
-> ⚠️ **UI 界面位的调试必须走 `build + plugin add` 轨道**:`--patch` 直载只加载 host 半边,浏览器侧的槽位注册不会发生(宿主按 npm 包身份聚合各包的 client 出口,file:// 直载没有包身份)。
 
-## ⚠️ 防坑清单(每条都核对过官方源码或经实测,动手改代码前请过一眼)
+　　启动后打印 Web 地址(默认 http://127.0.0.1:3080)即代表 apply 已执行;功能级验证:工具在对话里让模型调用(需已配置模型),界面位打开 Web UI 对应位置查看。
 
-1. **dist-tag 钉扎**:本项目已把 `@deepseek-ai/dsh-*` 精确钉在 0.1.5-rc.2——npm 上这些包的 `latest` 标签是过期占位(真实版本线在 `next`),手动 `npm i @deepseek-ai/dsh-*` 会把版本拉歪。所有 dsh 包保持同一条 rc 线:官方全家整体发布,混用不同 rc 会让 pnpm 装出两份模块副本。
-2. **cordis 是 peer,不是依赖**:`@deepseek-ai/cordis` 固定在 peerDependencies,运行时由 dsh 宿主提供同一实例。类型用 `import type`;`Service` 这类基类必须值导入(`extends Service` 用,官方插件同款)——但别把它挪进 dependencies 自己装一份。
-3. **注册即 effect**:框架的注册面(`ctx.tools.register()` / `ctx.on()` / `ctx.slots.inject()`)都在插件卸载时自动清理;自己的资源(timer、连接、子进程)要包 `ctx.effect(() => { ...; return cleanup })`。
-4. **加载顺序只认 `inject`**:`inject: ['tools']` 表示等 tools 服务就绪后再加载本插件;文件顺序、注册先后都不影响加载。
-5. **工具的三个类型硬约束**:`execute` 必须 async(返回 Promise);第二参数是 `ToolRunContext`(运行上下文);对象型 output schema 必须显式 `additionalProperties: false` 且字段标 `required: true`,否则 render 的 value 类型不完整。生成代码已按此写,改动时保持。
-6. **patch 按 id 整行替换**:`cordis.patch.yml` / `dev.patch.yml` 中同 id 的行后写者赢,`config` 是整行替换、不合并——要改配置就写全量,没有增量补丁。
-7. **配置即接口**:凡是两个部署可能想设不同值的参数,放进 `Config`(Schemastery)并同步 patch 行的 `config`;不要硬编码。
-8. **client 表面是双文件分层**:`src/client/surfaces/` 下,kebab-case 文件是**注册层**(向槽位接线,不含 JSX),PascalCase 文件才是你的 React 组件——改 UI 通常只动组件层;槽名 / `id` / `order` / 注入数据在注册层调。这是脚手架的自创约定(官方/社区多为平铺),认准分层即可。
-9. **相对导入一律写全 `.ts` 后缀**:dev 直载走 Node 原生类型剥离,导入后缀要与文件字面一致——注册层逻辑文件用 `.ts`,React 组件用 `.tsx`(生成代码已按此写,新建文件时保持)。
-10. **祖先 `pnpm-workspace.yaml` 劫持 install**:上级任意目录存在该文件时,`pnpm install` 会被提升到那个 workspace 根执行,本项目的 `node_modules` 不会被创建(typecheck 报一堆 Cannot find module)。在本项目内用 `pnpm install --ignore-workspace` 独立安装即可。
-11. **client 出口是注册式模块,不是 ESM**:宿主把各包 client.js 拼进同一聚合脚本执行(非 ESM 上下文),产物必须是 `window.__ModuleLoader__.load({id, factory})` 外壳——生成配置已用 CJS + banner/footer 实现,别改成纯 ESM;`react`/`react-dom`/`react/jsx-runtime` 必须 external(宿主经 factory 的 require 供应,打进 bundle 会双实例)。
-12. **槽位注册选项按槽型分形**:keyed 槽 = `{key, priority?}`,list 槽 = `{id, order?, label?, priority?}`,single 槽 = `{priority?}`——没有统一形状,注册项一律没有 `inject` 字段(面数据走组件的 owner props)。`priority` 是 shadowing rank(升序,最低者渲染,same key+same priority 会 throw):要接管官方已注册的 single 槽(如会话头,官方在 0),用更低值。`conversation.chat.node` 的 key 在 rc.2 类型里是官方节点枚举,自定义节点 key 类型未开放(生成代码用 `as never` 断言,类型放开后移除)。
-13. **组件样式走 CSS Modules,构建后内联进 client.js**:每个表面组件配一个同名 `.module.css`——类名构建期哈希隔离;样式值优先宿主设计令牌 `var(--dsw-alias-*)` 并带字面量兜底(主题/暗色自动跟随)。tsdown 配置里的内联插件会把样式文本回灌进 `dist/client.js`(运行时注入 `<style>`,按 `data-plugin-css` 幂等防重)并删除独立文件——宿主聚合只拼 client.js、没有插件 CSS 通道,别把样式改回 inline style 或独立 .css 引用。`.module.css` 的 TS 类型由 `src/css-modules.d.ts` 提供。
+### 注意事项（tips）
 
-## 代码结构
+　　① **install 被祖先 workspace 劫持**:上级目录存在 `pnpm-workspace.yaml` 时,`pnpm install` 会被提升到该 workspace 根执行,本项目 `node_modules` 不生成(typecheck 报 Cannot find module);用 `pnpm install --ignore-workspace` 独立安装。
 
-```
-src/index.ts        插件入口(name/inject/apply)
-```
-src/service.ts       自有服务(extends Service)
-src/seams/index.ts   能力缝聚合(按勾选接线)
-src/seams/           各能力缝注册实现
-src/client/          浏览器半边(client 聚合入口 + surfaces/ 界面位)
+　　② **装 dsh 时放行构建脚本**:pnpm 会拦截依赖的构建脚本(供应链保护),按提示跑 `pnpm approve-builds` 勾选 `node-pty` / `koffi` / `@deepseek-ai/dsh-subprocess-local`;`@google/genai` / `protobufjs` 的脚本是 no-op,不用批。
+
+　　③ **UI 界面位必须走 plugin add 才能渲染**:涉及 client 半边的界面位,`--patch` 直载只加载 host 半边、浏览器侧槽位注册不会发生(宿主按 npm 包身份聚合各包的 client 出口,file:// 直载没有包身份);必须先 `pnpm build` 再 `plugin add`。
+
+　　④ **web profile 是共用的**:多个插件都 add 进 web profile 会互相污染;需要隔离时换成自己命名的 profile。
+
+　　⑤ **dev.patch.yml 是生成物**:由 CLI 生成、内含本机绝对路径(机器私有),已在 `.gitignore` 中排除;不要提交,也不要手改。
+
+　　⑥ **相对导入写全 `.ts` 后缀**:dev 直载走 Node 原生类型剥离,后缀须与文件字面一致(注册层 `.ts`、React 组件 `.tsx`)。
+
+　　⑦ **项目身份是三个同名字段**:目录名(落盘位置)、`package.json` 的 `name`(包标识)、`src/index.ts` 的 `export const name`(Cordis 注册名)默认同值;改名要三者一起改,并同步 `cordis.patch.yml` 的 `- id:`(插件 id)与 `name:`(模块名,默认与包名同值),漏一处即身份错位(UI 案例另有 `tsdown.config.ts` 内的 client id)。经 `dshp create` 生成时已自动重写,无须手动同步。
+
+　　⑧ **改代码后要重新 build + 重新 add**:`plugin add` 装的是构建产物,改完源码不会自动生效——需重新 `pnpm build` 后再执行一次 `pnpm dsh plugin --profile web add .`(想边改边看走「方式二」直载)。
+
+### 本案例演示什么
+
+　　演示"接入自有模型服务":llm 缝注册 adapter 出现在模型选择器,配置走**设置页动态表单**(改配置实时生效,不重启);API key 不落盘,配置里只放**环境变量名**。
+
+### 关键文件导览
+
+| 文件 | 看什么 |
+|---|---|
+| `src/index.ts` | Config + `installSection` 动态配置 + 热更新注入 adapter |
+| `src/seams/llm.ts` | adapter 三方法:providerInfo / listModels / stream |
+| `src/client/surfaces/SettingsCard.tsx` | 设置卡片(Config 表单由宿主渲染) |
+| `src/client/surfaces/SettingsCard.module.css` | 卡片样式 |
+
+### 如何验证起效
+
+1. 按「快速开始」1~4 步跑起来(设置卡片必须走方式一)
+2. `export GATEWAY_API_KEY=any-non-empty`(echo 模式只检查非空)
+3. 模型选择器里选 **Model Gateway → gateway-chat** 发消息 → 回复带 `[model-gateway] …`;改设置页的 `apiKeyEnv` 再发一次,验证热更新
+
+　　具体业务需求请按实际情况修改调整;本项目仅提供模板骨架,不建议直接用于实际生产。

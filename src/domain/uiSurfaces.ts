@@ -1,6 +1,4 @@
-// 【M1-05】UI surface 清单(界面位 → Owner 包 + 槽位 key)
-// 数据快照:官方 deepseek-harness@0.1.5-rc.1
-
+// UI surface 清单(界面位 → Owner 包 + 槽位 key)
 export const UI_SURFACES = [
     {
         id: "settings-card",
@@ -54,5 +52,4 @@ export const UI_SURFACES = [
     default?: boolean;
 }[];
 
-// surface id 联合:从数据推导
 export type UISurfaceId = (typeof UI_SURFACES)[number]["id"];

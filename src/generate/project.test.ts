@@ -1,4 +1,4 @@
-// 【M2-c】生成器单测:package.json / patch / 入口 / 编排落盘
+// 生成器单测:package.json / patch / 入口 / 编排落盘
 import { mkdtempSync, readFileSync, rmSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -62,6 +62,19 @@ describe("generatePackageJson", () => {
         expect(pkg.dsh.client.inject).toContain("@deepseek-ai/dsh-client-ui-slots");
         expect(pkg.dsh.client.inject).toContain("@deepseek-ai/dsh-client-ui-settings-plugins");
         expect(pkg.devDependencies["react"]).toBe("^18.2.0");
+    });
+
+    it("files 白名单:产物与 patch 进包,库包不含 patch", () => {
+        // 缺 files 时 npm 会回落到 .gitignore 当黑名单,而 .gitignore 排除了 dist/——
+        // 实测(npm pack --dry-run)结果是产物被漏、src/ 与构建配置反被打进包,而 exports["."]
+        // 指向 ./dist/index.js,装上即崩。这里钉住白名单,防回退。
+        const bundleAnswers: Answers = { ...base, atoms: ["tool"] };
+        const bundle = JSON.parse(generatePackageJson(bundleAnswers, collectDeps(bundleAnswers)));
+        expect(bundle.files).toEqual(["dist", "cordis.patch.yml"]);
+
+        const libAnswers: Answers = { ...base, pkgPosition: "library" };
+        const lib = JSON.parse(generatePackageJson(libAnswers, collectDeps(libAnswers)));
+        expect(lib.files).toEqual(["dist"]);
     });
 });
 
@@ -181,26 +194,5 @@ describe("writeProject", () => {
         // UI 专属工具链:@tsdown/css 进 devDeps(tsdown 的 CSS 管线,缺位即构建报错)
         const pkg = JSON.parse(readFileSync(join(dir, "package.json"), "utf8"));
         expect(pkg.devDependencies["@tsdown/css"]).toBe("^0.23.0");
-    });
-
-    // 手工工具:DSH_GEN_E2E_DIR 指向装好全部 host 依赖的检查工程时,生成宿主组合供真实 tsc。
-    // 用法:DSH_GEN_E2E_DIR=/tmp/dshp-template-check npx vitest run src/generate/project.test.ts
-    it("e2e 工具:生成 host 组合(不勾 UI,client 依赖本地装不齐)", () => {
-        const dir = process.env["DSH_GEN_E2E_DIR"];
-        if (dir === undefined) return;
-        const dynamic = process.env["DSH_GEN_E2E_DYNAMIC"] === "1";
-        const files = writeProject(
-            {
-                ...base,
-                dirName: dir,
-                atoms: ["tool", "events", "service", "protocol"],
-                eventDomains: ["tools", "agent"],
-                serviceCreate: true,
-                serviceSeams: ["llm"],
-                config: dynamic ? "dynamic" : "static",
-            },
-            dir,
-        );
-        console.log(`[e2e] generated ${files.length} files (${dynamic ? "dynamic" : "static"}) -> ${dir}`);
     });
 });

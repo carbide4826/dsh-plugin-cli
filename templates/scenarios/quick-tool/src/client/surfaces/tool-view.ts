@@ -1,4 +1,3 @@
-// 工具调用视图:keyed 槽位,key = 工具名(通常与 Tool 原子配对,自定义该工具的展示)。
 import type { Context } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-client-ui-tool/client'
 import { ToolView } from './ToolView.tsx'

@@ -47,7 +47,7 @@ describe("planGeneration", () => {
             uiSurfaces: ["settings-card", "sidebar"],
         });
 
-        // inject 并集:tool + llm 缝 + protocol(顺序按规范原子序)
+        // inject 并集:tool + llm 缝 + protocol(顺序按固定原子序)
         expect(plan.index.injects).toEqual(["tools", "llm", "agents"]);
 
         // events 聚合只含 tools/session 两域

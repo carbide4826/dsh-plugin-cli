@@ -1,4 +1,4 @@
-// 【M1-02】5 原子定义与推荐默认
+// 原子定义与推荐默认
 
 import type { AtomId } from "./types";
 
