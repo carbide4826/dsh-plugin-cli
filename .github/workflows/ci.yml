@@ -1,0 +1,57 @@
+# CI:类型 + 测试 + 生成项目 E2E 冒烟(不装 dsh 宿主,只验证「生成的工程能装依赖/过类型/构建」)
+# 直连 push 与 PR 都触发(本仓库不走 PR 流程,push 触发是主通路)
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    name: typecheck + test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm test
+
+  e2e-smoke:
+    name: generate-and-build smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+
+      # 两路生成:预设组合(tool)+ 精选案例(quick-tool,含 UI 卡片走 CSS 内联管线)
+      - name: scaffold preset (tool)
+        run: node dist/cli.mjs create preset-tool --template tool --lang en
+      - name: scaffold curated case (quick-tool)
+        run: node dist/cli.mjs create case-qt --template quick-tool -s --lang en
+
+      # 生成工程三步验证;--ignore-workspace 防祖先 workspace 劫持(生成 README 同款坑)
+      - name: preset-tool install / typecheck / build
+        run: |
+          cd preset-tool
+          pnpm install --ignore-workspace
+          pnpm typecheck
+          pnpm build
+      - name: case-qt install / typecheck / build
+        run: |
+          cd case-qt
+          pnpm install --ignore-workspace
+          pnpm typecheck
+          pnpm build
