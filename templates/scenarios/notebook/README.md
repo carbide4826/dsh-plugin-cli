@@ -2,9 +2,9 @@
 
 Curated case: per-user notes via storage seam + a tool (storage + tool)
 
-> 由 [dshp](https://github.com/carbide4826/dsh-plugin-cli) 生成 · 依赖版本 DSH 0.1.5-rc.2
+> 由 [dshp](https://github.com/carbide4826/dsh-plugin-cli) 生成 · 依赖版本 DSH __DSH_VERSION__
 
-　　**版本跟随 dsh**:所有 `@deepseek-ai/dsh-*` 跟随 DSH 版本线,当前固定在 0.1.5-rc.2;后续随官方迭代跟踪更新。
+　　**版本跟随 dsh**:所有 `@deepseek-ai/dsh-*` 跟随 DSH 版本线,当前固定在 __DSH_VERSION__;后续随官方迭代跟踪更新。
 
 　　**Node 要求**:`^22.19.0 || >=24.0.0`。
 
@@ -23,7 +23,7 @@ pnpm typecheck        # 类型检查
 　　在**本项目根目录**执行:
 
 ```sh
-pnpm add -D @deepseek-ai/dsh@0.1.5-rc.2  # 安装 dsh(②)
+pnpm add -D @deepseek-ai/dsh@__DSH_VERSION__  # 安装 dsh(②)
 ```
 
 ### 3. 不启动,只检查

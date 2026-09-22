@@ -23,10 +23,10 @@
   "dependencies": {},
   "peerDependencies": {
     "@deepseek-ai/cordis": "^4.0.2",
-    "@deepseek-ai/dsh-storage": "0.1.5-rc.2",
-    "@deepseek-ai/dsh-storage-json": "0.1.5-rc.2",
-    "@deepseek-ai/dsh-storage-sqlite": "0.1.5-rc.2",
-    "@deepseek-ai/dsh-tools": "0.1.5-rc.2"
+    "@deepseek-ai/dsh-storage": "__DSH_VERSION__",
+    "@deepseek-ai/dsh-storage-json": "__DSH_VERSION__",
+    "@deepseek-ai/dsh-storage-sqlite": "__DSH_VERSION__",
+    "@deepseek-ai/dsh-tools": "__DSH_VERSION__"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

@@ -1,0 +1,75 @@
+# 金丝雀:每周用官方最新 dsh 版本试跑生成链,前瞻「下次升版会不会破我们」
+# 红=报警不动作,不阻塞主线 CI;规则见 docs/UPSTREAM-VERSION-POLICY.md(发现自动化,扣扳机人工)
+name: canary
+
+on:
+  schedule:
+    - cron: "0 3 * * 1" # 每周一 03:00 UTC
+  workflow_dispatch:
+
+jobs:
+  canary:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+
+      - name: probe versions (pinned vs latest, delta by registry publish order)
+        id: probe
+        run: |
+          PINNED=$(grep -o 'version: "[^"]*"' src/domain/dsh-manifest.ts | head -1 | cut -d'"' -f2)
+          LATEST=$(npm view @deepseek-ai/dsh dist-tags.latest)
+          DELTA=$(npm view @deepseek-ai/dsh versions --json | node -e "
+            let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{
+              const v=JSON.parse(d);const i=v.indexOf(process.argv[1]);
+              console.log(i<0?-1:v.length-1-i);
+            });" "$PINNED")
+          echo "pinned=$PINNED latest=$LATEST delta=$DELTA"
+          {
+            echo "pinned=$PINNED"
+            echo "latest=$LATEST"
+            echo "delta=$DELTA"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: scaffold with pinned version
+        run: |
+          node dist/cli.mjs create canary-preset --template tool --lang en
+          node dist/cli.mjs create canary-case --template quick-tool -s --lang en
+
+      # 生成物版本被 CLI 注入为钉住值;金丝雀改写为官方最新版再装,模拟「如果今天升到最新」
+      - name: rewrite pinned -> latest and build against it
+        run: |
+          PINNED="${{ steps.probe.outputs.pinned }}"
+          LATEST="${{ steps.probe.outputs.latest }}"
+          for d in canary-preset canary-case; do
+            grep -rl "$PINNED" "$d" | xargs sed -i "s/$PINNED/$LATEST/g"
+          done
+
+      - name: canary-preset install / typecheck / build
+        run: |
+          cd canary-preset
+          pnpm install --ignore-workspace
+          pnpm typecheck
+          pnpm build
+      - name: canary-case install / typecheck / build
+        run: |
+          cd canary-case
+          pnpm install --ignore-workspace
+          pnpm typecheck
+          pnpm build
+
+      - name: report
+        run: |
+          echo "## dsh canary report" >> "$GITHUB_STEP_SUMMARY"
+          echo "- pinned: ${{ steps.probe.outputs.pinned }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- latest: ${{ steps.probe.outputs.latest }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- delta (registry publish order): ${{ steps.probe.outputs.delta }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- upgrade window (delta>=3 and this job green): check per docs/UPSTREAM-VERSION-POLICY.md" >> "$GITHUB_STEP_SUMMARY"
