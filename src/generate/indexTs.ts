@@ -1,5 +1,6 @@
 import type { Answers } from "../domain/types";
 import type { AggregatePlan } from "../atoms";
+import { t } from "../locales";
 
 interface IndexBlock {
     injects: string[];
@@ -182,5 +183,5 @@ export function generateAggregator(aggregate: AggregatePlan): string {
         );
     }
 
-    throw new Error(`未知的聚合文件契约: ${aggregate.file}`);
+    throw new Error(t("errors.unknownAggregate", { file: aggregate.file }));
 }

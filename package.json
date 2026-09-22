@@ -1,6 +1,6 @@
 {
   "name": "create-dsh-plugin-cli",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Scaffold DeepSeek Harness (dsh) plugin projects interactively",
   "keywords": [
     "dsh",

@@ -3,6 +3,7 @@ import * as p from "@clack/prompts";
 import { basename } from "node:path";
 import type { Answers } from "../domain/types";
 import { unwrap } from "../utils/prompt";
+import { t } from "../locales";
 
 /**
  * 项目目录询问(交互流程第一问,各路径共用)
@@ -11,7 +12,7 @@ import { unwrap } from "../utils/prompt";
 export async function askDirectoryName(dirDefault: string): Promise<string> {
     const dirName = unwrap(
         await p.text({
-            message: "项目目录 Project directory",
+            message: t("prompts.basic.dirTitle"),
             placeholder: dirDefault,
             defaultValue: dirDefault,
         }),
@@ -21,11 +22,9 @@ export async function askDirectoryName(dirDefault: string): Promise<string> {
     if (dirName === ".") {
         const cwdName = basename(process.cwd()); // 当前文件夹名
         if (/^[a-zA-Z0-9][a-zA-Z0-9-]*$/.test(cwdName)) {
-            p.log.info(`使用当前目录,插件 id 默认参考文件夹名 ${cwdName}`); // 目录名合法:提示后照用
+            p.log.info(t("prompts.basic.cwdValid", { name: cwdName })); // 目录名合法:提示后照用
         } else {
-            p.log.warn(
-                `当前文件夹名 ${cwdName} 不含可用英文字符,插件 id 请自行填写`,
-            ); // 目录名非法:id 下一问用户自己填
+            p.log.warn(t("prompts.basic.cwdInvalid", { name: cwdName })); // 目录名非法:id 下一问用户自己填
         }
     }
     return dirName;
@@ -36,10 +35,10 @@ export async function askDirectoryName(dirDefault: string): Promise<string> {
  */
 export async function askProjectMeta(): Promise<{ description: string; author: string }> {
     const description = (
-        unwrap(await p.text({ message: "一句话描述(可空,直接回车跳过)" })) || ""
+        unwrap(await p.text({ message: t("prompts.basic.description") })) || ""
     ).trim();
     const author = (
-        unwrap(await p.text({ message: "作者(可空,直接回车跳过)" })) || ""
+        unwrap(await p.text({ message: t("prompts.basic.author") })) || ""
     ).trim();
     return { description, author };
 }
@@ -50,7 +49,7 @@ export async function askProjectMeta(): Promise<{ description: string; author: s
 export async function askPkgName(dirDefault: string): Promise<string> {
     return unwrap(
         await p.text({
-            message: "npm 包名 package name",
+            message: t("prompts.basic.pkgTitle"),
             placeholder: dirDefault,
             defaultValue: dirDefault,
         }),
@@ -63,7 +62,7 @@ export async function askPkgName(dirDefault: string): Promise<string> {
 export async function askPluginId(dirDefault: string): Promise<string> {
     return unwrap(
         await p.text({
-            message: "插件 id plugin id",
+            message: t("prompts.basic.pluginIdTitle"),
             placeholder: dirDefault,
             defaultValue: dirDefault,
         }),
@@ -76,18 +75,18 @@ export async function askPluginId(dirDefault: string): Promise<string> {
 export async function askPkgPosition(): Promise<Answers["pkgPosition"]> {
     return unwrap(
         await p.select({
-            message: "这个包的定位是?",
+            message: t("prompts.basic.positionMessage"),
             initialValue: "bundle",
             options: [
                 {
                     value: "bundle",
-                    label: "插件包",
-                    hint: "随宿主分发,不单独启用",
+                    label: t("prompts.basic.positionBundle"),
+                    hint: t("prompts.basic.positionBundleHint"),
                 },
                 {
                     value: "library",
-                    label: "库包",
-                    hint: "供其他插件 import,不单独启用",
+                    label: t("prompts.basic.positionLibrary"),
+                    hint: t("prompts.basic.positionLibraryHint"),
                 },
             ],
         }),

@@ -1,6 +1,7 @@
 // package.json 生成器:四名称 + 三桶依赖 + bundle 声明 + UI 的 client 出口
 import type { Answers } from "../domain/types";
 import { UI_SURFACES } from "../domain/uiSurfaces";
+import { t } from "../locales";
 import {
     SUPPORTED_CORDIS_VERSION,
     SUPPORTED_DSH_VERSION,
@@ -24,7 +25,7 @@ function versionFor(pkg: string): string {
     if (pkg === "@deepseek-ai/cordis") return SUPPORTED_CORDIS_VERSION;
     if (pkg.startsWith("@deepseek-ai/dsh-")) return SUPPORTED_DSH_VERSION; // dist-tag 陷阱:精确钉死
     const v = TOOLCHAIN[pkg];
-    if (v === undefined) throw new Error(`未知依赖包,请补版本映射: ${pkg}`);
+    if (v === undefined) throw new Error(t("errors.unknownDep", { pkg }));
     return v;
 }
 
