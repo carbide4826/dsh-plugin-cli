@@ -1,10 +1,10 @@
 # create-dsh-plugin-cli
 
 [![npm version](https://img.shields.io/npm/v/create-dsh-plugin-cli.svg)](https://www.npmjs.com/package/create-dsh-plugin-cli)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/carbide4826/dsh-plugin-cli/blob/main/LICENSE)
 [![node](https://img.shields.io/node/v/create-dsh-plugin-cli.svg)](https://nodejs.org)
 
-[中文](./README.md) · English
+[中文](https://github.com/carbide4826/dsh-plugin-cli/blob/main/README.md) · English
 
 An interactive scaffolding CLI that sets up a [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (`dsh`) plugin project skeleton in one shot.
 
@@ -171,4 +171,4 @@ my-plugin/                  ← project dir = the directory name you entered
 
 ## License
 
-[MIT](./LICENSE)
+[MIT](https://github.com/carbide4826/dsh-plugin-cli/blob/main/LICENSE)

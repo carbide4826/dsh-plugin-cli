@@ -2,9 +2,9 @@
 
 Curated case: bring-your-own model gateway with dynamic settings (llm seam + settings card)
 
-> Scaffolded by [dshp](https://github.com/carbide4826/dsh-plugin-cli) · DSH version 0.1.5-rc.2
+> Scaffolded by [dshp](https://github.com/carbide4826/dsh-plugin-cli) · DSH version __DSH_VERSION__
 
-　　**Versions follow dsh**: all `@deepseek-ai/dsh-*` packages follow the DSH version line, currently pinned at 0.1.5-rc.2; they will be updated as the official line moves.
+　　**Versions follow dsh**: all `@deepseek-ai/dsh-*` packages follow the DSH version line, currently pinned at __DSH_VERSION__; they will be updated as the official line moves.
 
 　　**Node requirement**: `^22.19.0 || >=24.0.0`.
 
@@ -23,7 +23,7 @@ pnpm typecheck        # type check
 　　Run in the **project root**:
 
 ```sh
-pnpm add -D @deepseek-ai/dsh@0.1.5-rc.2  # install dsh (②)
+pnpm add -D @deepseek-ai/dsh@__DSH_VERSION__  # install dsh (②)
 ```
 
 ### 3. Check without launching

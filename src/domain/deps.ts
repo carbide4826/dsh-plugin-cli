@@ -3,6 +3,7 @@ import type { Answers } from "./types";
 import { EVENT_DOMAINS } from "./events";
 import { UI_SURFACES } from "./uiSurfaces";
 import { SEAMS } from "./seams";
+import { DSH_MANIFEST } from "./dsh-manifest";
 
 export interface DepBuckets {
     peer: string[]; // peerDependencies
@@ -10,7 +11,7 @@ export interface DepBuckets {
     dev: string[]; // devDependencies
 }
 
-export const SUPPORTED_DSH_VERSION = "0.1.5-rc.2"; // 所有 @deepseek-ai/dsh-* 统一钉死
+export const SUPPORTED_DSH_VERSION = DSH_MANIFEST.version; // 唯一权威在 dsh-manifest.ts,此处仅为旧引用面兼容再导出
 export const SUPPORTED_CORDIS_VERSION = "^4.0.2"; // cordis 独立版本线,跟随官方主包声明
 
 // 工程设施恒定项(不预装 vitest:模板不带测试,用户有需求自行添加)

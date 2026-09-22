@@ -34,13 +34,13 @@
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "^4.0.2",
-    "@deepseek-ai/dsh-client-ui-renderer": "0.1.5-rc.2",
-    "@deepseek-ai/dsh-client-ui-settings-plugins": "0.1.5-rc.2",
-    "@deepseek-ai/dsh-client-ui-slots": "0.1.5-rc.2",
-    "@deepseek-ai/dsh-llm": "0.1.5-rc.2",
-    "@deepseek-ai/dsh-llm-deepseek": "0.1.5-rc.2",
-    "@deepseek-ai/dsh-llm-pi-ai": "0.1.5-rc.2",
-    "@deepseek-ai/dsh-settings": "0.1.5-rc.2"
+    "@deepseek-ai/dsh-client-ui-renderer": "__DSH_VERSION__",
+    "@deepseek-ai/dsh-client-ui-settings-plugins": "__DSH_VERSION__",
+    "@deepseek-ai/dsh-client-ui-slots": "__DSH_VERSION__",
+    "@deepseek-ai/dsh-llm": "__DSH_VERSION__",
+    "@deepseek-ai/dsh-llm-deepseek": "__DSH_VERSION__",
+    "@deepseek-ai/dsh-llm-pi-ai": "__DSH_VERSION__",
+    "@deepseek-ai/dsh-settings": "__DSH_VERSION__"
   },
   "devDependencies": {
     "@tsdown/css": "^0.23.0",

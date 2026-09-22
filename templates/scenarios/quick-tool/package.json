@@ -32,10 +32,10 @@
   "dependencies": {},
   "peerDependencies": {
     "@deepseek-ai/cordis": "^4.0.2",
-    "@deepseek-ai/dsh-client-ui-renderer": "0.1.5-rc.2",
-    "@deepseek-ai/dsh-client-ui-slots": "0.1.5-rc.2",
-    "@deepseek-ai/dsh-client-ui-tool": "0.1.5-rc.2",
-    "@deepseek-ai/dsh-tools": "0.1.5-rc.2"
+    "@deepseek-ai/dsh-client-ui-renderer": "__DSH_VERSION__",
+    "@deepseek-ai/dsh-client-ui-slots": "__DSH_VERSION__",
+    "@deepseek-ai/dsh-client-ui-tool": "__DSH_VERSION__",
+    "@deepseek-ai/dsh-tools": "__DSH_VERSION__"
   },
   "devDependencies": {
     "@tsdown/css": "^0.23.0",
