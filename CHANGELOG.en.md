@@ -3,7 +3,7 @@
 All notable changes to this project are documented in this file.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows [SemVer](https://semver.org/).
 
-[中文](./CHANGELOG.md) · English
+[中文](https://github.com/carbide4826/dsh-plugin-cli/blob/main/CHANGELOG.md) · English
 
 ## [0.1.1] - 2026-09-22
 

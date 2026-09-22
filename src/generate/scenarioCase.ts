@@ -14,6 +14,7 @@ import { writeFile } from "../render/render";
 import { templatesRoot } from "./project";
 import { DEV_PATCH_NOTES } from "./patches";
 import { t, getLang } from "../locales";
+import { DSH_MANIFEST } from "../domain/dsh-manifest";
 
 // 拷贝时的排除项:产物目录与机器私有文件(defensive;入库的案例本身不应含这些)
 const SKIP_DIRS = new Set(["node_modules", "dist", ".git"]);
@@ -91,12 +92,12 @@ export function copyScenarioCase(
     const caseIdPattern = new RegExp(`\\b${caseId}\\b`, "g");
     walk(targetDir, (file) => {
         files.push(relative(targetDir, file));
-        if (identity !== caseId) {
-            const text = readFileSync(file, "utf8");
-            if (text.includes(caseId)) {
-                writeFileSync(file, text.replaceAll(caseIdPattern, identity));
-            }
-        }
+        // 两个文本变换合并进同一次读写:身份重写(词边界)+ 版本注入(占位符来自 dsh-manifest,单一来源)
+        // 占位符不含任何案例 id 子串,两刀互不干扰
+        const text = readFileSync(file, "utf8");
+        let out = identity !== caseId ? text.replaceAll(caseIdPattern, identity) : text;
+        out = out.replaceAll("__DSH_VERSION__", DSH_MANIFEST.version);
+        if (out !== text) writeFileSync(file, out);
     });
 
     // dev.patch.yml 由 CLI 现场生成而非随案例入库(内含本机绝对路径,gitignore 约定不入库,

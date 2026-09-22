@@ -34,7 +34,8 @@
     "build": "tsdown",
     "dev": "tsdown --watch",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run --passWithNoTests"
+    "test": "vitest run",
+    "release": "node scripts/release.mjs"
   },
   "dependencies": {
     "@clack/prompts": "^1.8.0",

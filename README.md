@@ -1,10 +1,10 @@
 # create-dsh-plugin-cli
 
 [![npm version](https://img.shields.io/npm/v/create-dsh-plugin-cli.svg)](https://www.npmjs.com/package/create-dsh-plugin-cli)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/carbide4826/dsh-plugin-cli/blob/main/LICENSE)
 [![node](https://img.shields.io/node/v/create-dsh-plugin-cli.svg)](https://nodejs.org)
 
-中文 · [English](./README.en.md)
+中文 · [English](https://github.com/carbide4826/dsh-plugin-cli/blob/main/README.en.md)
 
 交互式脚手架 CLI,一键搭建 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)(`dsh`)插件项目骨架。
 
@@ -169,4 +169,4 @@ my-plugin/                  ← 项目目录 = 你填的目录名
 
 ## License
 
-[MIT](./LICENSE)
+[MIT](https://github.com/carbide4826/dsh-plugin-cli/blob/main/LICENSE)
