@@ -164,9 +164,10 @@ my-plugin/                  ← project dir = the directory name you entered
 
 ## Roadmap
 
-- Keep tracking dsh version bumps
+- ✅ Keep tracking dsh version bumps — single-source version since 0.1.2; an upgrade is a one-line change
 - `--template` custom sources: local path / git URL / npm package
 - ✅ Localization — delivered in 0.1.1: bilingual UI via `--lang zh|en`, per-language README in generated projects
+- ✅ CI and release flow — delivered in 0.1.2: CI (tests + generated-project smoke), a weekly compatibility canary, and the `pnpm release` script
 - Agent tool recognition and invocation, planned as a skill or MCP form
 
 ## License
