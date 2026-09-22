@@ -2,8 +2,3 @@ node_modules/
 dist/
 *.log
 .DS_Store
-
-# 内部开发文档(不进仓库不进包)
-docs/UPSTREAM-VERSION-POLICY.md
-# 里程碑任务清单(临时,发版即删,不入库)
-TODO-M*.md
