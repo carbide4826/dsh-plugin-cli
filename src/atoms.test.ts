@@ -1,7 +1,11 @@
 // planGeneration 的裁剪与并集逻辑单测
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import { planGeneration } from "./atoms";
 import type { Answers } from "./domain/types";
+import { setLang } from "./locales";
+
+// 拼装行注释跟随语言(t());断言含中文字面量,固定 zh 防止宿主 LANG 环境影响(CI 即 en)
+beforeAll(() => setLang("zh"));
 
 const base: Answers = {
     dirName: "demo",
