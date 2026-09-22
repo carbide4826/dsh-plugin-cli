@@ -1,55 +1,57 @@
-// UI surface 清单(界面位 → Owner 包 + 槽位 key)
+// UI surface 清单(界面位 → Owner 包 + 槽位 key;label/desc 惰性求值,见 domain/atoms.ts 同款注释)
+import { t } from "../locales";
+
 export const UI_SURFACES = [
     {
         id: "settings-card",
         pkg: "@deepseek-ai/dsh-client-ui-settings-plugins",
-        label: "设置卡片",
-        desc: "在设置页展示/编辑插件配置(动态配置时自动配对)",
+        label: () => t("domain.ui.settings-card.label"),
+        desc: () => t("domain.ui.settings-card.desc"),
         slots: ["settings.plugin.item"],
         default: true,
     },
     {
         id: "chat-node",
         pkg: "@deepseek-ai/dsh-client-ui-chat",
-        label: "会话节点",
-        desc: "往对话流插入自定义业务节点渲染",
+        label: () => t("domain.ui.chat-node.label"),
+        desc: () => t("domain.ui.chat-node.desc"),
         slots: ["conversation.chat.node"],
     },
     {
         id: "input-dock",
         pkg: "@deepseek-ai/dsh-client-ui-conversation",
-        label: "输入区 dock",
-        desc: "输入框上方的挂件条(GoalBar 同款位置)",
+        label: () => t("domain.ui.input-dock.label"),
+        desc: () => t("domain.ui.input-dock.desc"),
         slots: ["conversation.input.dock", "conversation.composer.bar"],
     },
     {
         id: "sidebar",
         pkg: "@deepseek-ai/dsh-client-ui-sidebar",
-        label: "侧边栏",
-        desc: "左侧面板区块",
+        label: () => t("domain.ui.sidebar.label"),
+        desc: () => t("domain.ui.sidebar.desc"),
         slots: ["sidebar.panellist"],
     },
     {
         id: "tool-view",
         pkg: "@deepseek-ai/dsh-client-ui-tool",
-        label: "工具调用视图",
-        desc: "自定义工具调用的展示样式(配合 Tool)",
+        label: () => t("domain.ui.tool-view.label"),
+        desc: () => t("domain.ui.tool-view.desc"),
         slots: ["tool.call.toolview"],
     },
     {
         id: "session-header",
         pkg: "@deepseek-ai/dsh-client-ui-conversation",
-        label: "会话头",
-        desc: "会话头部动作/角标扩展",
+        label: () => t("domain.ui.session-header.label"),
+        desc: () => t("domain.ui.session-header.desc"),
         slots: ["conversation.session.header"],
     },
 ] as const satisfies readonly {
     id: string;
     pkg: string;
-    label: string;
-    desc: string;
+    label: () => string;
+    desc: () => string;
     slots: readonly string[];
-    default?: boolean;
+    default?: true;
 }[];
 
 export type UISurfaceId = (typeof UI_SURFACES)[number]["id"];

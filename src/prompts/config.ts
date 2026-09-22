@@ -2,6 +2,7 @@
 import * as p from "@clack/prompts";
 import type { Answers } from "../domain/types";
 import { unwrap } from "../utils/prompt";
+import { t } from "../locales";
 
 /**
  * 收集配置方式(静态默认/动态/无)
@@ -15,25 +16,25 @@ export async function askConfig(
 
     const config = unwrap(
         await p.select({
-            message: "配置方式?",
+            message: t("prompts.config.message"),
             initialValue: "static",
             options: [
                 {
                     value: "static",
-                    label: "静态",
-                    hint: "配置写进 cordis.yml,加载时生效",
+                    label: t("prompts.config.staticLabel"),
+                    hint: t("prompts.config.staticHint"),
                 },
                 {
                     value: "dynamic",
-                    label: "动态",
-                    hint: "用户可运行时改,实时生效(典型:模型接入类,换 API key 不重启)",
+                    label: t("prompts.config.dynamicLabel"),
+                    hint: t("prompts.config.dynamicHint"),
                 },
                 {
                     value: "none",
-                    label: "无",
+                    label: t("prompts.config.noneLabel"),
                     hint: hasSettingsCard
-                        ? "零配置(勾选了设置卡片,需至少静态配置,不可选)" // 禁用原因就地说明
-                        : "零配置",
+                        ? t("prompts.config.noneDisabledHint") // 禁用原因就地说明
+                        : t("prompts.config.noneHint"),
                     disabled: hasSettingsCard, // 勾了设置卡片:禁选「无」
                 },
             ],

@@ -1,4 +1,5 @@
 import type { Answers } from "./types";
+import { t } from "../locales";
 
 export type ScenarioCapabilities = Pick<
     Answers,
@@ -14,8 +15,8 @@ export type ScenarioCapabilities = Pick<
 export interface ScenarioPreset {
     /** --template 的值,同时也是场景的唯一标识 */
     id: string;
-    /** 场景显示名(help 与报错提示用) */
-    label: string;
+    /** 场景显示名(help 与报错提示用;惰性求值跟随语言) */
+    label: () => string;
     /** 生成项目 package.json 的默认描述 */
     description: string;
     /** 未给 [name] 位置参数时的默认目录名 */
@@ -27,7 +28,7 @@ export interface ScenarioPreset {
 export const SCENARIOS: ScenarioPreset[] = [
     {
         id: "tool",
-        label: "工具示例",
+        label: () => t("domain.scenarios.tool.label"),
         description: "Example DSH plugin exposing a tool (scaffolded by dshp)",
         defaultDirName: "my-tool",
         capabilities: {
@@ -42,7 +43,7 @@ export const SCENARIOS: ScenarioPreset[] = [
     },
     {
         id: "llm",
-        label: "LLM 服务示例",
+        label: () => t("domain.scenarios.llm.label"),
         description:
             "Example DSH plugin extending the llm seam via a service (scaffolded by dshp)",
         defaultDirName: "my-llm",
@@ -58,7 +59,7 @@ export const SCENARIOS: ScenarioPreset[] = [
     },
     {
         id: "ui",
-        label: "界面示例",
+        label: () => t("domain.scenarios.ui.label"),
         description:
             "Example DSH plugin with a settings-card UI surface (scaffolded by dshp)",
         defaultDirName: "my-ui",
@@ -75,7 +76,7 @@ export const SCENARIOS: ScenarioPreset[] = [
     },
     {
         id: "events",
-        label: "事件监听示例",
+        label: () => t("domain.scenarios.events.label"),
         description:
             "Example DSH plugin listening to session events (scaffolded by dshp)",
         defaultDirName: "my-events",
@@ -91,7 +92,7 @@ export const SCENARIOS: ScenarioPreset[] = [
     },
     {
         id: "protocol",
-        label: "HTTP 协议示例",
+        label: () => t("domain.scenarios.protocol.label"),
         description:
             "Example DSH plugin exposing an HTTP protocol endpoint (scaffolded by dshp)",
         defaultDirName: "my-protocol",
@@ -143,18 +144,16 @@ export function buildScenarioAnswers(
         o.pkgPosition &&
         !(PKG_POSITIONS as readonly string[]).includes(o.pkgPosition)
     ) {
-        return { error: `--pkg-position 仅支持:${PKG_POSITIONS.join(" | ")}` };
+        return { error: t("errors.pkgPosition", { values: PKG_POSITIONS.join(" | ") }) };
     }
     if (o.config && !(CONFIG_MODES as readonly string[]).includes(o.config)) {
-        return { error: `--config 仅支持:${CONFIG_MODES.join(" | ")}` };
+        return { error: t("errors.config", { values: CONFIG_MODES.join(" | ") }) };
     }
     if (
         o.config === "none" &&
         preset.capabilities.uiSurfaces.includes("settings-card")
     ) {
-        return {
-            error: `场景 ${preset.id} 含 settings-card,--config none 不可用(设置卡片必须有配置可展示)`,
-        };
+        return { error: t("errors.configNone", { id: preset.id }) };
     }
 
     const capabilities = { ...preset.capabilities };

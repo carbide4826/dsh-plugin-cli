@@ -17,9 +17,26 @@ import { askConfig } from "./prompts/config";
 import { printSummary } from "./prompts/summary";
 import { writeProject } from "./generate/project";
 import { copyScenarioCase, listScenarioCases } from "./generate/scenarioCase";
+import { t, setLang, type Lang } from "./locales";
 import pkgJson from "../package.json" with { type: "json" };
 
 const program = new Command();
+
+const LANGS: readonly Lang[] = ["zh", "en"];
+
+// 全局语言选项:LANG 环境自动探测,--lang 显式覆盖;help 渲染前也要生效,故放 program 级
+program.option("--lang <lang>", "ui language: zh | en (default: auto-detect from LANG)");
+
+// 把 --lang 的值落到 locales(非法值报错退出);help 渲染等早于 action 的路径也会调用
+function applyLang(raw: unknown): void {
+    if (raw === undefined) return;
+    if (typeof raw !== "string" || !(LANGS as readonly string[]).includes(raw)) {
+        process.stderr.write(`invalid --lang "${String(raw)}"; supported: ${LANGS.join(" | ")}\n`);
+        process.exitCode = 1;
+        return;
+    }
+    setLang(raw as Lang);
+}
 
 // 生成完成后的统一提示(交互与非交互两条路径共用,避免文案漂移);单命令单行,目录名动态传入
 function nextSteps(dirName: string): string {
@@ -35,14 +52,10 @@ function nextSteps(dirName: string): string {
 // 报错提示用的场景 id 清单(如 "tool, llm, ui, events, protocol")
 const SCENARIO_IDS = SCENARIOS.map((s) => s.id).join(", ");
 
-// 精选案例的一句话描述(交互与 --help 案例一览共用文案)
-const CASE_HINTS: Record<string, string> = {
-    "quick-tool": "查询工具+结果卡片",
-    "model-gateway": "自有模型网关+动态设置",
-    "session-bot": "会话自动响应",
-    "webhook-bridge": "外部事件桥接",
-    notebook: "用户数据存取",
-};
+// 精选案例的一句话描述(交互与 --help 案例一览共用文案;惰性求值跟随语言)
+function caseHint(id: string): string {
+    return t(`cli.caseHints.${id}`);
+}
 
 // create 命令的选项集合(--template 模式下的覆盖参数,均可在缺省时回落预设)
 interface CreateOptions {
@@ -101,80 +114,18 @@ program
     .option("--author <name>", "override author")
     .option("--pkg-position <position>", "package position: bundle | library (default: bundle)")
     .option("--config <mode>", "config mode: none | static | dynamic (default: scenario preset)")
-    .addHelpText(
-        "after",
-        `
-Scenario quick-start (--template has two sources, switch with -s):
-
-1) Preset combination (default):
-   dshp create <name> --template <preset>
-   dshp create --template <preset>
-
-   Presets:
-     tool       Tool example (tool atom, toolName=example_tool)
-     llm        LLM service example (service + llm seam)
-     ui         UI example (settings-card, static config)
-     events     Event listener example (session domain)
-     protocol   HTTP protocol example (protocol atom)
-
-2) Curated cases (-s):
-   dshp create <name> --template <case> -s
-
-   Cases:
-     quick-tool      Custom query tool + result card (tool + tool-view)
-     model-gateway   Bring your own model gateway (llm seam + dynamic settings card)
-     session-bot     Auto-respond in sessions (events + llm seam)
-     webhook-bridge  Bridge external events into sessions (protocol + events)
-     notebook        Per-user notes (storage seam + tool)
-
-Overridable fields:
-  --pkg-name <name>          npm package name
-  --plugin-id <id>           plugin id
-  --tool-name <name>         tool name (tool scenario)
-  --description <text>       description
-  --author <name>            author
-  --pkg-position <position>  bundle | library
-  --config <mode>            none | static | dynamic
-
-------------------------------------------------------------
-
-场景快捷生成(--template 有两个来源,用 -s 区分):
-
-1) 预设组合(默认):
-   dshp create <name> --template <preset>
-   dshp create --template <preset>
-
-   预设一览:
-     tool       工具示例(tool 原子,toolName=example_tool)
-     llm        LLM 服务示例(service + llm 缝)
-     ui         界面示例(settings-card,静态配置)
-     events     事件监听示例(session 域)
-     protocol   HTTP 协议示例(protocol 原子)
-
-2) 精选案例(-s):
-   dshp create <name> --template <case> -s
-
-   案例:
-     quick-tool      自定义查询工具 + 结果卡片(tool + tool-view)
-     model-gateway   接入自有模型服务(llm 缝 + 设置卡片动态配置)
-     session-bot     监听会话自动响应(events + llm 缝)
-     webhook-bridge  外部事件桥接进会话(protocol + events)
-     notebook        用户数据存取(storage 缝 + tool)
-
-参数配置:
-  --pkg-name <name>          npm 包名
-  --plugin-id <id>           插件 id
-  --tool-name <name>         工具名(tool 场景)
-  --description <text>       描述
-  --author <name>            作者
-  --pkg-position <position>  bundle | library
-  --config <mode>            none | static | dynamic
-`,
-    )
+    .addHelpText("after", () => {
+        // help 渲染早于 action,--lang 在此先落一次(双语并排的手工 help 段收敛为按语言输出)
+        applyLang(program.opts().lang);
+        return `\n${t("cli.helpBody")}\n`;
+    })
     .action(async (name: string | undefined, options: CreateOptions) => {
+        applyLang(program.opts().lang); // 语言先于一切文案落地
+        if (process.exitCode) return;
+
         // -s 精选案例路径:从 templates/scenarios/ 整目录拷贝并重写身份(所见即所得)
         if (options.scenario && !options.template) {
-            p.log.error("--scenario(-s)需与 --template <案例id> 搭配使用(详见 dshp create --help)");
+            p.log.error(t("cli.errScenarioNeedsTemplate"));
             process.exitCode = 1;
             return;
         }
@@ -185,9 +136,7 @@ Overridable fields:
             if (options.scenario) {
                 const cases = listScenarioCases();
                 if (!cases.includes(options.template)) {
-                    p.log.error(
-                        `案例 "${options.template}" 不存在。可用案例:${cases.join(", ")}(详见 dshp create --help)`,
-                    );
+                    p.log.error(t("cli.errCaseNotFound", { name: options.template, cases: cases.join(", ") }));
                     process.exitCode = 1;
                     return;
                 }
@@ -195,20 +144,18 @@ Overridable fields:
                     .filter(([k]) => options[k as keyof CreateOptions] !== undefined)
                     .map(([, flag]) => flag ?? "");
                 if (inapplicable.length > 0) {
-                    p.log.warn(
-                        `精选案例所见即所得,以下覆盖参数不适用,已忽略:${inapplicable.join(" ")}`,
-                    );
+                    p.log.warn(t("cli.warnCaseInapplicable", { flags: inapplicable.join(" ") }));
                 }
 
                 const dirName = name ?? options.template;
                 const targetDir = resolve(process.cwd(), dirName);
                 if (dirName !== "." && existsSync(targetDir)) {
-                    p.cancel(`目录已存在:${targetDir}(换一个目录名,或删除后重试)`);
+                    p.cancel(t("cli.dirExists", { dir: targetDir }));
                     process.exitCode = 1;
                     return;
                 }
 
-                p.intro(`dshp · 精选案例:${options.template}`);
+                p.intro(t("cli.introCase", { name: options.template }));
                 // 身份解耦:替换主词=插件 id(默认回落目录名);包名结构化写入(默认=插件 id,未显式给出时不写)
                 const pluginId = options.pluginId ?? dirName;
                 const pkgName = options.pkgName ?? pluginId;
@@ -217,16 +164,14 @@ Overridable fields:
                     author: options.author,
                     ...(options.pkgName ? { pkgName } : {}),
                 });
-                p.log.info(`已拷贝 ${files.length} 个文件 → ${targetDir}(项目身份重写为 ${dirName})`);
+                p.log.info(t("cli.copied", { n: files.length, dir: targetDir, name: dirName }));
                 p.outro(nextSteps(dirName));
                 return;
             }
 
             const preset = findScenario(options.template);
             if (!preset) {
-                p.log.error(
-                    `未知场景 "${options.template}"。可用场景:${SCENARIO_IDS}(详见 dshp create --help)`,
-                );
+                p.log.error(t("cli.errUnknownScenario", { name: options.template, ids: SCENARIO_IDS }));
                 process.exitCode = 1;
                 return;
             }
@@ -243,34 +188,34 @@ Overridable fields:
                 toolName: options.toolName,
             });
             if (!built.answers) {
-                p.log.error(built.error ?? "参数校验失败");
+                p.log.error(built.error ?? t("cli.errCheckFailed"));
                 process.exitCode = 1;
                 return;
             }
             if (options.toolName && !preset.capabilities.atoms.includes("tool")) {
-                p.log.warn("--tool-name 已设置,但当前场景不含 tool 原子,该值不会出现在生成物中");
+                p.log.warn(t("cli.warnToolNameIgnored"));
             }
             const answers = built.answers;
 
             const targetDir = resolve(process.cwd(), answers.dirName);
             if (answers.dirName !== "." && existsSync(targetDir)) {
-                p.cancel(`目录已存在:${targetDir}(换一个目录名,或删除后重试)`);
+                p.cancel(t("cli.dirExists", { dir: targetDir }));
                 process.exitCode = 1;
                 return;
             }
 
-            p.intro(`dshp · 场景快捷生成:${preset.id}(${preset.label})`);
+            p.intro(t("cli.introPreset", { id: preset.id, label: preset.label() }));
             printSummary(answers); // 汇总照打,但不阻塞确认(非交互约定)
 
             const files = writeProject(answers, targetDir);
-            p.log.info(`已生成 ${files.length} 个文件 → ${targetDir}`);
+            p.log.info(t("cli.generated", { n: files.length, dir: targetDir }));
             p.outro(nextSteps(answers.dirName));
             return;
         }
 
-        p.intro("dshp · DSH 插件骨架生成"); // 问卷横幅
+        p.intro(t("cli.intro")); // 问卷横幅
         if (OVERRIDE_KEYS.some((k) => options[k] !== undefined)) {
-            p.log.warn("覆盖类参数(--pkg-name/--config 等)仅在配合 --template 时生效,本次已忽略");
+            p.log.warn(t("cli.warnOverride"));
         }
 
         // 公共配置:目录名/描述/作者/包名/插件 id(与起点无关,分支前统一问完)
@@ -281,30 +226,30 @@ Overridable fields:
 
         // 起点:公共配置就绪后才开始选;精选案例在前引导新手走金线
         const startPoint = await p.select({
-            message: "从哪里开始?",
+            message: t("cli.startMessage"),
             initialValue: "case",
             options: [
-                { value: "case", label: "精选案例", hint: "完整工程直接拷贝,开箱即跑" },
-                { value: "atoms", label: "原子组合", hint: "按能力勾选,拼装最小骨架" },
+                { value: "case", label: t("cli.startCase"), hint: t("cli.startCaseHint") },
+                { value: "atoms", label: t("cli.startAtoms"), hint: t("cli.startAtomsHint") },
             ],
         });
         if (typeof startPoint !== "string") { // 取消时 clack resolve 一个 symbol(typeof 守卫才能收窄,isCancel 不行)
-            p.cancel("已取消,未生成任何文件。");
+            p.cancel(t("cli.cancelledNoFiles"));
             return;
         }
 
         if (startPoint === "case") {
             const selected = await p.select({
-                message: "选择精选案例",
-                options: listScenarioCases().map((c) => ({ value: c, label: c, hint: CASE_HINTS[c] })),
+                message: t("cli.caseSelect"),
+                options: listScenarioCases().map((c) => ({ value: c, label: c, hint: caseHint(c) })),
             });
             if (typeof selected !== "string") {
-                p.cancel("已取消,未生成任何文件。");
+                p.cancel(t("cli.cancelledNoFiles"));
                 return;
             }
             const targetDir = resolve(process.cwd(), dirName);
             if (dirName !== "." && existsSync(targetDir)) {
-                p.cancel(`目录已存在:${targetDir}(换一个目录名,或删除后重试)`);
+                p.cancel(t("cli.dirExists", { dir: targetDir }));
                 return;
             }
             const files = copyScenarioCase(selected, targetDir, pluginId, {
@@ -312,7 +257,7 @@ Overridable fields:
                 author: meta.author || undefined,
                 pkgName, // 替换主词=插件 id;包名结构化写入 package.json,与身份解耦
             });
-            p.log.info(`已拷贝 ${files.length} 个文件 → ${targetDir}(项目身份重写为 ${dirName})`);
+            p.log.info(t("cli.copied", { n: files.length, dir: targetDir, name: dirName }));
             p.outro(nextSteps(dirName));
             return;
         }
@@ -342,21 +287,21 @@ Overridable fields:
         printSummary(answers);
 
         // 确认后落盘(M2:渲染模板 + 动态文件生成)
-        const ok = await p.confirm({ message: "按以上答案生成项目?", initialValue: true });
+        const ok = await p.confirm({ message: t("cli.confirmGenerate"), initialValue: true });
         if (p.isCancel(ok) || !ok) {
-            p.cancel("已取消,未生成任何文件。");
+            p.cancel(t("cli.cancelledNoFiles"));
             return;
         }
 
         const targetDir = resolve(process.cwd(), answers.dirName);
         if (answers.dirName !== "." && existsSync(targetDir)) {
-            p.cancel(`目录已存在:${targetDir}(换一个目录名,或删除后重试)`);
+            p.cancel(t("cli.dirExists", { dir: targetDir }));
             return;
         }
 
         const files = writeProject(answers, targetDir);
-        p.log.info(`已生成 ${files.length} 个文件 → ${targetDir}`);
-        p.note(files.map((f) => `  ${f}`).join("\n"), "文件清单");
+        p.log.info(t("cli.generated", { n: files.length, dir: targetDir }));
+        p.note(files.map((f) => `  ${f}`).join("\n"), t("cli.fileList"));
         p.outro(nextSteps(answers.dirName));
     });
 

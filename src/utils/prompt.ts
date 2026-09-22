@@ -1,4 +1,5 @@
 import * as p from "@clack/prompts";
+import { t } from "../locales";
 
 /**
  * 把「值 | 取消符号」收敛成纯值,统一拦截 clack 的 Ctrl+C 取消
@@ -7,7 +8,7 @@ import * as p from "@clack/prompts";
  */
 export function unwrap<T>(value: T | symbol): T {
     if (p.isCancel(value)) {
-        p.cancel("已取消"); // 用户主动取消,打印提示
+        p.cancel(t("common.cancelled")); // 用户主动取消,打印提示
         process.exit(0);
     }
     return value as T;

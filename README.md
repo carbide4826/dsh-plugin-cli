@@ -4,6 +4,8 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 [![node](https://img.shields.io/node/v/create-dsh-plugin-cli.svg)](https://nodejs.org)
 
+中文 · [English](./README.en.md)
+
 交互式脚手架 CLI,一键搭建 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)(`dsh`)插件项目骨架。
 
 - npm 包名:`create-dsh-plugin-cli`,bin 命令:`dshp`
@@ -162,7 +164,7 @@ my-plugin/                  ← 项目目录 = 你填的目录名
 
 - 随 dsh 版本调整持续更新适配
 - `--template` 自定义模板源:支持 local path / git URL / npm 包
-- 本地化(多语言支持)
+- ✅ 本地化(多语言支持)—— 0.1.1 已交付:`--lang zh|en` 双语界面,生成项目 README 按语言单份交付
 - 支持 agent 工具识别与调用,规划做成 skill 或 MCP 形态
 
 ## License
