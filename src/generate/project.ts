@@ -6,6 +6,7 @@ import type { Answers } from "../domain/types";
 import { collectDeps } from "../domain/deps";
 import { planGeneration } from "../atoms";
 import { renderString, writeFile, type Vars } from "../render/render";
+import { t, getLang } from "../locales";
 import { buildVars } from "./vars";
 import { generatePackageJson } from "./packageJson";
 import { generateCordisPatch, generateDevPatch } from "./patches";
@@ -43,12 +44,12 @@ export function templatesRoot(): string {
         }
         dir = dirname(dir);
     }
-    throw new Error("未找到 templates/ 目录(渲染素材缺失)");
+    throw new Error(t("errors.templatesRootMissing"));
 }
 
 /** 读模板文本;缺失直接抛错(渲染素材缺失是发布事故,不能静默) */
 function readTemplate(path: string): string {
-    if (!existsSync(path)) throw new Error(`模板文件缺失: ${path}`);
+    if (!existsSync(path)) throw new Error(t("errors.templateMissing", { path }));
     return readFileSync(path, "utf8");
 }
 
@@ -66,12 +67,15 @@ export function writeProject(answers: Answers, targetDir: string): string[] {
     const root = templatesRoot();
 
     // base 模板(tsconfig / README / _gitignore→.gitignore / tsdown)
-    for (const base of BASE_FILES) {
-        const dest = destName(base);
+    // README 按生成时刻的语言选素材(en 版素材名 README.en.md),落盘名恒为 README.md(生成物单语言)
+    const readmeSource = getLang() === "en" ? "README.en.md" : "README.md";
+    for (const source of BASE_FILES) {
+        const dest = destName(source);
+        const src = source === "README.md" ? readmeSource : source;
         writeFile(
             targetDir,
             dest,
-            renderString(readTemplate(join(root, base)), vars),
+            renderString(readTemplate(join(root, src)), vars),
         );
         written.push(dest);
     }

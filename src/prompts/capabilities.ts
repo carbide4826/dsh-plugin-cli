@@ -7,6 +7,7 @@ import { SEAMS } from "../domain/seams";
 import { EVENT_DOMAINS } from "../domain/events";
 import { UI_SURFACES } from "../domain/uiSurfaces";
 import { unwrap, link } from "../utils/prompt";
+import { t } from "../locales";
 
 // 能力问卷结果(Answers 的能力片段)
 export interface CapabilityResult {
@@ -42,16 +43,20 @@ export async function askCapabilities(): Promise<CapabilityResult> {
     let serviceCreate = false; // 未勾 service
     let serviceSeams: string[] = [];
 
+    const EVENTS_DOC = "https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/event-producer-consumer.md";
+    const UI_DOC = "https://github.com/deepseek-ai/deepseek-harness/tree/master/packages/client/ui-slots";
+    const SEAMS_DOC = "https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/capability-seams.md";
+
     // 勾选流程:直线走完一轮(原子 → 条件追问),initialValues 全吃当前状态
     const askOnce = async () => {
         // 第一层:5 原子多选(空 = 纯骨架;首轮预勾 tool,调整轮保留旧值)
         atoms = unwrap(
             await p.multiselect({
-                message: "勾选插件能力(全不勾 = 纯工程骨架,空格切换回车确认)",
+                message: t("prompts.capabilities.atomsMessage"),
                 options: ATOMS.map((a) => ({
                     value: a.id,
-                    label: a.label,
-                    hint: a.desc,
+                    label: a.label(),
+                    hint: a.desc(),
                 })),
                 initialValues: atoms,
                 required: false, // 允许空选:空 = 纯骨架(纯工程壳,可加载零功能)
@@ -62,7 +67,7 @@ export async function askCapabilities(): Promise<CapabilityResult> {
         if (atoms.includes("tool")) {
             toolName = unwrap(
                 await p.text({
-                    message: "工具名 tool name",
+                    message: t("prompts.capabilities.toolNameMessage"),
                     placeholder: "example_tool",
                     initialValue: toolName,
                 }),
@@ -75,14 +80,13 @@ export async function askCapabilities(): Promise<CapabilityResult> {
         if (atoms.includes("events")) {
             eventDomains = unwrap(
                 await p.multiselect({
-                    message: `事件域 Events(域内事件由模板生成;清单外见 ${link(
-                        "https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/event-producer-consumer.md",
-                        " events矩阵",
-                    )},68 个事件)`,
+                    message: t("prompts.capabilities.eventsMessage", {
+                        link: link(EVENTS_DOC, t("prompts.capabilities.eventsLink")),
+                    }),
                     options: EVENT_DOMAINS.map((d) => ({
                         value: d.id,
-                        label: d.label,
-                        hint: d.desc,
+                        label: d.label(),
+                        hint: d.desc(),
                     })),
                     initialValues: eventDomains,
                 }),
@@ -95,14 +99,13 @@ export async function askCapabilities(): Promise<CapabilityResult> {
         if (atoms.includes("ui")) {
             uiSurfaces = unwrap(
                 await p.multiselect({
-                    message: `界面位 UI surfaces(Owner 包与槽位由模板处理;清单外槽位见 ${link(
-                        "https://github.com/deepseek-ai/deepseek-harness/tree/master/packages/client/ui-slots",
-                        " ui-slots 文档",
-                    )},可自行声明子槽)`,
+                    message: t("prompts.capabilities.uiMessage", {
+                        link: link(UI_DOC, t("prompts.capabilities.uiLink")),
+                    }),
                     options: UI_SURFACES.map((s) => ({
                         value: s.id,
-                        label: s.label,
-                        hint: s.desc,
+                        label: s.label(),
+                        hint: s.desc(),
                     })),
                     initialValues: uiSurfaces,
                 }),
@@ -115,24 +118,23 @@ export async function askCapabilities(): Promise<CapabilityResult> {
         if (atoms.includes("service")) {
             let picks = unwrap(
                 await p.multiselect({
-                    message: `服务 Service:新建,或扩展常用能力缝 Seam(可多选,清单外见 ${link(
-                        "https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/capability-seams.md",
-                        " capability-seams 全景",
-                    )})`,
+                    message: t("prompts.capabilities.serviceMessage", {
+                        link: link(SEAMS_DOC, t("prompts.capabilities.serviceLink")),
+                    }),
                     options: [
                         {
                             value: "__create__",
-                            label: "新建服务 new service",
-                            hint: "extends Service,其他插件可 inject",
+                            label: t("prompts.capabilities.serviceNew"),
+                            hint: t("prompts.capabilities.serviceNewHint"),
                         },
                         ...SEAMS.map((s) => ({
                             value: s.id,
-                            label: s.label,
-                            hint: s.desc,
+                            label: s.label(),
+                            hint: s.desc(),
                         })),
                         {
                             value: "__more__",
-                            label: "其他 others(由用户自行配置)",
+                            label: t("prompts.capabilities.serviceMore"),
                         },
                     ],
                     initialValues: [
@@ -158,57 +160,52 @@ export async function askCapabilities(): Promise<CapabilityResult> {
 
     // 预览 → 确认循环:调整回到 askOnce,保留旧值
     for (;;) {
+        const c = (k: string) => t(`prompts.capabilities.${k}`);
         // 预览页:汇总当前勾选
         const lines = atoms.length
             ? [
-                  `工具: ${atoms.includes("tool") ? toolName : "未勾选"}`,
-                  `事件域: ${atoms.includes("events") ? eventDomains.join(", ") || "(未选)" : "未勾选"}`,
-                  `UI 界面: ${atoms.includes("ui") ? uiSurfaces.join(", ") || "(未选)" : "未勾选"}`,
-                  `服务: ${
+                  `${c("pvTool")}: ${atoms.includes("tool") ? toolName : c("pvUnchecked")}`,
+                  `${c("pvEvents")}: ${atoms.includes("events") ? eventDomains.join(", ") || c("pvUnselected") : c("pvUnchecked")}`,
+                  `${c("pvUi")}: ${atoms.includes("ui") ? uiSurfaces.join(", ") || c("pvUnselected") : c("pvUnchecked")}`,
+                  `${c("pvService")}: ${
                       [
-                          serviceCreate ? "新建服务" : null,
+                          serviceCreate ? c("pvNewService") : null,
                           serviceSeams.length ? serviceSeams.join(", ") : null,
                       ]
                           .filter(Boolean)
-                          .join(" + ") || "未勾选"
+                          .join(" + ") || c("pvUnchecked")
                   }`,
-                  `协议驱动: ${atoms.includes("protocol") ? "已勾选" : "未勾选"}`,
+                  `${c("pvProtocol")}: ${atoms.includes("protocol") ? c("pvChecked") : c("pvUnchecked")}`,
               ]
-            : ["(纯工程骨架:不勾任何能力)"];
+            : [c("pvSkeleton")];
 
         // 勾了对应原子才追加该域的文档链接提示
         const tips: string[] = [];
         if (atoms.includes("events")) {
-            tips.push(
-                ` ${link("https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/event-producer-consumer.md", "events矩阵")}`,
-            );
+            tips.push(` ${link(EVENTS_DOC, c("eventsLink"))}`);
         }
         if (atoms.includes("ui")) {
-            tips.push(
-                ` ${link("https://github.com/deepseek-ai/deepseek-harness/tree/master/packages/client/ui-slots", "ui-slots 槽位体系")}`,
-            );
+            tips.push(` ${link(UI_DOC, c("uiLink"))}`);
         }
         if (atoms.includes("service")) {
-            tips.push(
-                ` ${link("https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/capability-seams.md", "capability-seams 全景")}`,
-            );
+            tips.push(` ${link(SEAMS_DOC, c("serviceLink"))}`);
         }
         if (tips.length) {
-            lines.push("\n官方文档参考:", ...tips);
+            lines.push(`\n${c("docsTitle")}`, ...tips);
         }
-        p.note(lines.join("\n"), "能力预览");
+        p.note(lines.join("\n"), c("previewTitle"));
 
         // 直接生成 or 逐项调整
         const next = unwrap(
             await p.select({
-                message: "确认这份配置?",
+                message: c("confirmMessage"),
                 initialValue: "go",
                 options: [
-                    { value: "go", label: "直接生成", hint: "按当前勾选继续" },
+                    { value: "go", label: c("confirmGo"), hint: c("confirmGoHint") },
                     {
                         value: "adjust",
-                        label: "逐项调整",
-                        hint: "回到能力勾选,保留已选值",
+                        label: c("confirmAdjust"),
+                        hint: c("confirmAdjustHint"),
                     },
                 ],
             }),

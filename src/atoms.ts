@@ -3,6 +3,7 @@ import { ATOMS } from "./domain/atoms";
 import { EVENT_DOMAINS, type EventDomainId } from "./domain/events";
 import { SEAMS, type SeamId } from "./domain/seams";
 import { UI_SURFACES, type UISurfaceId } from "./domain/uiSurfaces";
+import { t } from "./locales";
 
 /** 一个模板文件的拷贝项:from 相对 templates/atoms/,to 相对生成项目根 */
 export interface FileCopy {
@@ -131,9 +132,7 @@ export function planGeneration(answers: Answers): GenerationPlan {
                 plan.copy.push({ from: "tool/src/tool.ts", to: "src/tool.ts" });
                 plan.index.injects.push("tools");
                 wire(plan.index, "tool", "registerTool", "registerTool(ctx)");
-                plan.readmeStructure.push(
-                    "src/tool.ts          工具实现(defineTool + schema)",
-                );
+                plan.readmeStructure.push(t("readme.tool"));
                 break;
             }
 
@@ -157,7 +156,7 @@ export function planGeneration(answers: Answers): GenerationPlan {
                         aggregate,
                         w.file,
                         w.fn,
-                        `${w.fn}(ctx) // 域:${d.label}`,
+                        `${w.fn}(ctx) // ${t("readme.wireDomain")}:${d.label()}`,
                     );
                 }
                 plan.aggregates.push(aggregate);
@@ -167,10 +166,7 @@ export function planGeneration(answers: Answers): GenerationPlan {
                     "registerEventListeners",
                     "registerEventListeners(ctx)",
                 );
-                plan.readmeStructure.push(
-                    "src/events.ts        事件域聚合",
-                    "src/domains/         各事件域监听(ctx.on)",
-                );
+                plan.readmeStructure.push(t("readme.events"), t("readme.eventsDomains"));
                 break;
             }
 
@@ -186,12 +182,8 @@ export function planGeneration(answers: Answers): GenerationPlan {
                     plan.index.imports.push(
                         `import { ExampleService } from "./service.ts"`,
                     );
-                    plan.index.calls.push(
-                        "ctx.plugin(ExampleService) // 挂载自有服务",
-                    );
-                    plan.readmeStructure.push(
-                        "src/service.ts       自有服务(extends Service)",
-                    );
+                    plan.index.calls.push(t("readme.mountService"));
+                    plan.readmeStructure.push(t("readme.service"));
                 }
                 if (seams.length > 0) {
                     // 聚合入口放 src/seams/index.ts(与 client/index.ts 同构),避免 seams.ts 与 seams/ 同名并存
@@ -212,7 +204,7 @@ export function planGeneration(answers: Answers): GenerationPlan {
                             aggregate,
                             w.file.replace(/^seams\//, ""),
                             w.fn,
-                            `${w.fn}(ctx) // 缝:${s.label}`,
+                            `${w.fn}(ctx) // ${t("readme.wireSeam")}:${s.label()}`,
                         );
                     }
                     plan.aggregates.push(aggregate);
@@ -222,10 +214,7 @@ export function planGeneration(answers: Answers): GenerationPlan {
                         "registerServiceSeams",
                         "registerServiceSeams(ctx)",
                     );
-                    plan.readmeStructure.push(
-                        "src/seams/index.ts   能力缝聚合",
-                        "src/seams/           各能力缝注册实现",
-                    );
+                    plan.readmeStructure.push(t("readme.seams"), t("readme.seamsImpl"));
                 }
                 break;
             }
@@ -267,13 +256,11 @@ export function planGeneration(answers: Answers): GenerationPlan {
                         aggregate,
                         w.file,
                         w.fn,
-                        `${w.fn}(ctx) // 界面位:${s.label}`,
+                        `${w.fn}(ctx) // ${t("readme.wireSurface")}:${s.label()}`,
                     );
                 }
                 plan.aggregates.push(aggregate);
-                plan.readmeStructure.push(
-                    "src/client/          浏览器半边(client 聚合入口 + surfaces/ 界面位)",
-                );
+                plan.readmeStructure.push(t("readme.client"));
                 break;
             }
 
@@ -289,9 +276,7 @@ export function planGeneration(answers: Answers): GenerationPlan {
                     "registerProtocol",
                     "registerProtocol(ctx)",
                 );
-                plan.readmeStructure.push(
-                    "src/protocol.ts      外部协议桥(webhook → agents)",
-                );
+                plan.readmeStructure.push(t("readme.protocol"));
                 break;
             }
         }

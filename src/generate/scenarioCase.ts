@@ -5,6 +5,7 @@ import {
     readdirSync,
     readFileSync,
     renameSync,
+    rmSync,
     statSync,
     writeFileSync,
 } from "node:fs";
@@ -12,6 +13,7 @@ import { join, relative, resolve } from "node:path";
 import { writeFile } from "../render/render";
 import { templatesRoot } from "./project";
 import { DEV_PATCH_NOTES } from "./patches";
+import { t, getLang } from "../locales";
 
 // 拷贝时的排除项:产物目录与机器私有文件(defensive;入库的案例本身不应含这些)
 const SKIP_DIRS = new Set(["node_modules", "dist", ".git"]);
@@ -52,7 +54,7 @@ export function copyScenarioCase(
     const sourceDir = join(casesRoot(), caseId);
     if (!existsSync(sourceDir)) {
         throw new Error(
-            `精选案例不存在:${caseId}(可用:${listScenarioCases().join(", ")})`,
+            t("errors.caseMissing", { name: caseId, cases: listScenarioCases().join(", ") }),
         );
     }
 
@@ -66,6 +68,21 @@ export function copyScenarioCase(
 
     // 点文件素材落盘:`_` 前缀换 `.` 开头(npm 不打包点文件素材,约定同 create-vite)
     applyDotfileNames(targetDir);
+
+    // README 单语言交付:按生成时刻的语言保留对应素材(素材对 README.md/README.en.md 成对入库),
+    // 未选中的那份删除,选中的若是 en 版改名为 README.md
+    {
+        const zhReadme = join(targetDir, "README.md");
+        const enReadme = join(targetDir, "README.en.md");
+        if (getLang() === "en") {
+            if (existsSync(enReadme)) {
+                rmSync(zhReadme, { force: true });
+                renameSync(enReadme, zhReadme);
+            }
+        } else if (existsSync(enReadme)) {
+            rmSync(enReadme);
+        }
+    }
 
     const files: string[] = [];
     // 词边界替换(非纯子串):语义名若以案例 id 作前缀(如 notebookService),
@@ -87,16 +104,12 @@ export function copyScenarioCase(
     // config 块原样保留——仅把 name 换成源码入口绝对路径(直载 .ts,Node ESM 不支持目录导入)。
     const distPatch = join(targetDir, "cordis.patch.yml");
     if (!existsSync(distPatch)) {
-        throw new Error(
-            `案例 ${caseId} 缺少 cordis.patch.yml,无法生成 dev.patch.yml`,
-        );
+        throw new Error(t("errors.patchMissing", { name: caseId }));
     }
     const body = readFileSync(distPatch, "utf8");
     const insertAt = body.indexOf("- insert:");
     if (insertAt < 0) {
-        throw new Error(
-            `案例 ${caseId} 的 cordis.patch.yml 缺少 "- insert:" 行,无法生成 dev.patch.yml`,
-        );
+        throw new Error(t("errors.insertMissing", { name: caseId }));
     }
     const entryFile = resolve(targetDir, "src/index.ts");
     const named = body
