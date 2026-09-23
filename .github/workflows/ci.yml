@@ -46,12 +46,12 @@ jobs:
       - name: preset-tool install / typecheck / build
         run: |
           cd preset-tool
-          pnpm install --ignore-workspace
+          pnpm install
           pnpm typecheck
           pnpm build
       - name: case-qt install / typecheck / build
         run: |
           cd case-qt
-          pnpm install --ignore-workspace
+          pnpm install
           pnpm typecheck
           pnpm build
