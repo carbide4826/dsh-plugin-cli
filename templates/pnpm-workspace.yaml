@@ -1,0 +1,7 @@
+# 锁定下列插件的版本,使其与 @deepseek-ai/dsh 0.1.5-rc.2 配套:
+# cordis-plugin-loader 1.0.5(2026-09-22 发布)与 dsh 0.1.5-rc.2 不兼容,
+# 会使 `pnpm dsh web` 启动即崩(HMR 服务静默装载失败)
+overrides:
+    "@deepseek-ai/cordis-plugin-loader": 1.0.3
+    "@deepseek-ai/cordis-plugin-hmr": 1.0.17
+    "@deepseek-ai/cordis-plugin-timer": 1.1.4

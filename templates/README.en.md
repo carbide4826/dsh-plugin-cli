@@ -60,7 +60,7 @@ pnpm dsh web --patch ./dev.patch.yml  # launch (direct source load) (⑤⑥)
 
 ### Tips
 
-　　① **install hijacked by an ancestor workspace**: if a `pnpm-workspace.yaml` exists in a parent directory, `pnpm install` is hoisted to that workspace root and this project's `node_modules` is not created (typecheck fails with Cannot find module); install independently with `pnpm install --ignore-workspace`.
+　　① ~~**install hijacked by an ancestor workspace**: if a `pnpm-workspace.yaml` exists in a parent directory, `pnpm install` is hoisted to that workspace root and this project's `node_modules` is not created (typecheck fails with Cannot find module); install independently with `pnpm install --ignore-workspace`.~~ **The project root ships its own `pnpm-workspace.yaml` (pinning paired versions since 0.1.3), so a plain `pnpm install` is fine.**
 
 　　② **Approve build scripts when installing dsh**: pnpm blocks dependency build scripts (supply-chain protection); run `pnpm approve-builds` as prompted and select `node-pty` / `koffi` / `@deepseek-ai/dsh-subprocess-local`; the `@google/genai` / `protobufjs` scripts are no-ops and need no approval.
 

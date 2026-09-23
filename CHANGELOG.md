@@ -5,6 +5,13 @@
 
 中文 · [English](https://github.com/carbide4826/dsh-plugin-cli/blob/main/CHANGELOG.en.md)
 
+## [0.1.3] - 2026-09-24
+
+### 修复
+
+- 修复 quick-tool 案例模板的类型问题,生成项目 typecheck 不再报错。
+- 修复 pnpm 安装后 `pnpm dsh web` 启动即崩的问题:官方 2026-09-22 发布的 cordis-plugin-loader 1.0.5 与 dsh 0.1.5-rc.2 不兼容(HMR 服务静默装载失败)。生成项目现自带 `pnpm-workspace.yaml` 锁定配套的 loader/hmr/timer 版本规避。后续动作:跳过 rc.3,待官方 0.1.7 线稳定后整树同步升级。
+
 ## [0.1.2] - 2026-09-22
 
 ### 修复
