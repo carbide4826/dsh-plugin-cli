@@ -2,9 +2,9 @@ import { memo } from 'react'
 import type { ToolCallViewProps } from '@deepseek-ai/dsh-client-ui-tool/client'
 import styles from './ToolView.module.css'
 
-/** 从结果 content 里取第一个 text 块(defensive:内容块形状后续可能扩展) */
+/** 从结果 content 里取第一个 text 块(RunningToolCall 不带 kind,只能用 in 判别已落地的 ToolResultNode) */
 function resultText(block: ToolCallViewProps['block']): string | null {
-    if (block.kind !== 'tool-result') return null
+    if (!('kind' in block)) return null
     for (const part of block.content) {
         if ('text' in part && typeof part.text === 'string') return part.text
     }
@@ -12,8 +12,8 @@ function resultText(block: ToolCallViewProps['block']): string | null {
 }
 
 export const ToolView = memo(function ToolView(props: ToolCallViewProps) {
-    const running = props.block.kind !== 'tool-result'
-    const failed = props.block.kind === 'tool-result' && props.block.isError
+    const running = !('kind' in props.block)
+    const failed = 'kind' in props.block && props.block.isError
     const text = resultText(props.block)
 
     return (
