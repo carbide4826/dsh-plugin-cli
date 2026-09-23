@@ -166,7 +166,7 @@ my-plugin/                  ← 项目目录 = 你填的目录名
 - `--template` 自定义模板源:支持 local path / git URL / npm 包
 - ✅ 本地化(多语言支持)—— 0.1.1 已交付:`--lang zh|en` 双语界面,生成项目 README 按语言单份交付
 - 支持 agent 工具识别与调用,规划做成 skill 或 MCP 形态
-- ⚠️ 已知(0.1.3 使用中发现):官方 dsh 已发布 0.1.5-rc.3,当前固定 0.1.5-rc.2;但 dsh 对子包(dsh-app-boot 等)是 `^` 浮动依赖,钉住 dsh 版本挡不住子包漂移——漂移后 `--patch` 直载启动会因热更新的 HMR 硬依赖而崩溃,需要补 `cordis-plugin-hmr` + `cordis-plugin-timer`,后续排查是否要改代码
+- ✅ 已规避(0.1.3):官方 dsh 已发布 0.1.5-rc.3,当前固定 0.1.5-rc.2;但 dsh 对子包用 `^` 浮动依赖,9/22 起新装会漂到不兼容的 cordis-plugin-loader 1.0.5,使 `pnpm dsh web` 启动即崩(HMR 服务静默装载失败)——生成项目现自带 `pnpm-workspace.yaml` 锁定配套的 loader/hmr/timer 版本。后续动作:跳过 rc.3,待官方 0.1.7 线稳定后整树同步升级。
 
 ## License
 

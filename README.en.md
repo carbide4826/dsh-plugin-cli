@@ -168,7 +168,7 @@ my-plugin/                  ← project dir = the directory name you entered
 - `--template` custom sources: local path / git URL / npm package
 - ✅ Localization — delivered in 0.1.1: bilingual UI via `--lang zh|en`, per-language README in generated projects
 - Agent tool recognition and invocation, planned as a skill or MCP form
-- ⚠️ Known (found during 0.1.3): official dsh has published 0.1.5-rc.3 while we pin 0.1.5-rc.2; but dsh depends on its sub-packages (dsh-app-boot etc.) via `^` ranges, so pinning dsh does not stop sub-packages from drifting — after drift, `--patch` direct-launch crashes on a hard HMR dependency, requiring `cordis-plugin-hmr` + `cordis-plugin-timer`; will investigate whether the templates need changes
+- ✅ Mitigated (0.1.3): official dsh has published 0.1.5-rc.3 while we pin 0.1.5-rc.2; but dsh declares `^` ranges on its sub-packages, so fresh installs since 9/22 drift to the incompatible cordis-plugin-loader 1.0.5, crashing `pnpm dsh web` on start (silent HMR service load failure) — generated projects now ship a `pnpm-workspace.yaml` pinning the paired loader/hmr/timer versions. Next step: skip rc.3 and upgrade the whole tree once the official 0.1.7 line stabilizes.
 
 ## License
 
