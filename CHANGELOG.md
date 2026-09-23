@@ -5,6 +5,12 @@
 
 中文 · [English](https://github.com/carbide4826/dsh-plugin-cli/blob/main/CHANGELOG.en.md)
 
+## [0.1.4] - 2026-09-24
+
+### 其他
+
+- README 后续规划中 cordis 版本锁定的已知问题条目更新为「已规避」,与 0.1.3 的实际修复对齐。
+
 ## [0.1.3] - 2026-09-24
 
 ### 修复

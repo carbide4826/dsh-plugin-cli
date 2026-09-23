@@ -5,6 +5,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
 
 [中文](https://github.com/carbide4826/dsh-plugin-cli/blob/main/CHANGELOG.md) · English
 
+## [0.1.4] - 2026-09-24
+
+### Internal
+
+- README roadmap known-issue entry updated to "mitigated", aligning with the actual fix in 0.1.3.
+
 ## [0.1.3] - 2026-09-24
 
 ### Fixed
