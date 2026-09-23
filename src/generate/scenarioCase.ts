@@ -70,6 +70,13 @@ export function copyScenarioCase(
     // 点文件素材落盘:`_` 前缀换 `.` 开头(npm 不打包点文件素材,约定同 create-vite)
     applyDotfileNames(targetDir);
 
+    // 依赖配套锁定(单源素材:templates/pnpm-workspace.yaml,与 base 路径共用):
+    // 缺失会使 `pnpm dsh web` 启动崩溃(见素材头注释)
+    writeFileSync(
+        join(targetDir, "pnpm-workspace.yaml"),
+        readFileSync(join(templatesRoot(), "pnpm-workspace.yaml"), "utf8"),
+    );
+
     // README 单语言交付:按生成时刻的语言保留对应素材(素材对 README.md/README.en.md 成对入库),
     // 未选中的那份删除,选中的若是 en 版改名为 README.md
     {

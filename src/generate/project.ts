@@ -20,6 +20,7 @@ const BASE_FILES = [
     "README.md",
     "_gitignore",
     "tsdown.config.ts",
+    "pnpm-workspace.yaml",
 ] as const;
 
 /** 素材名 → 落盘名:`_` 前缀的点文件素材换 `.` 开头,其余原样 */

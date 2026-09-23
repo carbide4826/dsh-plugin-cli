@@ -121,7 +121,7 @@ describe("copyScenarioCase 拷贝与身份重写", () => {
                 // README 双语素材:生成时按语言只交付一份(zh 环境删 README.en.md),产物集不含未选中那份
                 .filter((f) => f !== "README.en.md")
                 .sort();
-            expect(files).toEqual([...sourceFiles, "dev.patch.yml"].sort());
+            expect(files).toEqual([...sourceFiles, "dev.patch.yml", "pnpm-workspace.yaml"].sort());
             expect(files).toContain(".gitignore"); // 素材 `_gitignore` 落成标准点文件名
 
             // 身份三处 + 全库无旧 id 残留
