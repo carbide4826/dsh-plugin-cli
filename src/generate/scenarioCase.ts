@@ -75,7 +75,6 @@ export function copyScenarioCase(
     writeFileSync(
         join(targetDir, "pnpm-workspace.yaml"),
         renderString(readFileSync(join(templatesRoot(), "pnpm-workspace.yaml"), "utf8"), {
-            DSH_VERSION: DSH_MANIFEST.version,
             CORDIS_PLUGIN_LOADER_VERSION: DSH_MANIFEST.pairedCordisPlugins.loader,
             CORDIS_PLUGIN_HMR_VERSION: DSH_MANIFEST.pairedCordisPlugins.hmr,
             CORDIS_PLUGIN_TIMER_VERSION: DSH_MANIFEST.pairedCordisPlugins.timer,
