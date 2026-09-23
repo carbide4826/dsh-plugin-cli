@@ -5,6 +5,12 @@
 
 中文 · [English](https://github.com/carbide4826/dsh-plugin-cli/blob/main/CHANGELOG.en.md)
 
+## [0.1.3] - 2026-09-24
+
+### 修复
+
+- 修复 quick-tool 案例模板的类型问题,生成项目 typecheck 不再报错。
+
 ## [0.1.2] - 2026-09-22
 
 ### 修复
