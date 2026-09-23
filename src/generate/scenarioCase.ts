@@ -10,7 +10,7 @@ import {
     writeFileSync,
 } from "node:fs";
 import { join, relative, resolve } from "node:path";
-import { renderString, writeFile } from "../render/render";
+import { writeFile } from "../render/render";
 import { templatesRoot } from "./project";
 import { DEV_PATCH_NOTES } from "./patches";
 import { t, getLang } from "../locales";
@@ -74,11 +74,7 @@ export function copyScenarioCase(
     // 缺失会使 `pnpm dsh web` 启动崩溃(见素材头注释)
     writeFileSync(
         join(targetDir, "pnpm-workspace.yaml"),
-        renderString(readFileSync(join(templatesRoot(), "pnpm-workspace.yaml"), "utf8"), {
-            CORDIS_PLUGIN_LOADER_VERSION: DSH_MANIFEST.pairedCordisPlugins.loader,
-            CORDIS_PLUGIN_HMR_VERSION: DSH_MANIFEST.pairedCordisPlugins.hmr,
-            CORDIS_PLUGIN_TIMER_VERSION: DSH_MANIFEST.pairedCordisPlugins.timer,
-        }),
+        readFileSync(join(templatesRoot(), "pnpm-workspace.yaml"), "utf8"),
     );
 
     // README 单语言交付:按生成时刻的语言保留对应素材(素材对 README.md/README.en.md 成对入库),
