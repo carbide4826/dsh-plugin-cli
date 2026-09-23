@@ -8,6 +8,15 @@ import { UI_SURFACES } from "./uiSurfaces";
 export const DSH_MANIFEST = {
     /** 钉住的 DSH 版本:所有 @deepseek-ai/dsh-* 依赖与文档安装命令统一取此值 */
     version: "0.1.5-rc.2",
+    /** 与 version 配套钉死的 cordis 插件三件套(2026-08-30 代):loader 1.0.5(2026-09-22 起)
+     *  装载行为变化会使 hmr 服务静默注册失败,`pnpm dsh web` 启动即崩;hmr 1.0.19 接口变化
+     *  (无 registerConfig)同样崩。生成项目经 pnpm-workspace.yaml overrides 锁定;
+     *  升级 dsh 版本时此处同步更新为配套值 */
+    pairedCordisPlugins: {
+        loader: "1.0.3",
+        hmr: "1.0.17",
+        timer: "1.1.4",
+    },
 } as const;
 
 // 原子/缝/域各清单里声明的子包并集(tool/protocol 原子的内联贡献也在其中,见 collectDeps)

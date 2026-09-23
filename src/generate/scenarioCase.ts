@@ -10,7 +10,7 @@ import {
     writeFileSync,
 } from "node:fs";
 import { join, relative, resolve } from "node:path";
-import { writeFile } from "../render/render";
+import { renderString, writeFile } from "../render/render";
 import { templatesRoot } from "./project";
 import { DEV_PATCH_NOTES } from "./patches";
 import { t, getLang } from "../locales";
@@ -69,6 +69,18 @@ export function copyScenarioCase(
 
     // 点文件素材落盘:`_` 前缀换 `.` 开头(npm 不打包点文件素材,约定同 create-vite)
     applyDotfileNames(targetDir);
+
+    // 依赖配套锁定(单源素材:templates/pnpm-workspace.yaml,与 base 路径共用):
+    // 缺失会使 `pnpm dsh web` 启动崩溃(见素材头注释)
+    writeFileSync(
+        join(targetDir, "pnpm-workspace.yaml"),
+        renderString(readFileSync(join(templatesRoot(), "pnpm-workspace.yaml"), "utf8"), {
+            DSH_VERSION: DSH_MANIFEST.version,
+            CORDIS_PLUGIN_LOADER_VERSION: DSH_MANIFEST.pairedCordisPlugins.loader,
+            CORDIS_PLUGIN_HMR_VERSION: DSH_MANIFEST.pairedCordisPlugins.hmr,
+            CORDIS_PLUGIN_TIMER_VERSION: DSH_MANIFEST.pairedCordisPlugins.timer,
+        }),
+    );
 
     // README 单语言交付:按生成时刻的语言保留对应素材(素材对 README.md/README.en.md 成对入库),
     // 未选中的那份删除,选中的若是 en 版改名为 README.md

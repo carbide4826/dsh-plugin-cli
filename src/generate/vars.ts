@@ -1,6 +1,7 @@
 // 占位符变量表:问卷答案 + 版本常量 → 渲染引擎的 Vars
 import type { Answers } from "../domain/types";
 import { SUPPORTED_DSH_VERSION } from "../domain/deps";
+import { DSH_MANIFEST } from "../domain/dsh-manifest";
 import type { Vars } from "../render/render";
 
 /**
@@ -91,6 +92,9 @@ export function buildVars(answers: Answers, extraStructure: string): Vars {
         TOOL_NAME: answers.toolName,
         DESCRIPTION: answers.description,
         DSH_VERSION: SUPPORTED_DSH_VERSION,
+        CORDIS_PLUGIN_LOADER_VERSION: DSH_MANIFEST.pairedCordisPlugins.loader,
+        CORDIS_PLUGIN_HMR_VERSION: DSH_MANIFEST.pairedCordisPlugins.hmr,
+        CORDIS_PLUGIN_TIMER_VERSION: DSH_MANIFEST.pairedCordisPlugins.timer,
         EXTRA_STRUCTURE: extraStructure,
         // 项目自带 tsdown 配置(就近优先),避免被祖先目录的 tsdown.config.ts 劫持 entry。
         // host 出口 UI 时用对象形式:key 即输出文件名(index → dist/index.js 平铺,
