@@ -1,4 +1,5 @@
 import type { Answers } from "../domain/types";
+import type { TrackManifest } from "../domain/manifests";
 import type { AggregatePlan } from "../atoms";
 import { t } from "../locales";
 
@@ -26,10 +27,19 @@ function configDeclaration(): string[] {
  * 生成顶层插件入口 src/index.ts
  * @param answers - 完整问卷答案
  * @param index - 生成计划里的 index 拼装行
+ * @param manifest - 目标轨 manifest(0.1.7 起动态配置由宿主原生表单承担)
  * @returns 文件内容
  */
-export function generateHostIndex(answers: Answers, index: IndexBlock): string {
+export function generateHostIndex(
+    answers: Answers,
+    index: IndexBlock,
+    manifest: TrackManifest,
+): string {
     const dynamic = answers.config === "dynamic";
+    // 0.1.5 的 installSection 注册式动态配置在 0.1.7 已移除:Config schema 由宿主
+    // 原生投影成表单(SettingsForms),编辑保存后宿主以新配置重跑 apply。故 next 轨
+    // 的 dynamic 退化为与 static 相同的入口形态(注释里说明热更新来源)。
+    const legacyDynamic = dynamic && manifest.target === "latest";
     const lines: string[] = [];
 
     lines.push(`// ${answers.pkgName} — 插件入口(由 dshp 生成)。`);
@@ -37,7 +47,7 @@ export function generateHostIndex(answers: Answers, index: IndexBlock): string {
     if (answers.config !== "none") {
         lines.push("import z from '@deepseek-ai/schemastery'");
     }
-    if (dynamic) {
+    if (legacyDynamic) {
         lines.push(
             "import type {} from '@deepseek-ai/dsh-settings' // ctx.settings 的类型来源(动态配置)",
         );
@@ -48,9 +58,9 @@ export function generateHostIndex(answers: Answers, index: IndexBlock): string {
     lines.push("// 插件名:Cordis 注册名(loader 诊断与其他插件引用用)");
     lines.push(`export const name = '${answers.pluginId}'`);
 
-    if (index.injects.length > 0 || dynamic) {
+    if (index.injects.length > 0 || legacyDynamic) {
         // 动态配置要用 ctx.settings,inject 并入 settings(加载顺序)
-        const injects = dynamic
+        const injects = legacyDynamic
             ? [...index.injects, "settings"]
             : index.injects;
         lines.push("");
@@ -87,7 +97,7 @@ export function generateHostIndex(answers: Answers, index: IndexBlock): string {
         if (answers.config !== "none")
             lines.push("    void config // TODO: 把配置接进你的实现");
     }
-    if (dynamic) {
+    if (legacyDynamic) {
         lines.push(
             "    // 动态配置:注册 settings section;部署侧 provider(dsh-settings-file)变更时热更新",
         );
@@ -107,6 +117,14 @@ export function generateHostIndex(answers: Answers, index: IndexBlock): string {
         );
         lines.push("        },");
         lines.push("    })");
+    } else if (dynamic) {
+        lines.push(
+            "    // 动态配置(0.1.7):Config schema 由宿主原生投影成设置页表单,",
+        );
+        lines.push(
+            "    // 编辑保存后宿主以新配置重跑 apply——在 apply 里消费 config 即热更新。",
+        );
+        lines.push("    void config // TODO: 把配置接进你的实现");
     }
     lines.push("}");
     return lines.join("\n") + "\n";

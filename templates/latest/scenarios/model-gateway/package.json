@@ -30,10 +30,10 @@
     "./cordis.patch.yml": "./cordis.patch.yml"
   },
   "dependencies": {
-    "@deepseek-ai/schemastery": "3.18.2"
+    "@deepseek-ai/schemastery": "__SCHEMASTERY_VERSION__"
   },
   "peerDependencies": {
-    "@deepseek-ai/cordis": "4.0.2",
+    "@deepseek-ai/cordis": "__CORDIS_VERSION__",
     "@deepseek-ai/dsh-client-ui-renderer": "__DSH_VERSION__",
     "@deepseek-ai/dsh-client-ui-settings-plugins": "__DSH_VERSION__",
     "@deepseek-ai/dsh-client-ui-slots": "__DSH_VERSION__",

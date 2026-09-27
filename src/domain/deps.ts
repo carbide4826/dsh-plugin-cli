@@ -1,5 +1,6 @@
 // 依赖收集器:各原子/域/配置只"贡献",最后统一并集去重分桶
 import type { Answers } from "./types";
+import type { TrackManifest } from "./manifests";
 import { EVENT_DOMAINS } from "./events";
 import { UI_SURFACES } from "./uiSurfaces";
 import { SEAMS } from "./seams";
@@ -28,9 +29,10 @@ const SEAM_FRAGMENT_DEPS: Partial<Record<string, readonly string[]>> = {
 /**
  * 按问卷答案收集全部依赖:Set 并集去重,按 peer/deps/dev 三桶输出
  * @param answers - 完整问卷答案
+ * @param manifest - 目标轨 manifest(个别依赖按轨增补,如 next 的 settings 槽型来源包)
  * @returns 三条去重排序后的依赖清单
  */
-export function collectDeps(answers: Answers): DepBuckets {
+export function collectDeps(answers: Answers, manifest: TrackManifest): DepBuckets {
     // 贡献阶段:各来源只往里塞,不管重复
     const peer = new Set<string>(["@deepseek-ai/cordis"]); // Cordis 运行时恒定 peer
     const deps = new Set<string>();
@@ -65,6 +67,11 @@ export function collectDeps(answers: Answers): DepBuckets {
         for (const surfaceId of answers.uiSurfaces) {
             const surface = UI_SURFACES.find((x) => x.id === surfaceId);
             if (surface) peer.add(surface.pkg);
+        }
+        // next(0.1.7)的 settings-card 走 Plugins 页签槽:槽型声明在 ui-settings 包,
+        // 素材的 type-only import 依赖它可解析(类型来源,与官方 inventory 同款 import)
+        if (manifest.target === "next" && answers.uiSurfaces.includes("settings-card")) {
+            peer.add("@deepseek-ai/dsh-client-ui-settings");
         }
         dev.add("react");
         dev.add("react-dom");

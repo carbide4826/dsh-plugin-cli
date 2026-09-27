@@ -70,7 +70,7 @@ export function writeProject(
 ): string[] {
     const written: string[] = [];
     const plan = planGeneration(answers);
-    const deps = collectDeps(answers);
+    const deps = collectDeps(answers, manifest);
     const vars: Vars = buildVars(answers, plan.readmeStructure.join("\n"), manifest);
     const root = templatesRoot(manifest.target);
 
@@ -116,7 +116,7 @@ export function writeProject(
     writeFile(
         targetDir,
         "src/index.ts",
-        generateHostIndex(answers, plan.index),
+        generateHostIndex(answers, plan.index, manifest),
     );
     written.push("src/index.ts");
     for (const agg of plan.aggregates) {

@@ -66,6 +66,11 @@ export function generatePackageJson(
                 "@deepseek-ai/dsh-client-ui-renderer",
                 "@deepseek-ai/dsh-client-ui-slots",
                 ...owners,
+                // next(0.1.7)settings-card 的页签槽型来源包(与 deps.ts 的 peer 增补同规则)
+                ...(manifest.target === "next" &&
+                answers.uiSurfaces.includes("settings-card")
+                    ? ["@deepseek-ai/dsh-client-ui-settings"]
+                    : []),
             ]),
         ].sort();
         dsh.client = { inject, platform: "web" };

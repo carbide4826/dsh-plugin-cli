@@ -41,21 +41,21 @@ function freshDir(): string {
 describe("generatePackageJson", () => {
     it("bundle 声明存在,库包没有;依赖按桶落位且 dsh 包精确钉版本", () => {
         const answers: Answers = { ...base, atoms: ["tool"] };
-        const deps = collectDeps(answers);
+        const deps = collectDeps(answers, LATEST_MANIFEST);
         const pkg = JSON.parse(generatePackageJson(answers, deps, LATEST_MANIFEST));
         expect(pkg.dsh.bundle.patch).toBe("./cordis.patch.yml");
         expect(pkg.exports["./cordis.patch.yml"]).toBe("./cordis.patch.yml");
         expect(pkg.peerDependencies["@deepseek-ai/dsh-tools"]).toBe(LATEST_MANIFEST.version);
         expect(pkg.peerDependencies["@deepseek-ai/cordis"]).toBe(LATEST_MANIFEST.cordisPeer);
 
-        const lib = JSON.parse(generatePackageJson({ ...base, pkgPosition: "library" }, collectDeps({ ...base, pkgPosition: "library" }), LATEST_MANIFEST));
+        const lib = JSON.parse(generatePackageJson({ ...base, pkgPosition: "library" }, collectDeps({ ...base, pkgPosition: "library" }, LATEST_MANIFEST), LATEST_MANIFEST));
         expect(lib.dsh).toBeUndefined();
         expect(lib.exports["./cordis.patch.yml"]).toBeUndefined();
     });
 
     it("勾 UI:exports 双出口 + dsh.client 注入 renderer/slots 与 Owner 包", () => {
         const answers: Answers = { ...base, atoms: ["ui"], uiSurfaces: ["settings-card"] };
-        const pkg = JSON.parse(generatePackageJson(answers, collectDeps(answers), LATEST_MANIFEST));
+        const pkg = JSON.parse(generatePackageJson(answers, collectDeps(answers, LATEST_MANIFEST), LATEST_MANIFEST));
         expect(pkg.exports["./client"]).toBe("./dist/client.js");
         expect(pkg.dsh.client.platform).toBe("web");
         expect(pkg.dsh.client.inject).toContain("@deepseek-ai/dsh-client-ui-renderer");
@@ -70,11 +70,11 @@ describe("generatePackageJson", () => {
         // 实测(npm pack --dry-run)结果是产物被漏、src/ 与构建配置反被打进包,而 exports["."]
         // 指向 ./dist/index.js,装上即崩。这里钉住白名单,防回退。
         const bundleAnswers: Answers = { ...base, atoms: ["tool"] };
-        const bundle = JSON.parse(generatePackageJson(bundleAnswers, collectDeps(bundleAnswers), LATEST_MANIFEST));
+        const bundle = JSON.parse(generatePackageJson(bundleAnswers, collectDeps(bundleAnswers, LATEST_MANIFEST), LATEST_MANIFEST));
         expect(bundle.files).toEqual(["dist", "cordis.patch.yml"]);
 
         const libAnswers: Answers = { ...base, pkgPosition: "library" };
-        const lib = JSON.parse(generatePackageJson(libAnswers, collectDeps(libAnswers), LATEST_MANIFEST));
+        const lib = JSON.parse(generatePackageJson(libAnswers, collectDeps(libAnswers, LATEST_MANIFEST), LATEST_MANIFEST));
         expect(lib.files).toEqual(["dist"]);
     });
 });
@@ -92,11 +92,11 @@ describe("patches", () => {
 
 describe("generateHostIndex", () => {
     it("none:无 Config,apply 单参;static:双参 + Config 声明", () => {
-        const none = generateHostIndex(base, { injects: [], imports: [], calls: [] });
+        const none = generateHostIndex(base, { injects: [], imports: [], calls: [] }, LATEST_MANIFEST);
         expect(none).toContain("export function apply(ctx: Context): void {");
         expect(none).not.toContain("schemastery");
 
-        const stat = generateHostIndex({ ...base, config: "static" }, { injects: [], imports: [], calls: [] });
+        const stat = generateHostIndex({ ...base, config: "static" }, { injects: [], imports: [], calls: [] }, LATEST_MANIFEST);
         expect(stat).toContain("import z from '@deepseek-ai/schemastery'");
         expect(stat).toContain("export function apply(ctx: Context, config: Config): void {");
     });
@@ -105,6 +105,7 @@ describe("generateHostIndex", () => {
         const dyn = generateHostIndex(
             { ...base, config: "dynamic" },
             { injects: ["tools"], imports: [], calls: ["registerTool(ctx)"] },
+            LATEST_MANIFEST,
         );
         expect(dyn).toContain("export const inject = ['tools', 'settings']");
         expect(dyn).toContain("ctx.settings.installSection(ctx, 'demo', Config, config, {");
