@@ -22,7 +22,7 @@
   },
   "dependencies": {},
   "peerDependencies": {
-    "@deepseek-ai/cordis": "^4.0.2",
+    "@deepseek-ai/cordis": "4.0.2",
     "@deepseek-ai/dsh-agent": "__DSH_VERSION__",
     "@deepseek-ai/dsh-llm": "__DSH_VERSION__",
     "@deepseek-ai/dsh-llm-deepseek": "__DSH_VERSION__",

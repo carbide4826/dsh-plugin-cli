@@ -1,6 +1,2 @@
-# 钉死 cordis 的安装版本,保证全树单实例:
-# 宿主类型的声明合并(declare module)要求 augmenter 与使用方解析到同一个
-# cordis 实例,双实例并存时生成项目 typecheck 会报 ctx.slots 不存在(实测)。
-# loader/hmr/timer 无需在此钉版:dsh 元包自身已精确钉死配套版本。
-overrides:
-    "@deepseek-ai/cordis": 4.0.2
+# 本文件用于 workspace 定界(防祖先目录 workspace 劫持),勿删;
+# 首次 pnpm install 时 pnpm 会自动往此处写入 allowBuilds 段,按提示填 true/false 即可。

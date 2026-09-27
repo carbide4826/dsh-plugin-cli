@@ -8,6 +8,9 @@ import { UI_SURFACES } from "./uiSurfaces";
 export const DSH_MANIFEST = {
     /** 钉住的 DSH 版本:所有 @deepseek-ai/dsh-* 依赖与文档安装命令统一取此值 */
     version: "0.1.5-rc.3",
+    /** cordis 配套版本:官方元包精确钉死,发布 peer 与安装树同值
+     *  (精确钉是类型单实例的前提:range 浮动会漂出第二实例,声明合并劈叉致 typecheck 红) */
+    cordisPeer: "4.0.2",
 } as const;
 
 // 原子/缝/域各清单里声明的子包并集(tool/protocol 原子的内联贡献也在其中,见 collectDeps)

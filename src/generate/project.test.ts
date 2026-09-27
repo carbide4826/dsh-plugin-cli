@@ -46,7 +46,7 @@ describe("generatePackageJson", () => {
         expect(pkg.dsh.bundle.patch).toBe("./cordis.patch.yml");
         expect(pkg.exports["./cordis.patch.yml"]).toBe("./cordis.patch.yml");
         expect(pkg.peerDependencies["@deepseek-ai/dsh-tools"]).toBe(DSH_MANIFEST.version);
-        expect(pkg.peerDependencies["@deepseek-ai/cordis"]).toBe("^4.0.2");
+        expect(pkg.peerDependencies["@deepseek-ai/cordis"]).toBe(DSH_MANIFEST.cordisPeer);
 
         const lib = JSON.parse(generatePackageJson({ ...base, pkgPosition: "library" }, collectDeps({ ...base, pkgPosition: "library" })));
         expect(lib.dsh).toBeUndefined();
