@@ -7,7 +7,7 @@ import { UI_SURFACES } from "./uiSurfaces";
 
 export const DSH_MANIFEST = {
     /** 钉住的 DSH 版本:所有 @deepseek-ai/dsh-* 依赖与文档安装命令统一取此值 */
-    version: "0.1.5-rc.2",
+    version: "0.1.5-rc.3",
 } as const;
 
 // 原子/缝/域各清单里声明的子包并集(tool/protocol 原子的内联贡献也在其中,见 collectDeps)

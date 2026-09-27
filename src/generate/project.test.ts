@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import type { Answers } from "../domain/types";
 import { collectDeps } from "../domain/deps";
+import { DSH_MANIFEST } from "../domain/dsh-manifest";
 import { generatePackageJson } from "./packageJson";
 import { generateCordisPatch, generateDevPatch } from "./patches";
 import { generateHostIndex } from "./indexTs";
@@ -44,7 +45,7 @@ describe("generatePackageJson", () => {
         const pkg = JSON.parse(generatePackageJson(answers, deps));
         expect(pkg.dsh.bundle.patch).toBe("./cordis.patch.yml");
         expect(pkg.exports["./cordis.patch.yml"]).toBe("./cordis.patch.yml");
-        expect(pkg.peerDependencies["@deepseek-ai/dsh-tools"]).toBe("0.1.5-rc.2");
+        expect(pkg.peerDependencies["@deepseek-ai/dsh-tools"]).toBe(DSH_MANIFEST.version);
         expect(pkg.peerDependencies["@deepseek-ai/cordis"]).toBe("^4.0.2");
 
         const lib = JSON.parse(generatePackageJson({ ...base, pkgPosition: "library" }, collectDeps({ ...base, pkgPosition: "library" })));
