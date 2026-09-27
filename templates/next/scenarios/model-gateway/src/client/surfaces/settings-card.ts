@@ -1,4 +1,5 @@
 import type { Context } from '@deepseek-ai/cordis'
+import type {} from '@deepseek-ai/dsh-client-ui-settings/client' // settings.plugins.tab 槽型声明来源
 import type {} from '@deepseek-ai/dsh-client-ui-settings-plugins/client'
 import { SettingsCard } from './SettingsCard.tsx'
 
