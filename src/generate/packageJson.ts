@@ -1,13 +1,9 @@
 // package.json 生成器:四名称 + 三桶依赖 + bundle 声明 + UI 的 client 出口
 import type { Answers } from "../domain/types";
+import type { TrackManifest } from "../domain/manifests";
 import { UI_SURFACES } from "../domain/uiSurfaces";
 import { t } from "../locales";
-import {
-    SUPPORTED_CORDIS_VERSION,
-    SUPPORTED_DSH_VERSION,
-    SUPPORTED_SCHEMASTERY_VERSION,
-    type DepBuckets,
-} from "../domain/deps";
+import type { DepBuckets } from "../domain/deps";
 
 // 工具链版本(dsh rc 线之外;react 系对齐官方 ui 包的声明)
 const TOOLCHAIN: Record<string, string> = {
@@ -21,29 +17,36 @@ const TOOLCHAIN: Record<string, string> = {
 };
 
 /** 查一个依赖包的版本声明;未知包直接抛错(上游清单变了宁可炸也别瞎写) */
-function versionFor(pkg: string): string {
-    if (pkg === "@deepseek-ai/cordis") return SUPPORTED_CORDIS_VERSION;
-    if (pkg.startsWith("@deepseek-ai/dsh-")) return SUPPORTED_DSH_VERSION; // dist-tag 陷阱:精确钉死
-    if (pkg === "@deepseek-ai/schemastery") return SUPPORTED_SCHEMASTERY_VERSION; // 精确配套:防双实例劈叉 Config 类型
+function versionFor(pkg: string, manifest: TrackManifest): string {
+    if (pkg === "@deepseek-ai/cordis") return manifest.cordisPeer;
+    if (pkg.startsWith("@deepseek-ai/dsh-")) return manifest.version; // dist-tag 陷阱:精确钉死
+    if (pkg === "@deepseek-ai/schemastery") return manifest.schemasteryVersion; // 精确配套:防双实例劈叉 Config 类型
     const v = TOOLCHAIN[pkg];
     if (v === undefined) throw new Error(t("errors.unknownDep", { pkg }));
     return v;
 }
 
 /** 依赖清单 → 排序后的 { 包名: 版本 } 记录 */
-function bucketToRecord(pkgs: string[]): Record<string, string> {
-    return Object.fromEntries([...pkgs].sort().map((p) => [p, versionFor(p)]));
+function bucketToRecord(
+    pkgs: string[],
+    manifest: TrackManifest,
+): Record<string, string> {
+    return Object.fromEntries(
+        [...pkgs].sort().map((p) => [p, versionFor(p, manifest)]),
+    );
 }
 
 /**
  * 生成 package.json 内容
  * @param answers - 完整问卷答案
  * @param deps - 三桶依赖(collectDeps 结果)
+ * @param manifest - 目标轨 manifest(版本单源)
  * @returns package.json 文件内容(JSON,2 空格缩进)
  */
 export function generatePackageJson(
     answers: Answers,
     deps: DepBuckets,
+    manifest: TrackManifest,
 ): string {
     const ui = answers.atoms.includes("ui");
 
@@ -98,9 +101,9 @@ export function generatePackageJson(
             "dist",
             ...(answers.pkgPosition === "bundle" ? ["cordis.patch.yml"] : []),
         ],
-        dependencies: bucketToRecord(deps.deps),
-        peerDependencies: bucketToRecord(deps.peer),
-        devDependencies: bucketToRecord(deps.dev),
+        dependencies: bucketToRecord(deps.deps, manifest),
+        peerDependencies: bucketToRecord(deps.peer, manifest),
+        devDependencies: bucketToRecord(deps.dev, manifest),
     };
     return JSON.stringify(pkg, null, 2) + "\n";
 }

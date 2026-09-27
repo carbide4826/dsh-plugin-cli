@@ -14,8 +14,15 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { copyScenarioCase, listScenarioCases } from "./scenarioCase";
 import { templatesRoot } from "./project";
+import {
+    LATEST_MANIFEST,
+    NEXT_MANIFEST,
+    TRACK_TARGETS,
+    type TrackTarget,
+} from "../domain/manifests";
 
-const casesRoot = join(templatesRoot(), "scenarios");
+const casesRoot = (target: TrackTarget) => join(templatesRoot(target), "scenarios");
+const manifestOf = (target: TrackTarget) => (target === "latest" ? LATEST_MANIFEST : NEXT_MANIFEST);
 
 /** 递归收集目录下全部文件(相对路径) */
 function walk(dir: string, prefix = ""): string[] {
@@ -33,19 +40,23 @@ function walk(dir: string, prefix = ""): string[] {
 
 describe("精选案例库结构", () => {
     it("案例清单与设计目录一致", () => {
-        expect(listScenarioCases()).toEqual([
+        expect(listScenarioCases(LATEST_MANIFEST)).toEqual([
             "model-gateway",
             "notebook",
             "quick-tool",
             "session-bot",
             "webhook-bridge",
         ]);
+        // 双轨案例集必须一致(树分叉只发生在槽位迁移素材,不在案例构成)
+        expect(listScenarioCases(NEXT_MANIFEST)).toEqual(listScenarioCases(LATEST_MANIFEST));
     });
 
-    it.each(listScenarioCases())(
-        "%s:必需文件齐全、身份字段正确、无占位符残留",
-        (caseId) => {
-            const dir = join(casesRoot, caseId);
+    it.each(
+        TRACK_TARGETS.flatMap((target) =>
+            listScenarioCases(manifestOf(target)).map((caseId) => [target, caseId] as const),
+        ),
+    )("%s 轨:案例 %s 必需文件齐全、身份字段正确、无占位符残留", (target, caseId) => {
+            const dir = join(casesRoot(target), caseId);
 
             // 必需文件:完整工程的最小集合
             for (const required of [
@@ -106,7 +117,7 @@ describe("copyScenarioCase 拷贝与身份重写", () => {
         const pkgName = "my-tool-demo";
         const target = mkdtempSync(join(tmpdir(), "dshp-case-"));
         try {
-            const files = copyScenarioCase(caseId, target, pkgName);
+            const files = copyScenarioCase(caseId, target, pkgName, LATEST_MANIFEST);
             // 点文件素材按 `_`→`.` 落成:源文件集经同一规则映射后应与产物集一文不落;
             // dev.patch.yml 不随案例入库,由 CLI 现场生成,故在映射集之外多一份
             const toDest = (p: string) =>
@@ -116,7 +127,7 @@ describe("copyScenarioCase 拷贝与身份重写", () => {
                         seg.startsWith("_") ? "." + seg.slice(1) : seg,
                     )
                     .join("/");
-            const sourceFiles = walk(join(casesRoot, caseId))
+            const sourceFiles = walk(join(casesRoot("latest"), caseId))
                 .map((f) => toDest(f.replaceAll("\\", "/")))
                 // README 双语素材:生成时按语言只交付一份(zh 环境删 README.en.md),产物集不含未选中那份
                 .filter((f) => f !== "README.en.md")
@@ -160,14 +171,14 @@ describe("copyScenarioCase 拷贝与身份重写", () => {
     it("同名拷贝不做替换,不存在的案例抛错", () => {
         const target = mkdtempSync(join(tmpdir(), "dshp-case-"));
         try {
-            const files = copyScenarioCase("notebook", target, "notebook");
+            const files = copyScenarioCase("notebook", target, "notebook", LATEST_MANIFEST);
             expect(files.length).toBeGreaterThan(0);
             expect(
                 readFileSync(join(target, "package.json"), "utf8"),
             ).toContain('"notebook"');
-            expect(() => copyScenarioCase("nope", target, "nope")).toThrow(
-                "nope",
-            );
+            expect(() =>
+                copyScenarioCase("nope", target, "nope", LATEST_MANIFEST),
+            ).toThrow("nope");
         } finally {
             rmSync(target, { recursive: true, force: true });
         }
@@ -176,7 +187,7 @@ describe("copyScenarioCase 拷贝与身份重写", () => {
     it("dev.patch.yml 原样保留案例 config 块(model-gateway)", () => {
         const target = mkdtempSync(join(tmpdir(), "dshp-case-"));
         try {
-            copyScenarioCase("model-gateway", target, "gw-demo");
+            copyScenarioCase("model-gateway", target, "gw-demo", LATEST_MANIFEST);
             const devPatch = readFileSync(
                 join(target, "dev.patch.yml"),
                 "utf8",
@@ -189,6 +200,36 @@ describe("copyScenarioCase 拷贝与身份重写", () => {
             expect(devPatch).toContain("model: 'gateway-chat'");
         } finally {
             rmSync(target, { recursive: true, force: true });
+        }
+    });
+
+    it("双轨版本注入:同一案例按轨渲染出各自的配套版本", () => {
+        const latest = mkdtempSync(join(tmpdir(), "dshp-case-lt-"));
+        const next = mkdtempSync(join(tmpdir(), "dshp-case-nx-"));
+        try {
+            copyScenarioCase("quick-tool", latest, "dual-demo", LATEST_MANIFEST);
+            copyScenarioCase("quick-tool", next, "dual-demo", NEXT_MANIFEST);
+            const readPkg = (dir: string) =>
+                JSON.parse(readFileSync(join(dir, "package.json"), "utf8")) as {
+                    peerDependencies?: Record<string, string>;
+                    dependencies?: Record<string, string>;
+                };
+            const lt = readPkg(latest);
+            const nx = readPkg(next);
+            expect(lt.peerDependencies?.["@deepseek-ai/dsh-tools"]).toBe(LATEST_MANIFEST.version);
+            expect(lt.peerDependencies?.["@deepseek-ai/cordis"]).toBe(LATEST_MANIFEST.cordisPeer);
+            expect(nx.peerDependencies?.["@deepseek-ai/dsh-tools"]).toBe(NEXT_MANIFEST.version);
+            expect(nx.peerDependencies?.["@deepseek-ai/cordis"]).toBe(NEXT_MANIFEST.cordisPeer);
+            if (nx.dependencies?.["@deepseek-ai/schemastery"]) {
+                expect(nx.dependencies["@deepseek-ai/schemastery"]).toBe(NEXT_MANIFEST.schemasteryVersion);
+            }
+            // 两轨产物必须不同(渲染确实消费了轨 manifest,不是同一份拷贝)
+            expect(nx.peerDependencies?.["@deepseek-ai/dsh-tools"]).not.toBe(
+                lt.peerDependencies?.["@deepseek-ai/dsh-tools"],
+            );
+        } finally {
+            rmSync(latest, { recursive: true, force: true });
+            rmSync(next, { recursive: true, force: true });
         }
     });
 });

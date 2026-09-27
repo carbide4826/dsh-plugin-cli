@@ -1,0 +1,8 @@
+- insert:
+    - id: model-gateway
+      name: 'model-gateway'
+      config:
+        # 只放环境变量名,不放 key 本身(官方 apiKeyEnv 同款,key 不落盘)
+        apiKeyEnv: GATEWAY_API_KEY
+        baseUrl: 'https://gateway.example.com/v1'
+        model: 'gateway-chat'

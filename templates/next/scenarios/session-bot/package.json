@@ -1,0 +1,37 @@
+{
+  "name": "session-bot",
+  "version": "0.1.0",
+  "description": "Curated case: react to session events automatically (events + llm seam)",
+  "type": "module",
+  "license": "MIT",
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "typecheck": "tsc --noEmit"
+  },
+  "exports": {
+    ".": "./dist/index.js",
+    "./cordis.patch.yml": "./cordis.patch.yml"
+  },
+  "dependencies": {},
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "__CORDIS_VERSION__",
+    "@deepseek-ai/dsh-agent": "__DSH_VERSION__",
+    "@deepseek-ai/dsh-llm": "__DSH_VERSION__",
+    "@deepseek-ai/dsh-llm-deepseek": "__DSH_VERSION__",
+    "@deepseek-ai/dsh-llm-pi-ai": "__DSH_VERSION__",
+    "@deepseek-ai/dsh-session": "__DSH_VERSION__"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsdown": "^0.23.0",
+    "typescript": "^5.6.0"
+  }
+}

@@ -3,17 +3,12 @@ import type { Answers } from "./types";
 import { EVENT_DOMAINS } from "./events";
 import { UI_SURFACES } from "./uiSurfaces";
 import { SEAMS } from "./seams";
-import { DSH_MANIFEST } from "./dsh-manifest";
 
 export interface DepBuckets {
     peer: string[]; // peerDependencies
     deps: string[]; // dependencies
     dev: string[]; // devDependencies
 }
-
-export const SUPPORTED_DSH_VERSION = DSH_MANIFEST.version; // 唯一权威在 dsh-manifest.ts,此处仅为旧引用面兼容再导出
-export const SUPPORTED_CORDIS_VERSION = DSH_MANIFEST.cordisPeer; // 精确配套版,单源在 dsh-manifest.ts
-export const SUPPORTED_SCHEMASTERY_VERSION = DSH_MANIFEST.schemasteryVersion; // 同上,精确配套
 
 // 工程设施恒定项(不预装 vitest:模板不带测试,用户有需求自行添加)
 const DEV_TOOLS = ["tsdown", "typescript"];

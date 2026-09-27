@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Answers } from "../domain/types";
+import type { TrackManifest, TrackTarget } from "../domain/manifests";
 import { collectDeps } from "../domain/deps";
 import { planGeneration } from "../atoms";
 import { renderString, writeFile, type Vars } from "../render/render";
@@ -28,20 +29,21 @@ function destName(source: string): string {
     return source.startsWith("_") ? "." + source.slice(1) : source;
 }
 
-// templates/ 目录锚点:src 下与打包后的 dist 深度不同,向上探测到含 atoms 的 templates 为止
-let cachedRoot: string | undefined;
-/** templates/ 目录绝对路径(案例拷贝等模块共用;探测失败直接抛错) */
-export function templatesRoot(): string {
-    if (cachedRoot !== undefined) return cachedRoot;
+// templates/<轨>/ 目录锚点:src 下与打包后的 dist 深度不同,向上探测到含 atoms 的轨目录为止
+const cachedRoots = new Map<TrackTarget, string>();
+/** 某轨的 templates/ 目录绝对路径(案例拷贝等模块共用;探测失败直接抛错) */
+export function templatesRoot(target: TrackTarget): string {
+    const cached = cachedRoots.get(target);
+    if (cached !== undefined) return cached;
     let dir = dirname(fileURLToPath(import.meta.url));
     for (let i = 0; i < 6; i++) {
-        const candidate = join(dir, "templates");
+        const candidate = join(dir, "templates", target);
         if (
             existsSync(join(candidate, "README.md")) &&
             existsSync(join(candidate, "atoms"))
         ) {
-            cachedRoot = candidate;
-            return cachedRoot;
+            cachedRoots.set(target, candidate);
+            return candidate;
         }
         dir = dirname(dir);
     }
@@ -58,14 +60,19 @@ function readTemplate(path: string): string {
  * 生成完整项目到目标目录
  * @param answers - 完整问卷答案
  * @param targetDir - 目标目录(需已存在或可创建)
+ * @param manifest - 目标轨 manifest(决定素材树与版本单源)
  * @returns 实际写入的文件相对路径清单(供完成提示展示)
  */
-export function writeProject(answers: Answers, targetDir: string): string[] {
+export function writeProject(
+    answers: Answers,
+    targetDir: string,
+    manifest: TrackManifest,
+): string[] {
     const written: string[] = [];
     const plan = planGeneration(answers);
     const deps = collectDeps(answers);
-    const vars: Vars = buildVars(answers, plan.readmeStructure.join("\n"));
-    const root = templatesRoot();
+    const vars: Vars = buildVars(answers, plan.readmeStructure.join("\n"), manifest);
+    const root = templatesRoot(manifest.target);
 
     // base 模板(tsconfig / README / _gitignore→.gitignore / tsdown)
     // README 按生成时刻的语言选素材(en 版素材名 README.en.md),落盘名恒为 README.md(生成物单语言)
@@ -92,7 +99,7 @@ export function writeProject(answers: Answers, targetDir: string): string[] {
     }
 
     // 动态文件:package.json / patch / 入口 / 聚合
-    writeFile(targetDir, "package.json", generatePackageJson(answers, deps));
+    writeFile(targetDir, "package.json", generatePackageJson(answers, deps, manifest));
     written.push("package.json");
 
     if (answers.pkgPosition === "bundle") {

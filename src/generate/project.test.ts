@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import type { Answers } from "../domain/types";
 import { collectDeps } from "../domain/deps";
-import { DSH_MANIFEST } from "../domain/dsh-manifest";
+import { LATEST_MANIFEST } from "../domain/manifests";
 import { generatePackageJson } from "./packageJson";
 import { generateCordisPatch, generateDevPatch } from "./patches";
 import { generateHostIndex } from "./indexTs";
@@ -42,20 +42,20 @@ describe("generatePackageJson", () => {
     it("bundle 声明存在,库包没有;依赖按桶落位且 dsh 包精确钉版本", () => {
         const answers: Answers = { ...base, atoms: ["tool"] };
         const deps = collectDeps(answers);
-        const pkg = JSON.parse(generatePackageJson(answers, deps));
+        const pkg = JSON.parse(generatePackageJson(answers, deps, LATEST_MANIFEST));
         expect(pkg.dsh.bundle.patch).toBe("./cordis.patch.yml");
         expect(pkg.exports["./cordis.patch.yml"]).toBe("./cordis.patch.yml");
-        expect(pkg.peerDependencies["@deepseek-ai/dsh-tools"]).toBe(DSH_MANIFEST.version);
-        expect(pkg.peerDependencies["@deepseek-ai/cordis"]).toBe(DSH_MANIFEST.cordisPeer);
+        expect(pkg.peerDependencies["@deepseek-ai/dsh-tools"]).toBe(LATEST_MANIFEST.version);
+        expect(pkg.peerDependencies["@deepseek-ai/cordis"]).toBe(LATEST_MANIFEST.cordisPeer);
 
-        const lib = JSON.parse(generatePackageJson({ ...base, pkgPosition: "library" }, collectDeps({ ...base, pkgPosition: "library" })));
+        const lib = JSON.parse(generatePackageJson({ ...base, pkgPosition: "library" }, collectDeps({ ...base, pkgPosition: "library" }), LATEST_MANIFEST));
         expect(lib.dsh).toBeUndefined();
         expect(lib.exports["./cordis.patch.yml"]).toBeUndefined();
     });
 
     it("勾 UI:exports 双出口 + dsh.client 注入 renderer/slots 与 Owner 包", () => {
         const answers: Answers = { ...base, atoms: ["ui"], uiSurfaces: ["settings-card"] };
-        const pkg = JSON.parse(generatePackageJson(answers, collectDeps(answers)));
+        const pkg = JSON.parse(generatePackageJson(answers, collectDeps(answers), LATEST_MANIFEST));
         expect(pkg.exports["./client"]).toBe("./dist/client.js");
         expect(pkg.dsh.client.platform).toBe("web");
         expect(pkg.dsh.client.inject).toContain("@deepseek-ai/dsh-client-ui-renderer");
@@ -70,11 +70,11 @@ describe("generatePackageJson", () => {
         // 实测(npm pack --dry-run)结果是产物被漏、src/ 与构建配置反被打进包,而 exports["."]
         // 指向 ./dist/index.js,装上即崩。这里钉住白名单,防回退。
         const bundleAnswers: Answers = { ...base, atoms: ["tool"] };
-        const bundle = JSON.parse(generatePackageJson(bundleAnswers, collectDeps(bundleAnswers)));
+        const bundle = JSON.parse(generatePackageJson(bundleAnswers, collectDeps(bundleAnswers), LATEST_MANIFEST));
         expect(bundle.files).toEqual(["dist", "cordis.patch.yml"]);
 
         const libAnswers: Answers = { ...base, pkgPosition: "library" };
-        const lib = JSON.parse(generatePackageJson(libAnswers, collectDeps(libAnswers)));
+        const lib = JSON.parse(generatePackageJson(libAnswers, collectDeps(libAnswers), LATEST_MANIFEST));
         expect(lib.files).toEqual(["dist"]);
     });
 });
@@ -122,7 +122,7 @@ describe("writeProject", () => {
             serviceSeams: ["llm"],
             config: "static",
         };
-        const files = writeProject(answers, dir);
+        const files = writeProject(answers, dir, LATEST_MANIFEST);
 
         // base + 拷贝 + 动态文件都落了盘
         for (const f of [
@@ -166,14 +166,14 @@ describe("writeProject", () => {
 
     it("库包定位:不生成 cordis.patch.yml,dev.patch 仍生成", () => {
         const dir = freshDir();
-        writeProject({ ...base, pkgPosition: "library" }, dir);
+        writeProject({ ...base, pkgPosition: "library" }, dir, LATEST_MANIFEST);
         expect(existsSync(join(dir, "cordis.patch.yml"))).toBe(false);
         expect(existsSync(join(dir, "dev.patch.yml"))).toBe(true);
     });
 
     it("勾 UI:界面位按注册层 .ts + 组件 .tsx + 样式 .module.css 三件套落盘", () => {
         const dir = freshDir();
-        writeProject({ ...base, atoms: ["ui"], uiSurfaces: ["sidebar"] }, dir);
+        writeProject({ ...base, atoms: ["ui"], uiSurfaces: ["sidebar"] }, dir, LATEST_MANIFEST);
         expect(existsSync(join(dir, "src/client/surfaces/sidebar-panel.ts"))).toBe(true);
         expect(existsSync(join(dir, "src/client/surfaces/SidebarPanel.tsx"))).toBe(true);
         expect(existsSync(join(dir, "src/client/surfaces/SidebarPanel.module.css"))).toBe(true);
