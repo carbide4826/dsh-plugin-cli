@@ -5,6 +5,7 @@ import { t } from "../locales";
 import {
     SUPPORTED_CORDIS_VERSION,
     SUPPORTED_DSH_VERSION,
+    SUPPORTED_SCHEMASTERY_VERSION,
     type DepBuckets,
 } from "../domain/deps";
 
@@ -17,13 +18,13 @@ const TOOLCHAIN: Record<string, string> = {
     "@types/react": "~18.3.1",
     react: "^18.2.0",
     "react-dom": "^18.2.0",
-    "@deepseek-ai/schemastery": "^3.18.2", // 独立稳定线,非 dsh rc 线
 };
 
 /** 查一个依赖包的版本声明;未知包直接抛错(上游清单变了宁可炸也别瞎写) */
 function versionFor(pkg: string): string {
     if (pkg === "@deepseek-ai/cordis") return SUPPORTED_CORDIS_VERSION;
     if (pkg.startsWith("@deepseek-ai/dsh-")) return SUPPORTED_DSH_VERSION; // dist-tag 陷阱:精确钉死
+    if (pkg === "@deepseek-ai/schemastery") return SUPPORTED_SCHEMASTERY_VERSION; // 精确配套:防双实例劈叉 Config 类型
     const v = TOOLCHAIN[pkg];
     if (v === undefined) throw new Error(t("errors.unknownDep", { pkg }));
     return v;
