@@ -174,6 +174,27 @@ my-plugin/                  ← project dir = the directory name you entered
 >
 > Host CLI flags confusing? `docs/dsh-command-builder.html` is a visual assembler: open it in a browser, click flags on and off, copy the assembled command.
 
+## Version notes
+
+**Tracks and pairing** (chosen at generation time via `--target`, default latest; npm's official latest is already `0.1.7-rc.2`, our latest track intentionally lags by conservative policy):
+
+| Track | dsh host | Key pairing (cordis / schemastery) |
+| --- | --- | --- |
+| `latest` | `0.1.5-rc.3` | `4.0.2` / `3.18.2` |
+| `next` | `0.1.7-rc.2` | `~4.0.4` / `~3.18.4` |
+
+Dependencies pair exactly with the host version; mismatched mixes can spawn a second instance in the install tree, breaking declaration merging and failing typecheck.
+
+**The host's plugin version gate**: when installing or loading a plugin, dsh validates every `@deepseek-ai/dsh` and `@deepseek-ai/dsh-*` entry in the plugin's `peerDependencies` (other dependencies are not checked); an unsatisfied range is **rejected at install time** with an "incompatible" message. So latest-track products cannot be installed on a 0.1.7 host and vice versa — keep the product track aligned with the host version. To force a cross-version install anyway, use the official exemption command (the rejection message prints the full command):
+
+```sh
+dsh plugin --profile web allow-version <plugin>@<version> --dsh-version <host version> --accept-risk
+```
+
+> The exemption only records that you accept the risk; cross-track products are not guaranteed to work.
+
+**Plugin display info**: the host's plugin manager renders the name / description / icon from the plugin package's `locale/<lang>.json` (`meta.title` / `meta.description`, picked by the host UI locale with English fallback) and the `icon` field in `package.json`; this template ships them by default — edit `locale/zh.json` to change the copy.
+
 ## Roadmap
 
 - ✅ Keep tracking dsh version bumps — versions are managed uniformly and follow the official dsh line

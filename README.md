@@ -172,6 +172,27 @@ my-plugin/                  ← 项目目录 = 你填的目录名
 >
 > 宿主命令行参数可多可杂?`docs/dsh-command-builder.html` 是可视化组装器:浏览器直接打开,点选、增删 flag,拼出完整命令后复制运行。
 
+## 版本说明
+
+**轨道与配套**(生成时以 `--target` 选择,默认 latest;npm 官方 latest 现已是 `0.1.7-rc.2`,本 CLI 的 latest 轨按保守策略有意延迟跟进):
+
+| 轨道 | dsh 宿主 | 关键配套(cordis / schemastery) |
+| --- | --- | --- |
+| `latest` | `0.1.5-rc.3` | `4.0.2` / `3.18.2` |
+| `next` | `0.1.7-rc.2` | `~4.0.4` / `~3.18.4` |
+
+依赖与宿主版本精确配套;混用不配套的组合可能在安装树中产生双实例,导致类型声明合并冲突、typecheck 失败。
+
+**宿主对插件的版本门控**:dsh 在安装与加载插件时,会校验插件 `peerDependencies` 中所有 `@deepseek-ai/dsh` 与 `@deepseek-ai/dsh-*` 声明(其余依赖不参与),与运行中的 dsh 版本不满足即**拒绝安装**并提示 incompatible。因此 latest 轨产物装不进 0.1.7 宿主,反之亦然——请保持产物轨道与宿主版本一致。确需跨版本强装,可用官方豁免命令(安装被拒时终端会给出完整命令):
+
+```sh
+dsh plugin --profile web allow-version <插件名>@<插件版本> --dsh-version <宿主版本> --accept-risk
+```
+
+> 豁免仅表示明确接受风险,跨轨产物的功能不保证。
+
+**插件展示信息**:宿主插件管理页的名称 / 介绍 / 图标来自插件包的 `locale/<语言>.json`(`meta.title` / `meta.description`,按宿主界面语言选择,英文兜底)与 `package.json` 的 `icon` 字段;本项目模板已默认携带,改文案编辑 `locale/zh.json` 即可。
+
 ## 后续规划
 
 - ✅ 随 dsh 版本调整持续更新适配 —— 版本统一管理,升级跟随官方版本线
