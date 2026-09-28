@@ -1,5 +1,5 @@
 # 发布:npm publish 由 CI 执行——推送 v* tag 触发(例:v0.1.5)
-# 前置:仓库 Secrets 配置 NPM_TOKEN(npmjs.com 生成 Automation 类型 token)
+# 前置:仓库 Secrets 配置 NPM_TOKEN(npmjs.com 细粒度令牌:只勾本包读写 + 绕过 2FA)
 # 守卫:tag 名(去掉 v)必须等于 package.json 的 version,且 registry 上该版本不存在
 name: publish
 
@@ -45,5 +45,14 @@ jobs:
             echo "registry 上 $PKG 已存在,拒绝重复发布"; exit 1
           fi
 
-      - name: publish(可信发布,免令牌)
-        run: npm publish --provenance
+      - name: configure npm auth
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ -z "$NPM_TOKEN" ]; then
+            echo "NPM_TOKEN 未配置:仓库 Settings → Secrets → Actions 添加 NPM_TOKEN"; exit 1
+          fi
+          echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
+
+      - name: publish
+        run: npm publish
