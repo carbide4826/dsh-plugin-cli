@@ -9,6 +9,7 @@ on:
 
 permissions:
   contents: read
+  id-token: write # 可信发布:npm publish --provenance 经 OIDC 验证发布来源,无需 NPM_TOKEN
 
 jobs:
   publish:
@@ -44,7 +45,5 @@ jobs:
             echo "registry 上 $PKG 已存在,拒绝重复发布"; exit 1
           fi
 
-      - name: publish
-        run: npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: publish(可信发布,免令牌)
+        run: npm publish --provenance

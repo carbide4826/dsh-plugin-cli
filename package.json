@@ -19,6 +19,10 @@
     "url": "https://github.com/carbide4826/dsh-plugin-cli"
   },
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/carbide4826/dsh-plugin-cli.git"
+  },
   "bin": {
     "dshp": "./dist/cli.mjs"
   },
