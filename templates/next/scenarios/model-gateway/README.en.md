@@ -78,7 +78,7 @@ pnpm dsh web --patch ./dev.patch.yml  # launch (direct source load) (⑤⑥)
 
 ### What this case demonstrates
 
-　　"Plug in your own model service": the adapter registered on the llm seam shows up in the model picker; configuration goes through the **settings page dynamic form** (changes take effect immediately, no restart); the API key never lands on disk — config holds only the **environment variable name**.
+　　"Plug in your own model service": the adapter registered on the llm seam shows up in the model picker; configuration is editable in two places — the **Plugins page** (sidebar "Plugins" → this plugin → the row's "Configure") renders an editable form, or edit the YAML via "Open configuration file" in settings — both hot-apply; the API key never lands on disk — config holds only the **environment variable name**.
 
 ### Key files
 
@@ -86,8 +86,9 @@ pnpm dsh web --patch ./dev.patch.yml  # launch (direct source load) (⑤⑥)
 |---|---|
 | `src/index.ts` | Config schema (native settings form projected by the host) + hot-update adapter wiring |
 | `src/seams/llm.ts` | adapter's three methods: providerInfo / listModels / stream |
-| `src/client/surfaces/SettingsCard.tsx` | settings tab (the Config form is rendered by the host) |
-| `src/client/surfaces/SettingsCard.module.css` | card styles |
+| `src/client/surfaces/SettingsCard.tsx` | settings tab (pointer card) |
+| `src/client/surfaces/RowConfigForm.tsx` | the row config form on the Plugins page (plugins.row.config slot, volatile fields editable) |
+| `src/client/surfaces/SettingsCard.module.css` | card and form styles |
 
 ### How to verify it works
 

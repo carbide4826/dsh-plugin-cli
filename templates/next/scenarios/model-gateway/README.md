@@ -78,7 +78,7 @@ pnpm dsh web --patch ./dev.patch.yml  # 启动(直载源码)(⑤⑥)
 
 ### 本案例演示什么
 
-　　演示"接入自有模型服务":llm 缝注册 adapter 出现在模型选择器,配置走**设置页动态表单**(改配置实时生效,不重启);API key 不落盘,配置里只放**环境变量名**。
+　　演示"接入自有模型服务":llm 缝注册 adapter 出现在模型选择器;配置两处可改——**插件管理页**(侧栏「插件」→ 本插件 → 组件行「配置」)的表单直接编辑保存,或设置页「打开配置文件」改 YAML,均热生效;API key 不落盘,配置里只放**环境变量名**。
 
 ### 关键文件导览
 
@@ -86,8 +86,9 @@ pnpm dsh web --patch ./dev.patch.yml  # 启动(直载源码)(⑤⑥)
 |---|---|
 | `src/index.ts` | Config schema(宿主原生投影设置表单)+ 热更新注入 adapter |
 | `src/seams/llm.ts` | adapter 三方法:providerInfo / listModels / stream |
-| `src/client/surfaces/SettingsCard.tsx` | 设置页页签(Config 表单由宿主渲染) |
-| `src/client/surfaces/SettingsCard.module.css` | 卡片样式 |
+| `src/client/surfaces/SettingsCard.tsx` | 设置页页签(说明牌) |
+| `src/client/surfaces/RowConfigForm.tsx` | 插件管理页的行配置表单(plugins.row.config 槽,volatile 字段可编辑) |
+| `src/client/surfaces/SettingsCard.module.css` | 卡片与表单样式 |
 
 ### 如何验证起效
 
