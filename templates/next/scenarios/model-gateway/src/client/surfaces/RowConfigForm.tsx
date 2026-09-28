@@ -1,4 +1,4 @@
-import { memo, useState } from 'react'
+import { memo, useState, type ChangeEvent } from 'react'
 import styles from './SettingsCard.module.css'
 
 /**
@@ -76,7 +76,7 @@ export const RowConfigForm = memo(function RowConfigForm({ view, form }: RowConf
                     <input
                         className={styles.input}
                         value={values[f.key] ?? ''}
-                        onChange={(e) => setDraft({ ...values, [f.key]: e.target.value })}
+                        onChange={(e: ChangeEvent<HTMLInputElement>) => setDraft({ ...values, [f.key]: e.target.value })}
                     />
                 </label>
             ))}
