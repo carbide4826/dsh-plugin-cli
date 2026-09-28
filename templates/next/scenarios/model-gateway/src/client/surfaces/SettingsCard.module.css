@@ -14,3 +14,48 @@
     opacity: 0.8;
     color: var(--dsw-alias-label-secondary, inherit);
 }
+
+/* 行配置表单(plugins.row.config 详情页) */
+.field {
+    display: block;
+    margin-top: 8px;
+}
+
+.fieldLabel {
+    display: block;
+    color: var(--dsw-alias-label-secondary, inherit);
+}
+
+.input {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    margin-top: 2px;
+    padding: 4px 8px;
+    border: 1px solid var(--dsw-alias-border-secondary, #8884);
+    border-radius: 6px;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+}
+
+.save {
+    margin-top: 10px;
+    padding: 4px 14px;
+    border: none;
+    border-radius: 6px;
+    background: var(--dsw-alias-brand-primary, #4d6bfe);
+    color: #fff;
+    font: inherit;
+    cursor: pointer;
+}
+
+.save:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.message {
+    margin-top: 6px;
+    color: var(--dsw-alias-label-secondary, inherit);
+}

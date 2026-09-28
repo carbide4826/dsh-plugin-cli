@@ -2,6 +2,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client' // settings.plugins.tab 槽型声明来源
 import type {} from '@deepseek-ai/dsh-client-ui-settings-plugins/client'
 import { SettingsCard } from './SettingsCard.tsx'
+import { RowConfigForm } from './RowConfigForm.tsx'
 
 /**
  * 注册插件设置页签:渲染进设置页 Plugins 区块的本插件页签(0.1.7 list 页签槽)。
@@ -17,5 +18,17 @@ export function registerSettingsCard(ctx: Context): void {
                 label: () => 'model-gateway', // 页签标题,宿主 resolveSlotLabel 解析为字符串
             },
             SettingsCard,
+        ))
+
+    // 行级配置入口:插件管理页本插件组件行的「配置」按钮由此点亮,
+    // key = `<包名>#<行 id>`(两者默认同为插件 id);详情页渲染 RowConfigForm,
+    // 宿主经 form prop 传入当前配置值与 mutate 写入(仅 .volatile() 字段可编辑)。
+    ctx.slots.inject('plugins.row.config', () =>
+        ctx.slots.register(
+            {
+                name: 'plugins.row.config',
+                key: 'model-gateway#model-gateway', // 身份重写会替换为插件 id
+            },
+            RowConfigForm,
         ))
 }
