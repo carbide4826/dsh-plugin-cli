@@ -83,4 +83,24 @@ describe.each(TRACK_TARGETS.map((t) => [t] as const))("templates 素材可打包
             expect(pkg.icon, `${caseId} package.json.icon`).toBe("icon.svg");
         }
     });
+
+    it("locale 元信息在位且合法(base 与每个精选案例,zh/en 双语、en 强制兜底)", () => {
+        // 清单详情页经 package-meta 读 <pkg>/locale/<lang>.json 的 meta;en.json 是字典入口(缺了整组放弃)
+        for (const caseId of listScenarioCases(target === "latest" ? LATEST_MANIFEST : NEXT_MANIFEST)) {
+            for (const lang of ["zh", "en"]) {
+                const meta = JSON.parse(
+                    readFileSync(join(templatesRoot(target), "scenarios", caseId, "locale", `${lang}.json`), "utf8"),
+                ) as { meta?: { title?: string; description?: string } };
+                expect(meta.meta?.title, `${caseId} locale/${lang}.json meta.title`).toBeTruthy();
+                expect(meta.meta?.description, `${caseId} locale/${lang}.json meta.description`).toBeTruthy();
+            }
+        }
+        // base 模板(预设管线):双语 title 在位(description 回落 package.json,由用户自己写)
+        for (const lang of ["zh", "en"]) {
+            const meta = JSON.parse(
+                readFileSync(join(templatesRoot(target), "locale", `${lang}.json`), "utf8"),
+            ) as { meta?: { title?: string } };
+            expect(meta.meta?.title, `base locale/${lang}.json meta.title`).toBeTruthy();
+        }
+    });
 });

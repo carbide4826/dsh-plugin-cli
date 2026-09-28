@@ -99,6 +99,8 @@ export function generatePackageJson(
             // package.json 也要可解析:宿主 package-meta 经 ESM resolver 读它取清单展示的
             // title/description/icon(官方全家同款防御;缺了 meta 整个回落 undefined)
             ...(answers.pkgPosition === "bundle" ? { "./package.json": "./package.json" } : {}),
+            // locale 元信息同走 package-meta(`<pkg>/locale/<lang>.json` 的 meta 优先于 package.json 回落)
+            ...(answers.pkgPosition === "bundle" ? { "./locale/*.json": "./locale/*.json" } : {}),
             ...(ui ? { "./client": "./dist/client.js" } : {}),
             // patch 文件也要能按 exports 解析到(dsh plugin add 读包内路径;社区插件同款防御)
             ...(answers.pkgPosition === "bundle"
@@ -109,7 +111,7 @@ export function generatePackageJson(
         // 结果是产物被漏、src/ 与构建配置反被打进包(README.md / package.json 为 npm 强制包含项,无需列出)
         files: [
             "dist",
-            ...(answers.pkgPosition === "bundle" ? ["icon.svg", "cordis.patch.yml"] : []),
+            ...(answers.pkgPosition === "bundle" ? ["icon.svg", "locale", "cordis.patch.yml"] : []),
         ],
         dependencies: bucketToRecord(deps.deps, manifest),
         peerDependencies: bucketToRecord(deps.peer, manifest),

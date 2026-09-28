@@ -47,6 +47,8 @@ describe("generatePackageJson", () => {
         expect(pkg.exports["./cordis.patch.yml"]).toBe("./cordis.patch.yml");
         // 宿主 package-meta 经 ESM resolver 读 package.json 取清单展示元信息
         expect(pkg.exports["./package.json"]).toBe("./package.json");
+        // locale 元信息(清单详情页按宿主界面语言显示 title/description)
+        expect(pkg.exports["./locale/*.json"]).toBe("./locale/*.json");
         expect(pkg.peerDependencies["@deepseek-ai/dsh-tools"]).toBe(LATEST_MANIFEST.version);
         expect(pkg.peerDependencies["@deepseek-ai/cordis"]).toBe(LATEST_MANIFEST.cordisPeer);
         // 插件清单详情页的展示图标(package-meta 契约)
@@ -75,7 +77,7 @@ describe("generatePackageJson", () => {
         // 指向 ./dist/index.js,装上即崩。这里钉住白名单,防回退。
         const bundleAnswers: Answers = { ...base, atoms: ["tool"] };
         const bundle = JSON.parse(generatePackageJson(bundleAnswers, collectDeps(bundleAnswers, LATEST_MANIFEST), LATEST_MANIFEST));
-        expect(bundle.files).toEqual(["dist", "icon.svg", "cordis.patch.yml"]);
+        expect(bundle.files).toEqual(["dist", "icon.svg", "locale", "cordis.patch.yml"]);
 
         const libAnswers: Answers = { ...base, pkgPosition: "library" };
         const lib = JSON.parse(generatePackageJson(libAnswers, collectDeps(libAnswers, LATEST_MANIFEST), LATEST_MANIFEST));

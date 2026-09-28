@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "事件桥接",
+    "description": "接收外部 Webhook 事件并转发为会话任务。"
+  }
+}
