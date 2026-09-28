@@ -20,10 +20,11 @@ export interface Config {
     model: string
 }
 
+// .volatile():字段进宿主原生配置表单(0.1.7 起 Config schema 由宿主投影,仅 volatile 字段可编辑)
 export const Config: z<Config> = z.object({
-    apiKeyEnv: z.string().default('GATEWAY_API_KEY'),
-    baseUrl: z.string().default('https://gateway.example.com/v1'),
-    model: z.string().default('gateway-chat'),
+    apiKeyEnv: z.string().default('GATEWAY_API_KEY').volatile(),
+    baseUrl: z.string().default('https://gateway.example.com/v1').volatile(),
+    model: z.string().default('gateway-chat').volatile(),
 })
 
 /**
