@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Webhook Bridge",
+    "description": "Receives external webhook events and forwards them as session tasks."
+  }
+}

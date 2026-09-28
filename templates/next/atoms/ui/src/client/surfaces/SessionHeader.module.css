@@ -1,0 +1,7 @@
+/* 会话头扩展样式:约定同 SettingsCard.module.css 头注释 */
+.header {
+    padding: 4px 8px;
+    font-size: 12px;
+    opacity: 0.8;
+    color: var(--dsw-alias-label-secondary, inherit);
+}

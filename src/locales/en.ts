@@ -22,6 +22,10 @@ export const en = {
         errUnknownScenario:
             'unknown preset "{name}". Available presets: {ids} (see dshp create --help)',
         errCheckFailed: "option validation failed",
+        errUnknownTarget: 'unknown target track "{targets}" (see dshp create --help)',
+        targetMessage: "Which dsh host generation to pair with?",
+        targetLatestHint: "current stable line, conservative tracking (default)",
+        targetNextHint: "next rc line, aggressive tracking",
         startMessage: "Where do you want to start?",
         startCase: "Curated case",
         startCaseHint: "Copy a complete, ready-to-run project",
@@ -140,6 +144,7 @@ Language:
         },
         summary: {
             title: "Questionnaire summary",
+            target: "Track",
             dir: "Directory",
             pkg: "npm name",
             pluginId: "Plugin id",

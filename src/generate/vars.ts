@@ -1,6 +1,6 @@
-// 占位符变量表:问卷答案 + 版本常量 → 渲染引擎的 Vars
+// 占位符变量表:问卷答案 + 轨 manifest → 渲染引擎的 Vars
 import type { Answers } from "../domain/types";
-import { SUPPORTED_DSH_VERSION } from "../domain/deps";
+import type { TrackManifest } from "../domain/manifests";
 import type { Vars } from "../render/render";
 
 /**
@@ -81,16 +81,21 @@ function clientSegment(pkgName: string): string {
  * 组装渲染变量表(模板文件与动态文件共用同一套占位符)
  * @param answers - 完整问卷答案
  * @param extraStructure - README「代码结构」段追加行(来自生成计划)
+ * @param manifest - 目标轨 manifest(版本单源)
  * @returns 渲染变量表
  */
-export function buildVars(answers: Answers, extraStructure: string): Vars {
+export function buildVars(
+    answers: Answers,
+    extraStructure: string,
+    manifest: TrackManifest,
+): Vars {
     const ui = answers.atoms.includes("ui");
     return {
         PKG_NAME: answers.pkgName,
         PLUGIN_ID: answers.pluginId,
         TOOL_NAME: answers.toolName,
         DESCRIPTION: answers.description,
-        DSH_VERSION: SUPPORTED_DSH_VERSION,
+        DSH_VERSION: manifest.version,
         EXTRA_STRUCTURE: extraStructure,
         // 项目自带 tsdown 配置(就近优先),避免被祖先目录的 tsdown.config.ts 劫持 entry。
         // host 出口 UI 时用对象形式:key 即输出文件名(index → dist/index.js 平铺,

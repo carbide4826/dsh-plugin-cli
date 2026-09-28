@@ -1,0 +1,10 @@
+/* 界面位样式约定(CSS Modules):
+   - 类名经构建期哈希隔离,不会与宿主或其他插件冲突;
+   - 样式值优先用宿主设计令牌 var(--dsw-alias-*),带字面量兜底,主题与暗色自动跟随;
+   - 本文件经构建期内联进 dist/client.js,不会产出独立 .css 产物。 */
+.card {
+    padding: 4px 8px;
+    font-size: 12px;
+    opacity: 0.8;
+    color: var(--dsw-alias-label-secondary, inherit);
+}

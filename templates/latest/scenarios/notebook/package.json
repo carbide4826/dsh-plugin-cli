@@ -1,0 +1,39 @@
+{
+  "name": "notebook",
+  "version": "0.1.0",
+  "description": "Curated case: per-user notes via storage seam + a tool (storage + tool)",
+  "type": "module",
+  "license": "MIT",
+  "icon": "icon.svg",
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "typecheck": "tsc --noEmit"
+  },
+  "exports": {
+    ".": "./dist/index.js",
+    "./package.json": "./package.json",
+    "./locale/*.json": "./locale/*.json",
+    "./cordis.patch.yml": "./cordis.patch.yml"
+  },
+  "dependencies": {},
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "__CORDIS_VERSION__",
+    "@deepseek-ai/dsh-storage": "__DSH_VERSION__",
+    "@deepseek-ai/dsh-storage-json": "__DSH_VERSION__",
+    "@deepseek-ai/dsh-storage-sqlite": "__DSH_VERSION__",
+    "@deepseek-ai/dsh-tools": "__DSH_VERSION__"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsdown": "^0.23.0",
+    "typescript": "^5.6.0"
+  }
+}

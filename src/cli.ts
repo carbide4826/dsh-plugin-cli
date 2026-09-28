@@ -17,6 +17,7 @@ import { askConfig } from "./prompts/config";
 import { printSummary } from "./prompts/summary";
 import { writeProject } from "./generate/project";
 import { copyScenarioCase, listScenarioCases } from "./generate/scenarioCase";
+import { getTrackManifest, resolveTrackTarget } from "./domain/manifests";
 import { t, setLang, type Lang } from "./locales";
 import pkgJson from "../package.json" with { type: "json" };
 
@@ -61,6 +62,7 @@ function caseHint(id: string): string {
 interface CreateOptions {
     template?: string;
     scenario?: boolean;
+    target?: string;
     pkgName?: string;
     pluginId?: string;
     toolName?: string;
@@ -107,6 +109,10 @@ program
         "-s, --scenario",
         "take the template from the curated case library (templates/scenarios) instead of the preset pipeline",
     )
+    .option(
+        "--target <track>",
+        "dsh host track to pair with: latest (default) | next",
+    )
     .option("--pkg-name <name>", "override npm package name (default: derived from plugin id; plugin id defaults to dir name)")
     .option("--plugin-id <id>", "override plugin id (default: derived from dir name)")
     .option("--tool-name <name>", "override tool name (for the tool scenario)")
@@ -123,6 +129,14 @@ program
         applyLang(program.opts().lang); // 语言先于一切文案落地
         if (process.exitCode) return;
 
+        // 目标轨解析:缺省 latest;非法值报错并列出合法轨名
+        const manifest = resolveTrackTarget(options.target);
+        if (!manifest) {
+            p.log.error(t("cli.errUnknownTarget", { targets: "latest, next" }));
+            process.exitCode = 1;
+            return;
+        }
+
         // -s 精选案例路径:从 templates/scenarios/ 整目录拷贝并重写身份(所见即所得)
         if (options.scenario && !options.template) {
             p.log.error(t("cli.errScenarioNeedsTemplate"));
@@ -134,7 +148,7 @@ program
         // 其余字段可被命令行参数覆盖(传了用传的,没传回落预设)
         if (options.template) {
             if (options.scenario) {
-                const cases = listScenarioCases();
+                const cases = listScenarioCases(manifest);
                 if (!cases.includes(options.template)) {
                     p.log.error(t("cli.errCaseNotFound", { name: options.template, cases: cases.join(", ") }));
                     process.exitCode = 1;
@@ -159,7 +173,7 @@ program
                 // 身份解耦:替换主词=插件 id(默认回落目录名);包名结构化写入(默认=插件 id,未显式给出时不写)
                 const pluginId = options.pluginId ?? dirName;
                 const pkgName = options.pkgName ?? pluginId;
-                const files = copyScenarioCase(options.template, targetDir, pluginId, {
+                const files = copyScenarioCase(options.template, targetDir, pluginId, manifest, {
                     description: options.description,
                     author: options.author,
                     ...(options.pkgName ? { pkgName } : {}),
@@ -205,9 +219,9 @@ program
             }
 
             p.intro(t("cli.introPreset", { id: preset.id, label: preset.label() }));
-            printSummary(answers); // 汇总照打,但不阻塞确认(非交互约定)
+            printSummary(answers, manifest); // 汇总照打,但不阻塞确认(非交互约定)
 
-            const files = writeProject(answers, targetDir);
+            const files = writeProject(answers, targetDir, manifest);
             p.log.info(t("cli.generated", { n: files.length, dir: targetDir }));
             p.outro(nextSteps(answers.dirName));
             return;
@@ -223,6 +237,25 @@ program
         const meta = await askProjectMeta();
         const pkgName = await askPkgName(dirName); // 包名默认与目录名联动,回车即用
         const pluginId = await askPluginId(dirName); // 插件 id 默认与目录名联动,回车即用
+
+        // 目标版本轴:配套哪一代 dsh 宿主(latest 保守跟随;next 积极跟随)
+        const pickedTrack = await p.select({
+            message: t("cli.targetMessage"),
+            initialValue: "latest",
+            options: [
+                { value: "latest", label: `latest · dsh ${getTrackManifest("latest").version}`, hint: t("cli.targetLatestHint") },
+                { value: "next", label: `next · dsh ${getTrackManifest("next").version}`, hint: t("cli.targetNextHint") },
+            ],
+        });
+        if (typeof pickedTrack !== "string") {
+            p.cancel(t("cli.cancelledNoFiles"));
+            return;
+        }
+        const track = resolveTrackTarget(pickedTrack);
+        if (!track) {
+            p.cancel(t("cli.cancelledNoFiles"));
+            return;
+        }
 
         // 起点:公共配置就绪后才开始选;精选案例在前引导新手走金线
         const startPoint = await p.select({
@@ -241,7 +274,7 @@ program
         if (startPoint === "case") {
             const selected = await p.select({
                 message: t("cli.caseSelect"),
-                options: listScenarioCases().map((c) => ({ value: c, label: c, hint: caseHint(c) })),
+                options: listScenarioCases(track).map((c) => ({ value: c, label: c, hint: caseHint(c) })),
             });
             if (typeof selected !== "string") {
                 p.cancel(t("cli.cancelledNoFiles"));
@@ -252,7 +285,7 @@ program
                 p.cancel(t("cli.dirExists", { dir: targetDir }));
                 return;
             }
-            const files = copyScenarioCase(selected, targetDir, pluginId, {
+            const files = copyScenarioCase(selected, targetDir, pluginId, track, {
                 description: meta.description || undefined,
                 author: meta.author || undefined,
                 pkgName, // 替换主词=插件 id;包名结构化写入 package.json,与身份解耦
@@ -284,7 +317,7 @@ program
         };
 
         // 全景汇总:人工确认页
-        printSummary(answers);
+        printSummary(answers, track);
 
         // 确认后落盘(M2:渲染模板 + 动态文件生成)
         const ok = await p.confirm({ message: t("cli.confirmGenerate"), initialValue: true });
@@ -299,7 +332,7 @@ program
             return;
         }
 
-        const files = writeProject(answers, targetDir);
+        const files = writeProject(answers, targetDir, track);
         p.log.info(t("cli.generated", { n: files.length, dir: targetDir }));
         p.note(files.map((f) => `  ${f}`).join("\n"), t("cli.fileList"));
         p.outro(nextSteps(answers.dirName));

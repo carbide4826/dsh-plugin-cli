@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import type { Answers } from "../domain/types";
 import { collectDeps } from "../domain/deps";
+import { LATEST_MANIFEST } from "../domain/manifests";
 import { generatePackageJson } from "./packageJson";
 import { generateCordisPatch, generateDevPatch } from "./patches";
 import { generateHostIndex } from "./indexTs";
@@ -40,21 +41,27 @@ function freshDir(): string {
 describe("generatePackageJson", () => {
     it("bundle 声明存在,库包没有;依赖按桶落位且 dsh 包精确钉版本", () => {
         const answers: Answers = { ...base, atoms: ["tool"] };
-        const deps = collectDeps(answers);
-        const pkg = JSON.parse(generatePackageJson(answers, deps));
+        const deps = collectDeps(answers, LATEST_MANIFEST);
+        const pkg = JSON.parse(generatePackageJson(answers, deps, LATEST_MANIFEST));
         expect(pkg.dsh.bundle.patch).toBe("./cordis.patch.yml");
         expect(pkg.exports["./cordis.patch.yml"]).toBe("./cordis.patch.yml");
-        expect(pkg.peerDependencies["@deepseek-ai/dsh-tools"]).toBe("0.1.5-rc.2");
-        expect(pkg.peerDependencies["@deepseek-ai/cordis"]).toBe("^4.0.2");
+        // 宿主 package-meta 经 ESM resolver 读 package.json 取清单展示元信息
+        expect(pkg.exports["./package.json"]).toBe("./package.json");
+        // locale 元信息(清单详情页按宿主界面语言显示 title/description)
+        expect(pkg.exports["./locale/*.json"]).toBe("./locale/*.json");
+        expect(pkg.peerDependencies["@deepseek-ai/dsh-tools"]).toBe(LATEST_MANIFEST.version);
+        expect(pkg.peerDependencies["@deepseek-ai/cordis"]).toBe(LATEST_MANIFEST.cordisPeer);
+        // 插件清单详情页的展示图标(package-meta 契约)
+        expect(pkg.icon).toBe("icon.svg");
 
-        const lib = JSON.parse(generatePackageJson({ ...base, pkgPosition: "library" }, collectDeps({ ...base, pkgPosition: "library" })));
+        const lib = JSON.parse(generatePackageJson({ ...base, pkgPosition: "library" }, collectDeps({ ...base, pkgPosition: "library" }, LATEST_MANIFEST), LATEST_MANIFEST));
         expect(lib.dsh).toBeUndefined();
         expect(lib.exports["./cordis.patch.yml"]).toBeUndefined();
     });
 
     it("勾 UI:exports 双出口 + dsh.client 注入 renderer/slots 与 Owner 包", () => {
         const answers: Answers = { ...base, atoms: ["ui"], uiSurfaces: ["settings-card"] };
-        const pkg = JSON.parse(generatePackageJson(answers, collectDeps(answers)));
+        const pkg = JSON.parse(generatePackageJson(answers, collectDeps(answers, LATEST_MANIFEST), LATEST_MANIFEST));
         expect(pkg.exports["./client"]).toBe("./dist/client.js");
         expect(pkg.dsh.client.platform).toBe("web");
         expect(pkg.dsh.client.inject).toContain("@deepseek-ai/dsh-client-ui-renderer");
@@ -69,11 +76,11 @@ describe("generatePackageJson", () => {
         // 实测(npm pack --dry-run)结果是产物被漏、src/ 与构建配置反被打进包,而 exports["."]
         // 指向 ./dist/index.js,装上即崩。这里钉住白名单,防回退。
         const bundleAnswers: Answers = { ...base, atoms: ["tool"] };
-        const bundle = JSON.parse(generatePackageJson(bundleAnswers, collectDeps(bundleAnswers)));
-        expect(bundle.files).toEqual(["dist", "cordis.patch.yml"]);
+        const bundle = JSON.parse(generatePackageJson(bundleAnswers, collectDeps(bundleAnswers, LATEST_MANIFEST), LATEST_MANIFEST));
+        expect(bundle.files).toEqual(["dist", "icon.svg", "locale", "cordis.patch.yml"]);
 
         const libAnswers: Answers = { ...base, pkgPosition: "library" };
-        const lib = JSON.parse(generatePackageJson(libAnswers, collectDeps(libAnswers)));
+        const lib = JSON.parse(generatePackageJson(libAnswers, collectDeps(libAnswers, LATEST_MANIFEST), LATEST_MANIFEST));
         expect(lib.files).toEqual(["dist"]);
     });
 });
@@ -91,11 +98,11 @@ describe("patches", () => {
 
 describe("generateHostIndex", () => {
     it("none:无 Config,apply 单参;static:双参 + Config 声明", () => {
-        const none = generateHostIndex(base, { injects: [], imports: [], calls: [] });
+        const none = generateHostIndex(base, { injects: [], imports: [], calls: [] }, LATEST_MANIFEST);
         expect(none).toContain("export function apply(ctx: Context): void {");
         expect(none).not.toContain("schemastery");
 
-        const stat = generateHostIndex({ ...base, config: "static" }, { injects: [], imports: [], calls: [] });
+        const stat = generateHostIndex({ ...base, config: "static" }, { injects: [], imports: [], calls: [] }, LATEST_MANIFEST);
         expect(stat).toContain("import z from '@deepseek-ai/schemastery'");
         expect(stat).toContain("export function apply(ctx: Context, config: Config): void {");
     });
@@ -104,6 +111,7 @@ describe("generateHostIndex", () => {
         const dyn = generateHostIndex(
             { ...base, config: "dynamic" },
             { injects: ["tools"], imports: [], calls: ["registerTool(ctx)"] },
+            LATEST_MANIFEST,
         );
         expect(dyn).toContain("export const inject = ['tools', 'settings']");
         expect(dyn).toContain("ctx.settings.installSection(ctx, 'demo', Config, config, {");
@@ -121,7 +129,7 @@ describe("writeProject", () => {
             serviceSeams: ["llm"],
             config: "static",
         };
-        const files = writeProject(answers, dir);
+        const files = writeProject(answers, dir, LATEST_MANIFEST);
 
         // base + 拷贝 + 动态文件都落了盘
         for (const f of [
@@ -165,14 +173,14 @@ describe("writeProject", () => {
 
     it("库包定位:不生成 cordis.patch.yml,dev.patch 仍生成", () => {
         const dir = freshDir();
-        writeProject({ ...base, pkgPosition: "library" }, dir);
+        writeProject({ ...base, pkgPosition: "library" }, dir, LATEST_MANIFEST);
         expect(existsSync(join(dir, "cordis.patch.yml"))).toBe(false);
         expect(existsSync(join(dir, "dev.patch.yml"))).toBe(true);
     });
 
     it("勾 UI:界面位按注册层 .ts + 组件 .tsx + 样式 .module.css 三件套落盘", () => {
         const dir = freshDir();
-        writeProject({ ...base, atoms: ["ui"], uiSurfaces: ["sidebar"] }, dir);
+        writeProject({ ...base, atoms: ["ui"], uiSurfaces: ["sidebar"] }, dir, LATEST_MANIFEST);
         expect(existsSync(join(dir, "src/client/surfaces/sidebar-panel.ts"))).toBe(true);
         expect(existsSync(join(dir, "src/client/surfaces/SidebarPanel.tsx"))).toBe(true);
         expect(existsSync(join(dir, "src/client/surfaces/SidebarPanel.module.css"))).toBe(true);
