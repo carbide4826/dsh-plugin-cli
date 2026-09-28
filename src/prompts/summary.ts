@@ -41,7 +41,7 @@ export function printSummary(answers: Answers, manifest: TrackManifest): void {
     lines.push(`${s("config")}   ${answers.config}`);
 
     // 依赖分桶:peer 带 DSH 版本范围,其余标来源
-    const { peer, deps, dev } = collectDeps(answers);
+    const { peer, deps, dev } = collectDeps(answers, manifest);
     lines.push(
         "",
         `peerDependencies(@deepseek-ai/dsh-* ${manifest.version};cordis ${manifest.cordisPeer}):`,
