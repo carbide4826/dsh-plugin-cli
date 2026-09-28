@@ -1,6 +1,6 @@
 # model-gateway
 
-Curated case: bring-your-own model gateway with dynamic settings (llm seam + settings card)
+Curated case: bring-your-own model gateway with dynamic settings (llm seam + settings tab)
 
 > Scaffolded by [dshp](https://github.com/carbide4826/dsh-plugin-cli) · DSH version __DSH_VERSION__
 
@@ -41,7 +41,7 @@ pnpm dsh web --patch ./dev.patch.yml --dump-config | grep -A 4 model-gateway
 
 #### Option 1 · plugin add (persistent, built artifacts)
 
-　　Prerequisite: step 1 has run `pnpm build` (installs the `dist/` artifact; the loader resolves via `exports`). **The settings card in this case must go through this track** (see tip ③).
+　　Prerequisite: step 1 has run `pnpm build` (installs the `dist/` artifact; the loader resolves via `exports`). **The settings tab in this case must go through this track** (see tip ③).
 
 ```sh
 pnpm dsh plugin --profile web add .      # run in the project root (③④⑧)
@@ -84,14 +84,14 @@ pnpm dsh web --patch ./dev.patch.yml  # launch (direct source load) (⑤⑥)
 
 | File | What to look at |
 |---|---|
-| `src/index.ts` | Config + `installSection` dynamic config + hot-update adapter wiring |
+| `src/index.ts` | Config schema (native settings form projected by the host) + hot-update adapter wiring |
 | `src/seams/llm.ts` | adapter's three methods: providerInfo / listModels / stream |
-| `src/client/surfaces/SettingsCard.tsx` | settings card (the Config form is rendered by the host) |
+| `src/client/surfaces/SettingsCard.tsx` | settings tab (the Config form is rendered by the host) |
 | `src/client/surfaces/SettingsCard.module.css` | card styles |
 
 ### How to verify it works
 
-1. Follow quick start steps 1–4 (the settings card must go through option 1)
+1. Follow quick start steps 1–4 (the settings tab must go through option 1)
 2. `export GATEWAY_API_KEY=any-non-empty` (echo mode only checks non-empty)
 3. Pick **Model Gateway → gateway-chat** in the model picker and send a message → the reply carries `[model-gateway] …`; change `apiKeyEnv` on the settings page and send again to verify the hot update
 
