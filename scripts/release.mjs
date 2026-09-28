@@ -117,7 +117,4 @@ const rl = createInterface({ input: process.stdin, output: process.stdout });
 const answer = (await rl.question("\n确认发版?(y=保留版本号并给出 publish 命令 / 其他=回滚退出) ")).toLowerCase();
 rl.close();
 if (answer !== "y") rollback("未确认");
-console.log("\n✓ 版本号已保留在 package.json(记得提交)。\n");
-console.log("publish 由你执行(最后一刀人工扣):");
-console.log("\n    npm publish\n");
-console.log("发布后:npm view create-dsh-plugin-cli version 确认 → 提交 package.json/CHANGELOG → 清理 TODO-Mx.md(若该里程碑收尾)。");
+
