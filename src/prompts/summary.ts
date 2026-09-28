@@ -1,19 +1,18 @@
 import * as p from "@clack/prompts";
 import type { Answers } from "../domain/types";
+import type { TrackManifest } from "../domain/manifests";
 import { t } from "../locales";
-import {
-    collectDeps,
-    SUPPORTED_DSH_VERSION,
-    SUPPORTED_CORDIS_VERSION,
-} from "../domain/deps";
+import { collectDeps } from "../domain/deps";
 
 /**
  * 打印问卷全景汇总:已填答案 + 依赖分桶清单(人工确认页)
  * @param answers - 完整问卷答案
+ * @param manifest - 目标轨 manifest(版本单源)
  */
-export function printSummary(answers: Answers): void {
+export function printSummary(answers: Answers, manifest: TrackManifest): void {
     const s = (k: string) => t(`prompts.summary.${k}`);
     const lines = [
+        `${s("target")}     ${manifest.target} (dsh ${manifest.version})`,
         `${s("dir")}       ${answers.dirName}`,
         `${s("pkg")}       ${answers.pkgName}`,
         `${s("pluginId")}    ${answers.pluginId}`,
@@ -42,13 +41,13 @@ export function printSummary(answers: Answers): void {
     lines.push(`${s("config")}   ${answers.config}`);
 
     // 依赖分桶:peer 带 DSH 版本范围,其余标来源
-    const { peer, deps, dev } = collectDeps(answers);
+    const { peer, deps, dev } = collectDeps(answers, manifest);
     lines.push(
         "",
-        `peerDependencies(@deepseek-ai/dsh-* ${SUPPORTED_DSH_VERSION};cordis ${SUPPORTED_CORDIS_VERSION}):`,
+        `peerDependencies(@deepseek-ai/dsh-* ${manifest.version};cordis ${manifest.cordisPeer}):`,
         ...peer.map(
             (x) =>
-                `  ${x.startsWith("@deepseek-ai/cordis") ? `${x} ${SUPPORTED_CORDIS_VERSION}` : `${x} ${SUPPORTED_DSH_VERSION}`}`,
+                `  ${x.startsWith("@deepseek-ai/cordis") ? `${x} ${manifest.cordisPeer}` : `${x} ${manifest.version}`}`,
         ),
     );
     if (deps.length) {

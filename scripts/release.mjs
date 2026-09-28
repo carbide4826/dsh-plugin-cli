@@ -89,12 +89,13 @@ try {
 }
 const files = packOut.split("\n").filter((l) => /^npm notice [0-9]/.test(l)).map((l) => l.split(/\s+/)[3]);
 const readmeEn = files.filter((f) => f?.endsWith("README.en.md"));
-if (readmeEn.length !== 7) rollback(`README.en.md 数量 ${readmeEn.length} ≠ 7(双语素材缺份)`);
+// 双轨:2 棵树 ×(5 案例 + base) + 根 = 13(单树时代为 7)
+if (readmeEn.length !== 13) rollback(`README.en.md 数量 ${readmeEn.length} ≠ 13(双语素材缺份)`);
 const leaks = files.filter((f) => /\/?(\.mimosa|\.v2c|\.playwright-mcp|\.workbuddy|node_modules|^src\/)/.test(f ?? ""));
 if (leaks.length) rollback(`包内出现泄漏项:${leaks.join(", ")}`);
 const total = packOut.match(/total files: (\d+)/)?.[1] ?? "?";
 const size = packOut.match(/package size: ([\d.]+ \w+)/)?.[1] ?? "?";
-ok(`pack 核验过:${files.length} 项 / README.en×7 / 零泄漏`);
+ok(`pack 核验过:${files.length} 项 / README.en×13 / 零泄漏`);
 
 // ---------- ⑤ registry 预检 ----------
 console.log("\n== registry 预检 ==");

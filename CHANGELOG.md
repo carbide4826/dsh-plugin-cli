@@ -5,6 +5,20 @@
 
 中文 · [English](https://github.com/carbide4826/dsh-plugin-cli/blob/main/CHANGELOG.en.md)
 
+## [0.1.5] - 2026-09-29
+
+### 新增
+
+- 双轨模板架构:内置 latest(配套 dsh 0.1.5-rc.3)与 next(配套 dsh 0.1.7-rc.2)两套模板;`dshp create --target next` 生成配套下一代宿主的插件,交互式生成会询问目标轴(默认 latest)。
+- next 轨适配 dsh 0.1.7:设置页插件入口由 keyed 卡片迁移为 Plugins 页签(`settings.plugins.tab`);插件配置改由宿主原生配置表单承担(0.1.7 已移除 `installSection`),配置字段标记 volatile 即可进入表单、保存即热更新;插件管理页(侧栏「插件」)中插件组件行出现「配置」入口,页内表单直接编辑配置(模型网关案例已带,样式与宿主原生表单一致)。
+- 插件清单详情页信息:模板自带专属图标(`icon.svg`)与双语元信息(`locale/{zh,en}.json` 的标题与描述),宿主按界面语言显示、英文兜底;预设与全部精选案例默认携带。
+- 消息来源 kind:0.1.7 移除共享 `plugin` kind,模板改为声明自有 `plugin-notice`(protocol 原子 / session-bot / webhook-bridge)。
+
+### 变更
+
+- cordis 与 schemastery 依赖精确钉死为官方元包配套版本,浮动版本范围会在安装树里产生双实例,导致类型声明合并劈叉、生成项目 typecheck 失败。
+- latest 轨跟进 dsh 0.1.5-rc.3,并撤销 0.1.3 引入的 loader/hmr/timer 版本锁定(rc.3 元包已自行精确钉版,规避手段到期移除)。
+
 ## [0.1.4] - 2026-09-24
 
 ### 其他

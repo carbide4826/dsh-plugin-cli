@@ -1,0 +1,57 @@
+{
+  "name": "model-gateway",
+  "version": "0.1.0",
+  "description": "Curated case: bring your own model service (llm seam + dynamic settings card)",
+  "type": "module",
+  "license": "MIT",
+  "icon": "icon.svg",
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-renderer",
+        "@deepseek-ai/dsh-client-ui-settings-plugins",
+        "@deepseek-ai/dsh-client-ui-slots"
+      ],
+      "platform": "web"
+    }
+  },
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "typecheck": "tsc --noEmit"
+  },
+  "exports": {
+    ".": "./dist/index.js",
+    "./package.json": "./package.json",
+    "./locale/*.json": "./locale/*.json",
+    "./client": "./dist/client.js",
+    "./cordis.patch.yml": "./cordis.patch.yml"
+  },
+  "dependencies": {
+    "@deepseek-ai/schemastery": "__SCHEMASTERY_VERSION__"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "__CORDIS_VERSION__",
+    "@deepseek-ai/dsh-client-ui-renderer": "__DSH_VERSION__",
+    "@deepseek-ai/dsh-client-ui-settings-plugins": "__DSH_VERSION__",
+    "@deepseek-ai/dsh-client-ui-slots": "__DSH_VERSION__",
+    "@deepseek-ai/dsh-llm": "__DSH_VERSION__",
+    "@deepseek-ai/dsh-llm-deepseek": "__DSH_VERSION__",
+    "@deepseek-ai/dsh-llm-pi-ai": "__DSH_VERSION__",
+    "@deepseek-ai/dsh-settings": "__DSH_VERSION__"
+  },
+  "devDependencies": {
+    "@tsdown/css": "^0.23.0",
+    "@types/node": "^22.10.0",
+    "@types/react": "~18.3.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "tsdown": "^0.23.0",
+    "typescript": "^5.6.0"
+  }
+}

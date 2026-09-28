@@ -9,7 +9,8 @@
 交互式脚手架 CLI,一键搭建 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)(`dsh`)插件项目骨架。
 
 - npm 包名:`create-dsh-plugin-cli`,bin 命令:`dshp`
-- 跟踪 dsh 版本:`0.1.5-rc.2`;后续会随 dsh 版本调整做更新
+- 双轨配套:latest 轨配 dsh `0.1.5-rc.3`,next 轨配 dsh `0.1.7-rc.2`;`--target` 选择,默认 latest
+  - 注:官方 npm latest 现已是 `0.1.7-rc.2`;本 CLI 的 latest 轨按保守策略**有意延迟**跟进,待 next 轨验证充分后晋升
 - Node 要求:`^22.19.0 || >=24.0.0`
 
 > 开发与验证均基于 web(`dsh web`);其他宿主 profile 未经验证,遇到问题欢迎提 [issue](https://github.com/carbide4826/dsh-plugin-cli/issues)。
@@ -69,6 +70,10 @@ dshp create my-plugin              # 交互式问卷生成插件骨架
 ◆  插件 id plugin id
 │  my-plugin
 │
+◆  配套哪一代 dsh 宿主?
+│  ● latest · dsh 0.1.5-rc.3
+│  ○ next · dsh 0.1.7-rc.2
+│
 ◆  从哪里开始?
 │
 ├─ ● 精选案例 ────────┐
@@ -117,6 +122,12 @@ dshp create my-notes --template notebook -s --description <text> --author <name>
 dshp create my-llm --template llm --pkg-position library --author <name> --description <text>
 ```
 
+配套下一代宿主(`--target next`,生成项目按 dsh 0.1.7-rc.2 钉版;latest 轨与交互式生成同样适用):
+
+```sh
+dshp create my-gw --template model-gateway -s --target next
+```
+
 #### 可覆盖参数
 
 | 参数                        | 取值                          | 未提供时的默认               |
@@ -128,6 +139,7 @@ dshp create my-llm --template llm --pkg-position library --author <name> --descr
 | `--author <name>`           | 文本                          | 空                           |
 | `--pkg-position <position>` | `bundle` / `library`          | `bundle`                     |
 | `--config <mode>`           | `none` / `static` / `dynamic` | 场景预设(ui 场景为 `static`) |
+| `--target <track>`          | `latest` / `next`             | `latest`(配套轴:dsh 版本与依赖配套按轨钉定) |
 
 > 精选案例不适用 `--tool-name` / `--pkg-position` / `--config`(生成结构随案例锁定)。
 
@@ -135,9 +147,9 @@ dshp create my-llm --template llm --pkg-position library --author <name> --descr
 
 ```sh
 cd my-plugin
-pnpm install --ignore-workspace   # ① 安装依赖(上级目录有 pnpm-workspace.yaml 时,不加会劫持安装)
+pnpm install                      # ① 安装依赖(项目根自带 pnpm-workspace.yaml 做 workspace 定界,正常安装即可)
 pnpm approve-builds               # ② 供应链保护拦截构建脚本:放行 node-pty / koffi / @deepseek-ai/dsh-subprocess-local(@google/genai / protobufjs 是 no-op 不用批),放行后再 install 一次让脚本真正执行
-pnpm add -D @deepseek-ai/dsh@0.1.5-rc.2   # ③ 安装 dsh 宿主(latest 是过期占位,别裸装;装完同样 approve-builds 放行)
+pnpm add -D @deepseek-ai/dsh@0.1.5-rc.3   # ③ 安装 dsh 宿主(latest 轨配 0.1.5-rc.3,next 轨配 0.1.7-rc.2,与 --target 对应;裸 latest tag 可能是其他线,别裸装;装完同样 approve-builds 放行)
 pnpm build                        # ④ 构建
 pnpm dsh web --patch ./dev.patch.yml      # ⑤ 启动 dsh 宿主(直载源码调试)
 ```
@@ -160,13 +172,38 @@ my-plugin/                  ← 项目目录 = 你填的目录名
 >
 > 宿主命令行参数可多可杂?`docs/dsh-command-builder.html` 是可视化组装器:浏览器直接打开,点选、增删 flag,拼出完整命令后复制运行。
 
+## 版本说明
+
+**轨道与配套**(生成时以 `--target` 选择,默认 latest;npm 官方 latest 现已是 `0.1.7-rc.2`,本 CLI 的 latest 轨按保守策略有意延迟跟进):
+
+| 轨道 | dsh 宿主 | 关键配套(cordis / schemastery) |
+| --- | --- | --- |
+| `latest` | `0.1.5-rc.3` | `4.0.2` / `3.18.2` |
+| `next` | `0.1.7-rc.2` | `~4.0.4` / `~3.18.4` |
+
+依赖与宿主版本精确配套;混用不配套的组合可能在安装树中产生双实例,导致类型声明合并冲突、typecheck 失败。
+
+**宿主对插件的版本门控**:dsh 在安装与加载插件时,会校验插件 `peerDependencies` 中所有 `@deepseek-ai/dsh` 与 `@deepseek-ai/dsh-*` 声明(其余依赖不参与),与运行中的 dsh 版本不满足即**拒绝安装**并提示 incompatible。因此 latest 轨产物装不进 0.1.7 宿主,反之亦然——请保持产物轨道与宿主版本一致。确需跨版本强装,可用官方豁免命令(安装被拒时终端会给出完整命令):
+
+```sh
+dsh plugin --profile web allow-version <插件名>@<插件版本> --dsh-version <宿主版本> --accept-risk
+```
+
+> 豁免仅表示明确接受风险,跨轨产物的功能不保证。
+
+**插件展示信息**:宿主插件管理页的名称 / 介绍 / 图标来自插件包的 `locale/<语言>.json`(`meta.title` / `meta.description`,按宿主界面语言选择,英文兜底)与 `package.json` 的 `icon` 字段;本项目模板已默认携带,改文案编辑 `locale/zh.json` 即可。
+
+## 版本变更日志
+
+各版本的完整变更内容见 [CHANGELOG.md](https://github.com/carbide4826/dsh-plugin-cli/blob/main/CHANGELOG.md)(英文版:[CHANGELOG.en.md](https://github.com/carbide4826/dsh-plugin-cli/blob/main/CHANGELOG.en.md))。
+
 ## 后续规划
 
-- ✅ 随 dsh 版本调整持续更新适配 —— 版本统一管理,升级跟随官方版本线
+- 随 dsh 版本调整持续更新适配 —— 版本统一管理,升级跟随官方版本线 ✅
 - `--template` 自定义模板源:支持 local path / git URL / npm 包
-- ✅ 本地化(多语言支持)—— 0.1.1 已交付:`--lang zh|en` 双语界面,生成项目 README 按语言单份交付
+- 本地化(多语言支持)—— 0.1.1 已交付:`--lang zh|en` 双语界面,生成项目 README 按语言单份交付 ✅
 - 支持 agent 工具识别与调用,规划做成 skill 或 MCP 形态
-- ✅ 已规避(0.1.3):官方 dsh 已发布 0.1.5-rc.3,当前固定 0.1.5-rc.2;但 dsh 对子包用 `^` 浮动依赖,9/22 起新装会漂到不兼容的 cordis-plugin-loader 1.0.5,使 `pnpm dsh web` 启动即崩(HMR 服务静默装载失败)——生成项目现自带 `pnpm-workspace.yaml` 锁定配套的 loader/hmr/timer 版本。后续动作:跳过 rc.3,待官方 0.1.7 线稳定后整树同步升级。
+- 双轨模板(0.1.5):latest / next 两套模板各配一代宿主(`--target` 选择);依赖精确钉官方元包配套版本;生成项目自带插件图标与双语清单元信息 ✅
 
 ## License
 

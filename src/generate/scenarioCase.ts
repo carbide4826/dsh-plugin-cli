@@ -14,21 +14,21 @@ import { writeFile } from "../render/render";
 import { templatesRoot } from "./project";
 import { DEV_PATCH_NOTES } from "./patches";
 import { t, getLang } from "../locales";
-import { DSH_MANIFEST } from "../domain/dsh-manifest";
+import type { TrackManifest } from "../domain/manifests";
 
 // 拷贝时的排除项:产物目录与机器私有文件(defensive;入库的案例本身不应含这些)
 const SKIP_DIRS = new Set(["node_modules", "dist", ".git"]);
 // dev.patch.yml 虽不入库,但拷贝时会由 CLI 现场生成(见 copyScenarioCase 末尾)
 const SKIP_FILES = new Set(["dev.patch.yml"]);
 
-/** 案例库根目录(templates/scenarios/) */
-function casesRoot(): string {
-    return join(templatesRoot(), "scenarios");
+/** 案例库根目录(templates/<轨>/scenarios/) */
+function casesRoot(manifest: TrackManifest): string {
+    return join(templatesRoot(manifest.target), "scenarios");
 }
 
 /** 列出可用案例 id(子目录名,字典序;点目录是会话产物等私有物,不是案例) */
-export function listScenarioCases(): string[] {
-    const root = casesRoot();
+export function listScenarioCases(manifest: TrackManifest): string[] {
+    const root = casesRoot(manifest);
     if (!existsSync(root)) return [];
     return readdirSync(root)
         .filter(
@@ -50,12 +50,13 @@ export function copyScenarioCase(
     caseId: string,
     targetDir: string,
     identity: string,
+    manifest: TrackManifest,
     meta?: { description?: string; author?: string; pkgName?: string },
 ): string[] {
-    const sourceDir = join(casesRoot(), caseId);
+    const sourceDir = join(casesRoot(manifest), caseId);
     if (!existsSync(sourceDir)) {
         throw new Error(
-            t("errors.caseMissing", { name: caseId, cases: listScenarioCases().join(", ") }),
+            t("errors.caseMissing", { name: caseId, cases: listScenarioCases(manifest).join(", ") }),
         );
     }
 
@@ -70,11 +71,11 @@ export function copyScenarioCase(
     // 点文件素材落盘:`_` 前缀换 `.` 开头(npm 不打包点文件素材,约定同 create-vite)
     applyDotfileNames(targetDir);
 
-    // 依赖配套锁定(单源素材:templates/pnpm-workspace.yaml,与 base 路径共用):
+    // 依赖配套锁定(单源素材:templates/<轨>/pnpm-workspace.yaml,与 base 路径共用):
     // 缺失会使 `pnpm dsh web` 启动崩溃(见素材头注释)
     writeFileSync(
         join(targetDir, "pnpm-workspace.yaml"),
-        readFileSync(join(templatesRoot(), "pnpm-workspace.yaml"), "utf8"),
+        readFileSync(join(templatesRoot(manifest.target), "pnpm-workspace.yaml"), "utf8"),
     );
 
     // README 单语言交付:按生成时刻的语言保留对应素材(素材对 README.md/README.en.md 成对入库),
@@ -99,11 +100,13 @@ export function copyScenarioCase(
     const caseIdPattern = new RegExp(`\\b${caseId}\\b`, "g");
     walk(targetDir, (file) => {
         files.push(relative(targetDir, file));
-        // 两个文本变换合并进同一次读写:身份重写(词边界)+ 版本注入(占位符来自 dsh-manifest,单一来源)
-        // 占位符不含任何案例 id 子串,两刀互不干扰
+        // 三个文本变换合并进同一次读写:身份重写(词边界)+ 版本注入(占位符来自轨 manifest,单一来源)
+        // 占位符不含任何案例 id 子串,几刀互不干扰
         const text = readFileSync(file, "utf8");
         let out = identity !== caseId ? text.replaceAll(caseIdPattern, identity) : text;
-        out = out.replaceAll("__DSH_VERSION__", DSH_MANIFEST.version);
+        out = out.replaceAll("__DSH_VERSION__", manifest.version);
+        out = out.replaceAll("__CORDIS_VERSION__", manifest.cordisPeer);
+        out = out.replaceAll("__SCHEMASTERY_VERSION__", manifest.schemasteryVersion);
         if (out !== text) writeFileSync(file, out);
     });
 

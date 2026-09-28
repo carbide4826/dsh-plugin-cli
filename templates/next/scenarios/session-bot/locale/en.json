@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Session Bot",
+    "description": "Listens to session messages and responds to commands automatically."
+  }
+}

@@ -1,0 +1,2 @@
+# 本文件用于 workspace 定界(防祖先目录 workspace 劫持),勿删;
+# 首次 pnpm install 时 pnpm 会自动往此处写入 allowBuilds 段,按提示填 true/false 即可。

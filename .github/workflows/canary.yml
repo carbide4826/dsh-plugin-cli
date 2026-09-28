@@ -1,4 +1,6 @@
-# 金丝雀:每周用官方最新 dsh 版本试跑生成链,前瞻「下次升版会不会破我们」
+# 金丝雀(双轨):每周用官方最新 dsh 版本试跑两轨生成链,前瞻「下次升版/晋升会不会破我们」
+# - latest 轨绿 = 晋升窗口信号(官方最新已能跑通 latest 树,可考虑把 latest 轨晋升到 0.1.7 线)
+# - next 轨绿   = next 树跟住官方滚动,无障碍
 # 红=报警不动作,不阻塞主线 CI;规则见 docs/UPSTREAM-VERSION-POLICY.md(发现自动化,扣扳机人工)
 name: canary
 
@@ -10,6 +12,10 @@ on:
 jobs:
   canary:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        track: [latest, next]
     steps:
       - uses: actions/checkout@v5
       - uses: pnpm/action-setup@v6
@@ -22,13 +28,13 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
 
-      - name: probe versions (pinned vs latest, delta by registry publish order)
+      - name: probe versions (${{ matrix.track }} manifest vs official latest, delta by registry publish order)
         id: probe
         run: |
-          PINNED=$(grep -o 'version: "[^"]*"' src/domain/dsh-manifest.ts | head -1 | cut -d'"' -f2)
+          PINNED=$(grep -o 'version: "[^"]*"' "src/domain/manifests/${{ matrix.track }}.ts" | head -1 | cut -d'"' -f2)
           LATEST=$(npm view @deepseek-ai/dsh dist-tags.latest)
           DELTA=$(npm view @deepseek-ai/dsh versions --json | node -e "
-            let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{
+            let d='';process.stdin.on('data',c=>d+=c).on('end()=>{
               const v=JSON.parse(d);const i=v.indexOf(process.argv[1]);
               console.log(i<0?-1:v.length-1-i);
             });" "$PINNED")
@@ -39,13 +45,13 @@ jobs:
             echo "delta=$DELTA"
           } >> "$GITHUB_OUTPUT"
 
-      - name: scaffold with pinned version
+      - name: scaffold with pinned version (--target ${{ matrix.track }})
         run: |
-          node dist/cli.mjs create canary-preset --template tool --lang en
-          node dist/cli.mjs create canary-case --template quick-tool -s --lang en
+          node dist/cli.mjs create canary-preset --template tool --lang en --target ${{ matrix.track }}
+          node dist/cli.mjs create canary-case --template quick-tool -s --lang en --target ${{ matrix.track }}
 
-      # 生成物版本被 CLI 注入为钉住值;金丝雀改写为官方最新版再装,模拟「如果今天升到最新」
-      - name: rewrite pinned -> latest and build against it
+      # 生成物版本被 CLI 注入为该轨钉住值;金丝雀改写为官方最新版再装,模拟「如果今天升到最新」
+      - name: rewrite pinned -> official latest and build against it
         run: |
           PINNED="${{ steps.probe.outputs.pinned }}"
           LATEST="${{ steps.probe.outputs.latest }}"
@@ -56,20 +62,24 @@ jobs:
       - name: canary-preset install / typecheck / build
         run: |
           cd canary-preset
-          pnpm install --ignore-workspace
+          pnpm install
           pnpm typecheck
           pnpm build
       - name: canary-case install / typecheck / build
         run: |
           cd canary-case
-          pnpm install --ignore-workspace
+          pnpm install
           pnpm typecheck
           pnpm build
 
       - name: report
         run: |
-          echo "## dsh canary report" >> "$GITHUB_STEP_SUMMARY"
+          echo "## dsh canary report (${{ matrix.track }} track)" >> "$GITHUB_STEP_SUMMARY"
           echo "- pinned: ${{ steps.probe.outputs.pinned }}" >> "$GITHUB_STEP_SUMMARY"
-          echo "- latest: ${{ steps.probe.outputs.latest }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- official latest: ${{ steps.probe.outputs.latest }}" >> "$GITHUB_STEP_SUMMARY"
           echo "- delta (registry publish order): ${{ steps.probe.outputs.delta }}" >> "$GITHUB_STEP_SUMMARY"
-          echo "- upgrade window (delta>=3 and this job green): check per docs/UPSTREAM-VERSION-POLICY.md" >> "$GITHUB_STEP_SUMMARY"
+          if [ "${{ matrix.track }}" = "latest" ]; then
+            echo "- latest-track green = promotion rehearsal passed (考虑晋升,规则见 docs/UPSTREAM-VERSION-POLICY.md)" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "- next-track green = next tree tracks official rolling with no blockers" >> "$GITHUB_STEP_SUMMARY"
+          fi

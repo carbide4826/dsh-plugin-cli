@@ -20,6 +20,10 @@ export const zh = {
         errUnknownScenario:
             '未知场景 "{name}"。可用场景:{ids}(详见 dshp create --help)',
         errCheckFailed: "参数校验失败",
+        errUnknownTarget: '未知目标轴 "{targets}"(详见 dshp create --help)',
+        targetMessage: "配套哪一代 dsh 宿主?",
+        targetLatestHint: "当前稳定线,保守跟随(默认)",
+        targetNextHint: "下一代 rc 线,积极跟随",
         startMessage: "从哪里开始?",
         startCase: "精选案例",
         startCaseHint: "完整工程直接拷贝,开箱即跑",
@@ -137,6 +141,7 @@ export const zh = {
         },
         summary: {
             title: "问卷汇总",
+            target: "配套轴",
             dir: "项目目录",
             pkg: "npm 包名",
             pluginId: "插件 id",

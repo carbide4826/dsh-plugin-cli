@@ -22,8 +22,12 @@ jobs:
       - run: pnpm test
 
   e2e-smoke:
-    name: generate-and-build smoke
+    name: generate-and-build smoke (${{ matrix.track }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        track: [latest, next] # 双轨各跑一遍;轨的版本配套由各自 manifest 单源决定
     steps:
       - uses: actions/checkout@v5
       - uses: pnpm/action-setup@v6
@@ -38,11 +42,11 @@ jobs:
 
       # 两路生成:预设组合(tool)+ 精选案例(quick-tool,含 UI 卡片走 CSS 内联管线)
       - name: scaffold preset (tool)
-        run: node dist/cli.mjs create preset-tool --template tool --lang en
+        run: node dist/cli.mjs create preset-tool --template tool --lang en --target ${{ matrix.track }}
       - name: scaffold curated case (quick-tool)
-        run: node dist/cli.mjs create case-qt --template quick-tool -s --lang en
+        run: node dist/cli.mjs create case-qt --template quick-tool -s --lang en --target ${{ matrix.track }}
 
-      # 生成工程三步验证;--ignore-workspace 防祖先 workspace 劫持(生成 README 同款坑)
+      # 生成工程三步验证;生成项目自带 pnpm-workspace.yaml 定界(防祖先 workspace 劫持),勿加 --ignore-workspace
       - name: preset-tool install / typecheck / build
         run: |
           cd preset-tool

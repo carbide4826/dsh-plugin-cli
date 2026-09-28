@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Model Gateway",
+    "description": "Bring your own model service; config lives in settings, keys only as env var names."
+  }
+}
