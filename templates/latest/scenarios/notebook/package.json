@@ -20,6 +20,7 @@
   "exports": {
     ".": "./dist/index.js",
     "./package.json": "./package.json",
+    "./locale/*.json": "./locale/*.json",
     "./cordis.patch.yml": "./cordis.patch.yml"
   },
   "dependencies": {},
