@@ -1,0 +1,50 @@
+# 发布:npm publish 由 CI 执行——推送 v* tag 触发(例:v0.1.5)
+# 前置:仓库 Secrets 配置 NPM_TOKEN(npmjs.com 生成 Automation 类型 token)
+# 守卫:tag 名(去掉 v)必须等于 package.json 的 version,且 registry 上该版本不存在
+name: publish
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 11
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - name: verify tag matches package.json version
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          PKG=$(node -p "require('./package.json').version")
+          if [ "$TAG" != "$PKG" ]; then
+            echo "tag v$TAG 与 package.json $PKG 不一致"; exit 1
+          fi
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build
+
+      - name: verify version not already on registry
+        run: |
+          PKG=$(node -p "require('./package.json').version")
+          if npm view "create-dsh-plugin-cli@$PKG" version 2>/dev/null; then
+            echo "registry 上 $PKG 已存在,拒绝重复发布"; exit 1
+          fi
+
+      - name: publish
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
