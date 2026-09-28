@@ -195,6 +195,10 @@ dsh plugin --profile web allow-version <plugin>@<version> --dsh-version <host ve
 
 **Plugin display info**: the host's plugin manager renders the name / description / icon from the plugin package's `locale/<lang>.json` (`meta.title` / `meta.description`, picked by the host UI locale with English fallback) and the `icon` field in `package.json`; this template ships them by default — edit `locale/zh.json` to change the copy.
 
+## Changelog
+
+Full release notes for every version live in [CHANGELOG.en.md](https://github.com/carbide4826/dsh-plugin-cli/blob/main/CHANGELOG.en.md) (中文:[CHANGELOG.md](https://github.com/carbide4826/dsh-plugin-cli/blob/main/CHANGELOG.md))。
+
 ## Roadmap
 
 - ✅ Keep tracking dsh version bumps — versions are managed uniformly and follow the official dsh line

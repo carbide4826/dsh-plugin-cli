@@ -193,6 +193,10 @@ dsh plugin --profile web allow-version <插件名>@<插件版本> --dsh-version 
 
 **插件展示信息**:宿主插件管理页的名称 / 介绍 / 图标来自插件包的 `locale/<语言>.json`(`meta.title` / `meta.description`,按宿主界面语言选择,英文兜底)与 `package.json` 的 `icon` 字段;本项目模板已默认携带,改文案编辑 `locale/zh.json` 即可。
 
+## 版本变更日志
+
+各版本的完整变更内容见 [CHANGELOG.md](https://github.com/carbide4826/dsh-plugin-cli/blob/main/CHANGELOG.md)(英文版:[CHANGELOG.en.md](https://github.com/carbide4826/dsh-plugin-cli/blob/main/CHANGELOG.en.md))。
+
 ## 后续规划
 
 - ✅ 随 dsh 版本调整持续更新适配 —— 版本统一管理,升级跟随官方版本线
