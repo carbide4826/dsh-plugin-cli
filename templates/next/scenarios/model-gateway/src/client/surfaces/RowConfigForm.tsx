@@ -1,25 +1,13 @@
 import { memo, useState, type ChangeEvent } from 'react'
+import type { PluginConfigViewProps } from '@deepseek-ai/dsh-client-ui-plugin-manager/client'
 import styles from './SettingsCard.module.css'
 
 /**
  * 插件管理页「行配置」表单(plugins.row.config 槽)。
- * 宿主传入的 form 携带当前配置快照(value/revision/writable)与 mutate 写入;
+ * props = 槽位契约的 PluginConfigViewProps(view + 宿主 form:配置快照与 mutate 写入);
  * 字段与 src/index.ts 的 Config 一一对应,保存走路径 set 操作、宿主热应用。
  */
-
-/** form prop 的结构化类型(对齐宿主 ConfigPageForm,避免运行时依赖插件管理包)。 */
-interface RowConfigFormProps {
-    view: 'summary' | 'page'
-    form?: {
-        state: {
-            status: 'loading' | 'ready' | 'unavailable'
-            value: Record<string, unknown> | undefined
-            revision: number | undefined
-            writable: boolean
-        }
-        mutate: (ops: ReadonlyArray<{ op: 'set'; path: readonly string[]; value: unknown }>, revision?: number) => Promise<void>
-    }
-}
+type RowConfigFormProps = PluginConfigViewProps
 
 const FIELDS = [
     { key: 'apiKeyEnv', label: 'API Key 环境变量名' },
