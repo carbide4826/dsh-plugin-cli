@@ -10,7 +10,9 @@
 ### 新增
 
 - 双轨模板架构:内置 latest(配套 dsh 0.1.5-rc.3)与 next(配套 dsh 0.1.7-rc.2)两套模板;`dshp create --target next` 生成配套下一代宿主的插件,交互式生成会询问目标轴(默认 latest)。
-- next 轨适配 dsh 0.1.7:设置页插件入口由 keyed 卡片迁移为 Plugins 页签(`settings.plugins.tab`);插件配置改由宿主原生配置表单承担(0.1.7 已移除 `installSection`)。
+- next 轨适配 dsh 0.1.7:设置页插件入口由 keyed 卡片迁移为 Plugins 页签(`settings.plugins.tab`);插件配置改由宿主原生配置表单承担(0.1.7 已移除 `installSection`),配置字段标记 volatile 即可进入表单、保存即热更新。
+- 插件清单详情页信息:模板自带专属图标(`icon.svg`)与双语元信息(`locale/{zh,en}.json` 的标题与描述),宿主按界面语言显示、英文兜底;预设与全部精选案例默认携带。
+- 消息来源 kind:0.1.7 移除共享 `plugin` kind,模板改为声明自有 `plugin-notice`(protocol 原子 / session-bot / webhook-bridge)。
 
 ### 变更
 
