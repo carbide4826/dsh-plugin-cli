@@ -10,6 +10,7 @@ An interactive scaffolding CLI that sets up a [DeepSeek Harness](https://github.
 
 - npm package: `create-dsh-plugin-cli`, bin command: `dshp`
 - Dual-track pairing: the latest track pairs dsh `0.1.5-rc.3`, the next track pairs dsh `0.1.7-rc.2`; choose via `--target`, default latest
+  - Note: npm's official latest is already `0.1.7-rc.2`; our latest track intentionally lags by conservative policy and promotes once the next track is well-validated
 - Node requirement: `^22.19.0 || >=24.0.0`
 
 > Development and verification are based on the web host (`dsh web`); other host profiles are unverified — please open an [issue](https://github.com/carbide4826/dsh-plugin-cli/issues) if you hit problems.

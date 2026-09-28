@@ -10,6 +10,7 @@
 
 - npm 包名:`create-dsh-plugin-cli`,bin 命令:`dshp`
 - 双轨配套:latest 轨配 dsh `0.1.5-rc.3`,next 轨配 dsh `0.1.7-rc.2`;`--target` 选择,默认 latest
+  - 注:官方 npm latest 现已是 `0.1.7-rc.2`;本 CLI 的 latest 轨按保守策略**有意延迟**跟进,待 next 轨验证充分后晋升
 - Node 要求:`^22.19.0 || >=24.0.0`
 
 > 开发与验证均基于 web(`dsh web`);其他宿主 profile 未经验证,遇到问题欢迎提 [issue](https://github.com/carbide4826/dsh-plugin-cli/issues)。
