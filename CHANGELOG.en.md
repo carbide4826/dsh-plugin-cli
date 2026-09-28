@@ -5,7 +5,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
 
 [中文](https://github.com/carbide4826/dsh-plugin-cli/blob/main/CHANGELOG.md) · English
 
-## [0.1.5] - Unreleased
+## [0.1.5] - 2026-09-29
 
 ### Added
 
