@@ -60,7 +60,7 @@ pnpm dsh web --patch ./dev.patch.yml  # launch (direct source load) (⑤⑥)
 
 ### Tips
 
-　　① ~~**install hijacked by an ancestor workspace**: if a `pnpm-workspace.yaml` exists in a parent directory, `pnpm install` is hoisted to that workspace root and this project's `node_modules` is not created (typecheck fails with Cannot find module); install independently with `pnpm install --ignore-workspace`.~~ **The project root ships its own `pnpm-workspace.yaml` (pinning paired versions since 0.1.3), so a plain `pnpm install` is fine.**
+　　① ~~**install hijacked by an ancestor workspace**: if a `pnpm-workspace.yaml` exists in a parent directory, `pnpm install` is hoisted to that workspace root and this project's `node_modules` is not created (typecheck fails with Cannot find module); install independently with `pnpm install --ignore-workspace`.~~ **The project root ships its own `pnpm-workspace.yaml` (for workspace bounding), so a plain `pnpm install` is fine.**
 
 　　② **Approve build scripts when installing dsh**: pnpm blocks dependency build scripts (supply-chain protection); run `pnpm approve-builds` as prompted and select `node-pty` / `koffi` / `@deepseek-ai/dsh-subprocess-local`; the `@google/genai` / `protobufjs` scripts are no-ops and need no approval.
 
@@ -83,3 +83,5 @@ src/index.ts        plugin entry (name/inject/apply)
 ```
 
 {{EXTRA_STRUCTURE}}
+
+　　⑨ **The plugin inventory shows this plugin's card**: the host's plugin manager renders the icon from `package.json` (`icon.svg` ships with this project) and the title/description from the `meta` in `locale/*.json` (bilingual); edit `locale/zh.json` to change the copy.
