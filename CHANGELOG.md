@@ -5,6 +5,12 @@
 
 中文 · [English](https://github.com/carbide4826/dsh-plugin-cli/blob/main/CHANGELOG.en.md)
 
+## [0.1.6] - 2026-09-29
+
+### Internal
+
+- 发布改为 GitHub Actions 可信发布:推送 `v*` tag 自动构建并发包(OIDC 免令牌);package.json 补充仓库地址。
+
 ## [0.1.5] - 2026-09-29
 
 ### 新增
