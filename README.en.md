@@ -201,11 +201,11 @@ Full release notes for every version live in [CHANGELOG.en.md](https://github.co
 
 ## Roadmap
 
-- ✅ Keep tracking dsh version bumps — versions are managed uniformly and follow the official dsh line
+- Keep tracking dsh version bumps — versions are managed uniformly and follow the official dsh line ✅
 - `--template` custom sources: local path / git URL / npm package
-- ✅ Localization — delivered in 0.1.1: bilingual UI via `--lang zh|en`, per-language README in generated projects
+- Localization — delivered in 0.1.1: bilingual UI via `--lang zh|en`, per-language README in generated projects ✅
 - Agent tool recognition and invocation, planned as a skill or MCP form
-- ✅ Dual-track templates (0.1.5): latest / next trees each pairing one host generation (choose via `--target`); dependencies pinned exactly to the official meta-package pairing; generated projects ship a plugin icon and bilingual inventory metadata
+- Dual-track templates (0.1.5): latest / next trees each pairing one host generation (choose via `--target`); dependencies pinned exactly to the official meta-package pairing; generated projects ship a plugin icon and bilingual inventory metadata ✅
 
 ## License
 
