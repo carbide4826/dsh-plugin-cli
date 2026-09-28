@@ -4,6 +4,7 @@
   "description": "Curated case: per-user notes via storage seam + a tool (storage + tool)",
   "type": "module",
   "license": "MIT",
+  "icon": "icon.svg",
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"

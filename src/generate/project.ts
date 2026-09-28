@@ -22,6 +22,7 @@ const BASE_FILES = [
     "_gitignore",
     "tsdown.config.ts",
     "pnpm-workspace.yaml",
+    "icon.svg",
 ] as const;
 
 /** 素材名 → 落盘名:`_` 前缀的点文件素材换 `.` 开头,其余原样 */

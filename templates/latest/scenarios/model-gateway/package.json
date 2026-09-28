@@ -4,6 +4,7 @@
   "description": "Curated case: bring your own model service (llm seam + dynamic settings card)",
   "type": "module",
   "license": "MIT",
+  "icon": "icon.svg",
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"

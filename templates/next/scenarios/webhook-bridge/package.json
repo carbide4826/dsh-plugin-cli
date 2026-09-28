@@ -4,6 +4,7 @@
   "description": "Curated case: bridge external webhooks into the session (protocol + events)",
   "type": "module",
   "license": "MIT",
+  "icon": "icon.svg",
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"

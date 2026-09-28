@@ -70,4 +70,17 @@ describe.each(TRACK_TARGETS.map((t) => [t] as const))("templates 素材可打包
             expect(tsdownCfg).toContain("dshp-inline-client-css");
         }
     });
+
+    it("插件图标素材在位(base 与每个精选案例,package.json.icon 指向它)", () => {
+        // 清单详情页经 package-meta 读 package.json.icon(包内相对路径);素材缺失 = 详情页无图标
+        expect(existsSync(join(templatesRoot(target), "icon.svg")), "base icon.svg").toBe(true);
+        for (const caseId of listScenarioCases(target === "latest" ? LATEST_MANIFEST : NEXT_MANIFEST)) {
+            const root = join(templatesRoot(target), "scenarios", caseId);
+            expect(existsSync(join(root, "icon.svg")), `${caseId}/icon.svg`).toBe(true);
+            const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8")) as {
+                icon?: string;
+            };
+            expect(pkg.icon, `${caseId} package.json.icon`).toBe("icon.svg");
+        }
+    });
 });

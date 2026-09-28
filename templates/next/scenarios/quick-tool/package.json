@@ -4,6 +4,7 @@
   "description": "Curated case: custom query tool with a result card (tool + tool-view)",
   "type": "module",
   "license": "MIT",
+  "icon": "icon.svg",
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"

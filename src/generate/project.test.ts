@@ -47,6 +47,8 @@ describe("generatePackageJson", () => {
         expect(pkg.exports["./cordis.patch.yml"]).toBe("./cordis.patch.yml");
         expect(pkg.peerDependencies["@deepseek-ai/dsh-tools"]).toBe(LATEST_MANIFEST.version);
         expect(pkg.peerDependencies["@deepseek-ai/cordis"]).toBe(LATEST_MANIFEST.cordisPeer);
+        // 插件清单详情页的展示图标(package-meta 契约)
+        expect(pkg.icon).toBe("icon.svg");
 
         const lib = JSON.parse(generatePackageJson({ ...base, pkgPosition: "library" }, collectDeps({ ...base, pkgPosition: "library" }, LATEST_MANIFEST), LATEST_MANIFEST));
         expect(lib.dsh).toBeUndefined();
@@ -71,7 +73,7 @@ describe("generatePackageJson", () => {
         // 指向 ./dist/index.js,装上即崩。这里钉住白名单,防回退。
         const bundleAnswers: Answers = { ...base, atoms: ["tool"] };
         const bundle = JSON.parse(generatePackageJson(bundleAnswers, collectDeps(bundleAnswers, LATEST_MANIFEST), LATEST_MANIFEST));
-        expect(bundle.files).toEqual(["dist", "cordis.patch.yml"]);
+        expect(bundle.files).toEqual(["dist", "icon.svg", "cordis.patch.yml"]);
 
         const libAnswers: Answers = { ...base, pkgPosition: "library" };
         const lib = JSON.parse(generatePackageJson(libAnswers, collectDeps(libAnswers, LATEST_MANIFEST), LATEST_MANIFEST));

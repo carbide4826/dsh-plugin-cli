@@ -83,6 +83,8 @@ export function generatePackageJson(
         type: "module",
         ...(answers.author ? { author: answers.author } : {}),
         license: "MIT",
+        // 插件清单详情页的展示图标(package-meta 读 package.json.icon:包内相对路径,≤256KiB SVG)
+        ...(answers.pkgPosition === "bundle" ? { icon: "icon.svg" } : {}),
         // 身份声明紧跟元数据:向 harness 宣告这个包是什么,不落到文件尾
         ...(Object.keys(dsh).length > 0 ? { dsh } : {}),
         engines: { node: "^22.19.0 || >=24.0.0" },
@@ -104,7 +106,7 @@ export function generatePackageJson(
         // 结果是产物被漏、src/ 与构建配置反被打进包(README.md / package.json 为 npm 强制包含项,无需列出)
         files: [
             "dist",
-            ...(answers.pkgPosition === "bundle" ? ["cordis.patch.yml"] : []),
+            ...(answers.pkgPosition === "bundle" ? ["icon.svg", "cordis.patch.yml"] : []),
         ],
         dependencies: bucketToRecord(deps.deps, manifest),
         peerDependencies: bucketToRecord(deps.peer, manifest),

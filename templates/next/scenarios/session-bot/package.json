@@ -4,6 +4,7 @@
   "description": "Curated case: react to session events automatically (events + llm seam)",
   "type": "module",
   "license": "MIT",
+  "icon": "icon.svg",
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"
