@@ -45,6 +45,8 @@ describe("generatePackageJson", () => {
         const pkg = JSON.parse(generatePackageJson(answers, deps, LATEST_MANIFEST));
         expect(pkg.dsh.bundle.patch).toBe("./cordis.patch.yml");
         expect(pkg.exports["./cordis.patch.yml"]).toBe("./cordis.patch.yml");
+        // 宿主 package-meta 经 ESM resolver 读 package.json 取清单展示元信息
+        expect(pkg.exports["./package.json"]).toBe("./package.json");
         expect(pkg.peerDependencies["@deepseek-ai/dsh-tools"]).toBe(LATEST_MANIFEST.version);
         expect(pkg.peerDependencies["@deepseek-ai/cordis"]).toBe(LATEST_MANIFEST.cordisPeer);
         // 插件清单详情页的展示图标(package-meta 契约)

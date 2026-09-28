@@ -28,6 +28,7 @@
   },
   "exports": {
     ".": "./dist/index.js",
+    "./package.json": "./package.json",
     "./client": "./dist/client.js",
     "./cordis.patch.yml": "./cordis.patch.yml"
   },

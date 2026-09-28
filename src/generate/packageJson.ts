@@ -96,6 +96,9 @@ export function generatePackageJson(
         // 出口无条件声明(loader 按此解析入口);扩展名 .js 由 tsdown.config.ts 的 outExtensions 钉死
         exports: {
             ".": "./dist/index.js",
+            // package.json 也要可解析:宿主 package-meta 经 ESM resolver 读它取清单展示的
+            // title/description/icon(官方全家同款防御;缺了 meta 整个回落 undefined)
+            ...(answers.pkgPosition === "bundle" ? { "./package.json": "./package.json" } : {}),
             ...(ui ? { "./client": "./dist/client.js" } : {}),
             // patch 文件也要能按 exports 解析到(dsh plugin add 读包内路径;社区插件同款防御)
             ...(answers.pkgPosition === "bundle"
