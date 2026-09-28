@@ -45,14 +45,13 @@ jobs:
             echo "registry 上 $PKG 已存在,拒绝重复发布"; exit 1
           fi
 
-      - name: configure npm auth
+      - name: publish(whoami/dry-run 诊断 + 发布)
         env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }} # setup-node 已写入 .npmrc 模板,此处注入实际值
         run: |
-          if [ -z "$NPM_TOKEN" ]; then
+          if [ -z "$NODE_AUTH_TOKEN" ]; then
             echo "NPM_TOKEN 未配置:仓库 Settings → Secrets → Actions 添加 NPM_TOKEN"; exit 1
           fi
-          echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
-
-      - name: publish
-        run: npm publish
+          echo "npm whoami → $(npm whoami)"
+          npm publish --dry-run > /dev/null && echo "dry-run 通过,开始发布"
+          npm publish
