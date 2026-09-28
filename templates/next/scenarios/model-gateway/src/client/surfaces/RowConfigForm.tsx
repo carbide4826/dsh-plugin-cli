@@ -39,12 +39,14 @@ export const RowConfigForm = memo(function RowConfigForm({ view, form }: RowConf
         setSaving(true)
         setMessage('')
         try {
+            // 路径 set 操作;形参类型以宿主 mutate 签名为准(SettingsPathOpView)
+            const ops = FIELDS.filter((f) => values[f.key] !== undefined).map((f) => ({
+                op: 'set' as const,
+                path: [f.key],
+                value: values[f.key],
+            }))
             await form.mutate(
-                FIELDS.filter((f) => values[f.key] !== undefined).map((f) => ({
-                    op: 'set' as const,
-                    path: [f.key],
-                    value: values[f.key],
-                })),
+                ops as Parameters<NonNullable<PluginConfigViewProps['form']>['mutate']>[0],
                 snapshot.revision,
             )
             setDraft(undefined) // 回读宿主接受的值
