@@ -7,7 +7,7 @@ export const UI_SURFACES = [
         pkg: "@deepseek-ai/dsh-client-ui-settings-plugins",
         label: () => t("domain.ui.settings-card.label"),
         desc: () => t("domain.ui.settings-card.desc"),
-        slots: ["settings.plugin.item"],
+        slots: ["settings.plugins.tab"],
         default: true,
     },
     {

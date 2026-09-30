@@ -9,8 +9,8 @@
 An interactive scaffolding CLI that sets up a [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (`dsh`) plugin project skeleton in one shot.
 
 - npm package: `create-dsh-plugin-cli`, bin command: `dshp`
-- Dual-track pairing: the latest track pairs dsh `0.1.5-rc.3`, the next track pairs dsh `0.1.7-rc.2`; choose via `--target`, default latest
-  - Note: npm's official latest is already `0.1.7-rc.2`; our latest track intentionally lags by conservative policy and promotes once the next track is well-validated
+- Dual-track pairing: the latest track pairs dsh `0.1.7-rc.2`, the next track pairs dsh `0.2.0-rc.2`; choose via `--target`, default latest
+  - Note: npm's official latest is already `0.2.0-rc.2`; our latest track intentionally lags by conservative policy and promotes once the next track is well-validated
 - Node requirement: `^22.19.0 || >=24.0.0`
 
 > Development and verification are based on the web host (`dsh web`); other host profiles are unverified — please open an [issue](https://github.com/carbide4826/dsh-plugin-cli/issues) if you hit problems.
@@ -71,8 +71,8 @@ Interactive snapshot
 │  my-plugin
 │
 ◆  Which dsh host generation to pair with?
-│  ● latest · dsh 0.1.5-rc.3
-│  ○ next · dsh 0.1.7-rc.2
+│  ● latest · dsh 0.1.7-rc.2
+│  ○ next · dsh 0.2.0-rc.2
 │
 ◆  Where do you want to start?
 │
@@ -124,7 +124,7 @@ Atom combination (assembled from picked capabilities):
 dshp create my-llm --template llm --pkg-position library --author <name> --description <text>
 ```
 
-Pair with the next host generation (`--target next`; the project pins dsh 0.1.7-rc.2 — the latest track and interactive mode work the same way):
+Pair with the next host generation (`--target next`; the project pins dsh 0.2.0-rc.2 — the latest track and interactive mode work the same way):
 
 ```sh
 dshp create my-gw --template model-gateway -s --target next
@@ -151,7 +151,7 @@ dshp create my-gw --template model-gateway -s --target next
 cd my-plugin
 pnpm install                      # ① install deps (the project root ships a pnpm-workspace.yaml for workspace bounding; a plain install works)
 pnpm approve-builds               # ② supply-chain protection blocks build scripts: approve node-pty / koffi / @deepseek-ai/dsh-subprocess-local (@google/genai / protobufjs are no-ops); re-run install once after approving
-pnpm add -D @deepseek-ai/dsh@0.1.5-rc.3   # ③ install the dsh host (latest track pairs 0.1.5-rc.3, next track pairs 0.1.7-rc.2, matching --target; the bare latest tag may be another line, don't install it bare; approve-builds again after)
+pnpm add -D @deepseek-ai/dsh@0.1.7-rc.2   # ③ install the dsh host (latest track pairs 0.1.7-rc.2, next track pairs 0.2.0-rc.2, matching --target; the bare latest tag may be another line, don't install it bare; approve-builds again after)
 pnpm build                        # ④ build
 pnpm dsh web --patch ./dev.patch.yml      # ⑤ launch the dsh host (direct source load for debugging)
 ```
@@ -176,16 +176,16 @@ my-plugin/                  ← project dir = the directory name you entered
 
 ## Version notes
 
-**Tracks and pairing** (chosen at generation time via `--target`, default latest; npm's official latest is already `0.1.7-rc.2`, our latest track intentionally lags by conservative policy):
+**Tracks and pairing** (chosen at generation time via `--target`, default latest; npm's official latest is already `0.2.0-rc.2`, our latest track intentionally lags by conservative policy):
 
 | Track | dsh host | Key pairing (cordis / schemastery) |
 | --- | --- | --- |
-| `latest` | `0.1.5-rc.3` | `4.0.2` / `3.18.2` |
-| `next` | `0.1.7-rc.2` | `~4.0.4` / `~3.18.4` |
+| `latest` | `0.1.7-rc.2` | `~4.0.4` / `~3.18.4` |
+| `next` | `0.2.0-rc.2` | `~4.0.4` / `~3.18.4` |
 
 Dependencies pair exactly with the host version; mismatched mixes can spawn a second instance in the install tree, breaking declaration merging and failing typecheck.
 
-**The host's plugin version gate**: when installing or loading a plugin, dsh validates every `@deepseek-ai/dsh` and `@deepseek-ai/dsh-*` entry in the plugin's `peerDependencies` (other dependencies are not checked); an unsatisfied range is **rejected at install time** with an "incompatible" message. So latest-track products cannot be installed on a 0.1.7 host and vice versa — keep the product track aligned with the host version. To force a cross-version install anyway, use the official exemption command (the rejection message prints the full command):
+**The host's plugin version gate**: when installing or loading a plugin, dsh validates every `@deepseek-ai/dsh` and `@deepseek-ai/dsh-*` entry in the plugin's `peerDependencies` (other dependencies are not checked); an unsatisfied range is **rejected at install time** with an "incompatible" message. So latest-track products cannot be installed on a 0.2.0 host and vice versa — keep the product track aligned with the host version. To force a cross-version install anyway, use the official exemption command (the rejection message prints the full command):
 
 ```sh
 dsh plugin --profile web allow-version <plugin>@<version> --dsh-version <host version> --accept-risk

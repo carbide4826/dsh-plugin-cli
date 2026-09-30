@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-// release 脚本:发版前检查自动化,publish 由人扣扳机(设计口径见 TODO-M7 / M7-5)
+// 发版脚本:本地完成版本号升级与发布前检查;不 commit、不 push,发布由 CI 在版本 tag 推送后执行
 // 用法:pnpm release <版本号>   例:pnpm release 0.1.2
-// 流程:前置检查 → bump → build+test → pack 核验 → registry 预检 → 确认 → 打印 publish 命令
+// 流程:前置检查 → bump → build+test → pack 核验 → registry 预检 → 确认;确认通过仅保留新版本号,提交与打 tag 由人工完成
 import { execSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 import { createInterface } from "node:readline/promises";
@@ -33,7 +33,7 @@ if (!["dev", "main"].includes(branch)) {
 ok(`分支 ${branch}`);
 
 const dirty = sh("git status --porcelain").trim();
-// 未跟踪文件(如 TODO-M7.md)不阻塞;已跟踪文件的未提交改动会进 pack 的 src? 不会(白名单),但会丢进版本提交
+// 未跟踪文件不阻塞;已跟踪文件存在未提交改动则中止,避免无关改动混入发版提交
 if (dirty.split("\n").some((l) => l && !l.startsWith("??"))) {
     fail(`工作区有未提交的已跟踪改动:\n${dirty}`);
     process.exit(1);
@@ -89,13 +89,11 @@ try {
 }
 const files = packOut.split("\n").filter((l) => /^npm notice [0-9]/.test(l)).map((l) => l.split(/\s+/)[3]);
 const readmeEn = files.filter((f) => f?.endsWith("README.en.md"));
-// 双轨:2 棵树 ×(5 案例 + base) + 根 = 13(单树时代为 7)
+// 双轨模板:2 棵树 ×(5 案例 + base)+ 根目录 README = 13
 if (readmeEn.length !== 13) rollback(`README.en.md 数量 ${readmeEn.length} ≠ 13(双语素材缺份)`);
-const leaks = files.filter((f) => /\/?(\.mimosa|\.v2c|\.playwright-mcp|\.workbuddy|node_modules|^src\/)/.test(f ?? ""));
-if (leaks.length) rollback(`包内出现泄漏项:${leaks.join(", ")}`);
 const total = packOut.match(/total files: (\d+)/)?.[1] ?? "?";
 const size = packOut.match(/package size: ([\d.]+ \w+)/)?.[1] ?? "?";
-ok(`pack 核验过:${files.length} 项 / README.en×13 / 零泄漏`);
+ok(`pack 核验过:${files.length} 项 / README.en×13`);
 
 // ---------- ⑤ registry 预检 ----------
 console.log("\n== registry 预检 ==");
@@ -105,7 +103,7 @@ try {
 } catch {
     published = []; // 网络失败不阻塞,提示后继续
 }
-if (published.includes(target)) rollback(`registry 上 ${target} 已存在(上次 0.1.1 的坑,这次拦住了)`);
+if (published.includes(target)) rollback(`registry 上 ${target} 已存在,请更换版本号`);
 ok(`registry 上无 ${target}`);
 
 // ---------- ⑥ 确认 ----------

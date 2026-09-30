@@ -1,20 +1,35 @@
 import type { Context } from '@deepseek-ai/cordis'
+import type {} from '@deepseek-ai/dsh-client-ui-settings/client' // settings.plugins.tab 槽型声明来源
 import type {} from '@deepseek-ai/dsh-client-ui-settings-plugins/client'
+import type {} from '@deepseek-ai/dsh-client-ui-plugin-manager/client' // plugins.row.config 槽型声明来源
 import { SettingsCard } from './SettingsCard.tsx'
+import { RowConfigForm } from './RowConfigForm.tsx'
 
 /**
- * 注册设置卡片:渲染进设置页的本插件区块。
+ * 注册插件设置页签:渲染进设置页 Plugins 区块的本插件页签(0.1.7 list 页签槽)。
  * @param ctx - client 根上下文
  */
 export function registerSettingsCard(ctx: Context): void {
-    ctx.slots.inject('settings.plugin.item', () =>
+    ctx.slots.inject('settings.plugins.tab', () =>
         ctx.slots.register(
             {
-                name: 'settings.plugin.item',
-                key: 'model-gateway', // namespace = join key,必须与 host 侧声明一致
-                priority: 100, // keyed 槽选项只有 key/priority(无 order,那是 list 槽);同 key 同 priority 会 throw
-                // 面数据不走注册项 inject:组件 props = owner props,业务数据经 apply 闭包的 ctx 拿
+                name: 'settings.plugins.tab',
+                id: 'model-gateway', // 页签 id:页签列表内唯一(身份重写会替换为插件 id)
+                order: 100, // 页签排序:list 槽选项用 id/order(keyed 槽的 key/priority 在此不存在)
+                label: () => 'model-gateway', // 页签标题,宿主 resolveSlotLabel 解析为字符串
             },
             SettingsCard,
+        ))
+
+    // 行级配置入口:插件管理页本插件组件行的「配置」按钮由此点亮,
+    // key = `<包名>#<行 id>`(两者默认同为插件 id);详情页渲染 RowConfigForm,
+    // 宿主经 form prop 传入当前配置值与 mutate 写入(仅 .volatile() 字段可编辑)。
+    ctx.slots.inject('plugins.row.config', () =>
+        ctx.slots.register(
+            {
+                name: 'plugins.row.config',
+                key: 'model-gateway#model-gateway', // 身份重写会替换为插件 id
+            },
+            RowConfigForm,
         ))
 }

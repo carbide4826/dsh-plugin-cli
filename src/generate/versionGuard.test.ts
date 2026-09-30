@@ -69,7 +69,7 @@ describe.each(TRACKS.map((m) => [m] as const))("模板守门:版本只用占位�
     });
 
     it("settings-card 素材槽位键与 manifest 配对", () => {
-        // 槽键是轨间唯一分叉素材面:latest=keyed 槽,next=list 页签槽,素材必须与所属轨一致
+        // 槽键 2026-09-30 晋升后两轨同形(Plugins 页签槽),素材必须与所属轨 manifest 一致
         const owners = [
             join(root, "atoms", "ui", "src", "client", "surfaces", "settings-card.ts"),
             join(root, "scenarios", "model-gateway", "src", "client", "surfaces", "settings-card.ts"),
@@ -139,14 +139,14 @@ describe("manifest 自身健康度", () => {
         }
     });
 
-    it("双轨字段齐备且互不相同(树与 manifest 严格配对的语义前提)", () => {
+    it("双轨字段齐备且版本互不相同(树与 manifest 严格配对的语义前提)", () => {
         for (const m of TRACKS) {
             for (const field of [m.version, m.cordisPeer, m.schemasteryVersion, m.settingsSlot]) {
                 expect(field, `${m.target} 有空字段`).toBeTruthy();
             }
         }
         expect(LATEST_MANIFEST.version).not.toBe(NEXT_MANIFEST.version);
-        expect(LATEST_MANIFEST.settingsSlot).not.toBe(NEXT_MANIFEST.settingsSlot);
+        // 槽键自 0.1.7 晋升起两轨同形;轨间是否分叉由各树↔本轨 manifest 配对守门兜住,不再断言互异
         // 轨名即容器名,永不随版本改名
         expect(LATEST_MANIFEST.target).toBe("latest");
         expect(NEXT_MANIFEST.target).toBe("next");
