@@ -17,8 +17,9 @@ function configDeclaration(): string[] {
         "    example: string",
         "}",
         "",
-        "// .volatile():字段进宿主原生配置表单(0.1.7 起宿主投影 Config schema,仅 volatile 字段可编辑)",
-        "export const Config: z<Config> = z.object({",
+        "// .volatile():字段进宿主原生配置表单(0.1.7 起宿主投影 Config schema,仅 volatile 字段可编辑);",
+        "// volatile 会改变 schema 的推断类型,故此处不做 z<Config> 注解(字段名以 interface Config 为准手工对齐)",
+        "export const Config = z.object({",
         "    example: z.string().required().volatile(),",
         "})",
     ];
