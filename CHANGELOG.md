@@ -5,11 +5,15 @@
 
 中文 · [English](https://github.com/carbide4826/dsh-plugin-cli/blob/main/CHANGELOG.en.md)
 
-## [Unreleased]
+## [0.1.7] - 2026-09-30
 
 ### Changed
 
 - 双轨晋升:latest 轨对齐 dsh `0.1.7-rc.2`(原 next 树转正),next 轨对齐 dsh `0.2.0-rc.2`;两轨的 settings 卡片均为「插件页签」形态,cordis / schemastery 配套两轨相同(`~4.0.4` / `~3.18.4`)。
+
+### Fixed
+
+- 修复 `ui` 预设生成的项目 typecheck 报错(TS2322):配置示例的 volatile 字段与保留的 `z<Config>` 类型注解冲突,已移除该注解。
 
 ## [0.1.6] - 2026-09-29
 
