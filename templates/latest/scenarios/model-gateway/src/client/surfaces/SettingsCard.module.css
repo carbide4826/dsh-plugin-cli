@@ -14,3 +14,59 @@
     opacity: 0.8;
     color: var(--dsw-alias-label-secondary, inherit);
 }
+
+/* 行配置表单:样式对标宿主原生表单(实测采样自官方 终端 配置页的计算样式) */
+.field {
+    display: block;
+    margin-top: 16px;
+}
+
+.fieldLabel {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 19.5px;
+    color: var(--dsw-alias-label-primary, rgb(15, 17, 21));
+}
+
+.input {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    margin-top: 6px;
+    height: 34px;
+    padding: 0 12px;
+    border: 1px solid rgba(0, 0, 0, 0.16);
+    border-radius: 12px;
+    background: var(--dsw-alias-fill-primary, rgb(255, 255, 255));
+    color: var(--dsw-alias-label-primary, rgb(15, 17, 21));
+    font-size: 13px;
+    font-weight: 400;
+    line-height: 19.5px;
+}
+
+.save {
+    display: block;
+    margin-top: 14px;
+    padding: 5px 14px;
+    border: 1px solid transparent;
+    border-radius: 12px;
+    background: var(--dsw-alias-label-primary, rgb(15, 17, 21));
+    color: rgb(255, 255, 255);
+    font-size: 13px;
+    font-weight: 400;
+    line-height: 19.5px;
+    cursor: pointer;
+}
+
+.save:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+.message {
+    margin-top: 8px;
+    font-size: 12px;
+    line-height: 18px;
+    color: var(--dsw-alias-label-secondary, rgb(129, 133, 140));
+}

@@ -1,6 +1,6 @@
 # model-gateway
 
-Curated case: bring your own model service (llm seam + dynamic settings card)
+Curated case: bring your own model service (llm seam + settings tab (native config form))
 
 > 由 [dshp](https://github.com/carbide4826/dsh-plugin-cli) 生成 · 依赖版本 DSH __DSH_VERSION__
 
@@ -41,7 +41,7 @@ pnpm dsh web --patch ./dev.patch.yml --dump-config | grep -A 4 model-gateway
 
 #### 方式一 · 插件 add(持久,走构建产物)
 
-　　前提:第 1 步已 `pnpm build`(装的是 `dist/` 产物,loader 按 `exports` 解析)。**本案例的设置卡片必须走这条**(见 tip 3)。
+　　前提:第 1 步已 `pnpm build`(装的是 `dist/` 产物,loader 按 `exports` 解析)。**本案例的设置页页签必须走这条**(见 tip 3)。
 
 ```sh
 pnpm dsh plugin --profile web add .      # 在本项目根目录执行(③④⑧)
@@ -78,20 +78,21 @@ pnpm dsh web --patch ./dev.patch.yml  # 启动(直载源码)(⑤⑥)
 
 ### 本案例演示什么
 
-　　演示"接入自有模型服务":llm 缝注册 adapter 出现在模型选择器,配置走**设置页动态表单**(改配置实时生效,不重启);API key 不落盘,配置里只放**环境变量名**。
+　　演示"接入自有模型服务":llm 缝注册 adapter 出现在模型选择器;配置两处可改——**插件管理页**(侧栏「插件」→ 本插件 → 组件行「配置」)的表单直接编辑保存,或设置页「打开配置文件」改 YAML,均热生效;API key 不落盘,配置里只放**环境变量名**。
 
 ### 关键文件导览
 
 | 文件 | 看什么 |
 |---|---|
-| `src/index.ts` | Config + `installSection` 动态配置 + 热更新注入 adapter |
+| `src/index.ts` | Config schema(宿主原生投影设置表单)+ 热更新注入 adapter |
 | `src/seams/llm.ts` | adapter 三方法:providerInfo / listModels / stream |
-| `src/client/surfaces/SettingsCard.tsx` | 设置卡片(Config 表单由宿主渲染) |
-| `src/client/surfaces/SettingsCard.module.css` | 卡片样式 |
+| `src/client/surfaces/SettingsCard.tsx` | 设置页页签(说明牌) |
+| `src/client/surfaces/RowConfigForm.tsx` | 插件管理页的行配置表单(plugins.row.config 槽,volatile 字段可编辑) |
+| `src/client/surfaces/SettingsCard.module.css` | 卡片与表单样式 |
 
 ### 如何验证起效
 
-1. 按「快速开始」1~4 步跑起来(设置卡片必须走方式一)
+1. 按「快速开始」1~4 步跑起来(设置页页签必须走方式一)
 2. `export GATEWAY_API_KEY=any-non-empty`(echo 模式只检查非空)
 3. 模型选择器里选 **Model Gateway → gateway-chat** 发消息 → 回复带 `[model-gateway] …`;改设置页的 `apiKeyEnv` 再发一次,验证热更新
 
