@@ -1,11 +1,12 @@
 // latest 轨版本注册(单源):配套 npm latest 轨宿主,保守跟随
-// 值的出处:2026-09-28 对 dsh@0.1.5-rc.3 元包 dependencies 的直读(cordis 4.0.2 等全精确钉)
+// 值的出处:2026-09-30 晋升自原 next 树(内容=2026-09-28 对 dsh@0.1.7-rc.2 元包 dependencies 的直读)——
+// 0.1.7 起官方对 cordis 家族改 tilde 钉线(~4.0.4),我们照抄同款 specifier 保证两边共解析、安装树单实例
 import type { TrackManifest } from "./track";
 
 export const LATEST_MANIFEST: TrackManifest = {
     target: "latest",
-    version: "0.1.5-rc.3",
-    cordisPeer: "4.0.2",
-    schemasteryVersion: "3.18.2",
-    settingsSlot: "settings.plugin.item",
+    version: "0.1.7-rc.2",
+    cordisPeer: "~4.0.4",
+    schemasteryVersion: "~3.18.4",
+    settingsSlot: "settings.plugins.tab",
 };

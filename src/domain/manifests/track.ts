@@ -13,6 +13,6 @@ export interface TrackManifest {
     readonly cordisPeer: string;
     /** schemastery specifier:同 cordis 逻辑 */
     readonly schemasteryVersion: string;
-    /** settings-card 界面位槽位键(latest=0.1.5 keyed 槽;next=0.1.7 list 页签槽),守门测试对照素材用 */
+    /** settings-card 界面位槽位键(2026-09-30 晋升后两轨同形=Plugins 页签槽;守门测试对照素材用) */
     readonly settingsSlot: string;
 }

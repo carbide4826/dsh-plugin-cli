@@ -1,5 +1,5 @@
 # 金丝雀(双轨):每周用官方最新 dsh 版本试跑两轨生成链,前瞻「下次升版/晋升会不会破我们」
-# - latest 轨绿 = 晋升窗口信号(官方最新已能跑通 latest 树,可考虑把 latest 轨晋升到 0.1.7 线)
+# - latest 轨绿 = 晋升窗口信号(官方最新已能跑通 latest 树,可考虑把 latest 轨晋升到官方最新线)
 # - next 轨绿   = next 树跟住官方滚动,无障碍
 # 红=报警不动作,不阻塞主线 CI;规则见 docs/UPSTREAM-VERSION-POLICY.md(发现自动化,扣扳机人工)
 name: canary
