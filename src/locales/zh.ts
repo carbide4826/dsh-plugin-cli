@@ -185,7 +185,7 @@ export const zh = {
         },
         events: {
             tools: { label: "工具执行", desc: "工具执行的拦截、变换与观察:权限门、审计、指标" },
-            agent: { label: "agent 生命周期", desc: "agent 循环钩子:会话启动、步前、请求、轮停、错误" },
+            agent: { label: "agent 生命周期", desc: "agent 循环钩子:创建、销毁、步前、请求、轮停、错误" },
             session: { label: "会话事件流", desc: "会话创建、销毁与事件订阅" },
             approval: { label: "审批流", desc: "审批请求瀑布:自定义审批 UI、审计记录" },
             fs: { label: "文件观察", desc: "文件系统状态变化(自动格式化/同步类插件)" },

@@ -43,8 +43,6 @@ const declared = new Set<string>([
     // ui 原子的公共 peer(collectDeps 内联)
     "@deepseek-ai/dsh-client-ui-slots",
     "@deepseek-ai/dsh-client-ui-renderer",
-    // 动态配置注入的 settings 服务(collectDeps 内联)
-    "@deepseek-ai/dsh-settings",
 ]);
 
 /** 我们引用的全部 @deepseek-ai/dsh-* 子包(排序输出,便于 diff;两轨引用面相同) */

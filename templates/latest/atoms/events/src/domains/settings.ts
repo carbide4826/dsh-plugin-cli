@@ -6,9 +6,9 @@ import type {} from '@deepseek-ai/dsh-settings' // 事件类型来源
  * @param ctx - Cordis 上下文
  */
 export function registerSettingsListeners(ctx: Context): void {
-    // emit:某命名空间的解析值发生变化(深比较门控,值真变了才发)
-    ctx.on('settings/updated', (ns, next, prev, source) => {
+    // emit:某命名空间的设置文档被改写(事件只给新版本号,新旧值需自行回读)
+    ctx.on('settings/document-updated', (ns, revision) => {
         // TODO: 响应配置变化(如热更新自己的行为)
-        console.log(`[{{PLUGIN_ID}}] settings ${ns} changed (${String(prev)} -> ${String(next)}, via ${source})`)
+        console.log(`[{{PLUGIN_ID}}] settings ${ns} updated (revision ${revision})`)
     })
 }

@@ -5,6 +5,20 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
 
 [中文](https://github.com/carbide4826/dsh-plugin-cli/blob/main/CHANGELOG.md) · English
 
+## [0.1.8] - 2026-10-07
+
+### Changed
+
+- The latest track catches up to dsh `0.2.0-rc.2`, sharing the version with the next track; template dependencies and scenario materials now pin that pairing uniformly.
+- The plugin entry for dynamic configuration is still generated per track (latest / next arms); both arms currently emit the same content.
+
+### Fixed
+
+- The dynamic-configuration entry no longer emits the host's removed `ctx.settings.installSection` wiring, and no longer declares the `settings` readiness requirement or the `@deepseek-ai/dsh-settings` peer.
+- The `settings` event domain drops `@deepseek-ai/dsh-settings-file` from its peer list (the package was removed upstream; generated projects failed dependency installation with a 404).
+- The `settings` event-domain atom now listens on `settings/document-updated`, the event the host declares (`settings/updated` is undeclared, so generated projects failed typecheck).
+- The event-domain catalogue lists only events the host declares: `agent/session-start` is replaced by `agent/created` plus `agent/disposed`, and `settings/updated` is dropped.
+
 ## [0.1.7] - 2026-09-30
 
 ### Changed

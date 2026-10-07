@@ -5,6 +5,20 @@
 
 中文 · [English](https://github.com/carbide4826/dsh-plugin-cli/blob/main/CHANGELOG.en.md)
 
+## [0.1.8] - 2026-10-07
+
+### Changed
+
+- latest 轨追平 dsh `0.2.0-rc.2`,与 next 轨同版;模板依赖与案例素材的配套版本随之统一。
+- 动态配置的入口仍按轨分叉生成(latest / next 两臂),两臂当前产出一致。
+
+### Fixed
+
+- 动态配置的入口不再生成宿主已移除的 `ctx.settings.installSection` 接线,也不再声明 `settings` 就绪与 `@deepseek-ai/dsh-settings` peer。
+- `settings` 事件域的 peer 清单移除上游已删除的 `@deepseek-ai/dsh-settings-file`(生成项目安装依赖时报 404)。
+- `settings` 事件域原子的监听事件名改为宿主声明的 `settings/document-updated`(原 `settings/updated` 宿主未声明,生成的项目 typecheck 失败)。
+- 事件域清单只列宿主实存事件:`agent/session-start` 更正为 `agent/created` + `agent/disposed`,`settings/updated` 移除。
+
 ## [0.1.7] - 2026-09-30
 
 ### Changed

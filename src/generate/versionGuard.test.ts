@@ -31,6 +31,47 @@ const DSH_DEP_KEY = /^@deepseek-ai\/dsh-/;
 // 每轨的 manifest 集(结构化遍历用)
 const TRACKS = [LATEST_MANIFEST, NEXT_MANIFEST];
 
+/**
+ * 比较两个 semver(含预发布段),a 低于 b 返回负数、同版返回 0、高于返回正数。
+ * 规则按官方优先级:先比主/次/补丁三段数值,再比预发布段(有预发布者低于无预发布者,
+ * 标识符逐段比、纯数字段按数值)。只服务本文件的轨序守门,不追求完整实现规范。
+ * @param a - 版本串 A,如 0.2.0-rc.2
+ * @param b - 版本串 B,如 0.2.0
+ * @returns A 与 B 的相对大小
+ */
+function semverCompare(a: string, b: string): number {
+    const parse = (v: string) => {
+        const dash = v.indexOf("-");
+        const core = (dash < 0 ? v : v.slice(0, dash)).split(".").map(Number);
+        const pre =
+            dash < 0
+                ? []
+                : v
+                      .slice(dash + 1)
+                      .split(".")
+                      .map((id) => (/^\d+$/.test(id) ? Number(id) : id));
+        return { core, pre };
+    };
+    const x = parse(a);
+    const y = parse(b);
+    for (let i = 0; i < 3; i++) {
+        const diff = (x.core[i] ?? 0) - (y.core[i] ?? 0);
+        if (diff !== 0) return diff;
+    }
+    if (x.pre.length === 0) return y.pre.length === 0 ? 0 : 1;
+    if (y.pre.length === 0) return -1;
+    for (let i = 0; i < Math.max(x.pre.length, y.pre.length); i++) {
+        const p = x.pre[i];
+        const q = y.pre[i];
+        if (p === undefined) return -1;
+        if (q === undefined) return 1;
+        if (p === q) continue;
+        if (typeof p === "number" && typeof q === "number") return p - q;
+        return String(p) < String(q) ? -1 : 1;
+    }
+    return 0;
+}
+
 describe.each(TRACKS.map((m) => [m] as const))("模板守门:版本只用占位符(%s 轨)", (manifest) => {
     const root = templatesRoot(manifest.target);
 
@@ -139,16 +180,28 @@ describe("manifest 自身健康度", () => {
         }
     });
 
-    it("双轨字段齐备且版本互不相同(树与 manifest 严格配对的语义前提)", () => {
+    it("双轨字段齐备且 next 轨不落后于 latest 轨(晋升只单向前移)", () => {
         for (const m of TRACKS) {
             for (const field of [m.version, m.cordisPeer, m.schemasteryVersion, m.settingsSlot]) {
                 expect(field, `${m.target} 有空字段`).toBeTruthy();
             }
         }
-        expect(LATEST_MANIFEST.version).not.toBe(NEXT_MANIFEST.version);
-        // 槽键自 0.1.7 晋升起两轨同形;轨间是否分叉由各树↔本轨 manifest 配对守门兜住,不再断言互异
-        // 轨名即容器名,永不随版本改名
+        // 槽键不断言互异:自 0.1.7 晋升起两轨同形,轨间分叉落在各树内容与 manifest 配对上
         expect(LATEST_MANIFEST.target).toBe("latest");
         expect(NEXT_MANIFEST.target).toBe("next");
+        // 版本不变式取「next ≥ latest」而非「next ≠ latest」:晋升协议里 latest 追平 next 是
+        // 合法瞬时态(官方 dist-tags 双 0.2.0-rc.2 即此态),写死互异会在每次追平后被迫拆逻辑;
+        // 反过来「latest 跑到 next 前面」只可能是晋升方向写错或某轨漏更,这条才是常驻风险
+        expect(
+            semverCompare(LATEST_MANIFEST.version, NEXT_MANIFEST.version) <= 0,
+            `轨序倒置:latest=${LATEST_MANIFEST.version} 高于 next=${NEXT_MANIFEST.version}(约束是 latest ≤ next)`,
+        ).toBe(true);
+    });
+
+    it("semverCompare 自身可用(守门判据的前提)", () => {
+        expect(semverCompare("0.2.0-rc.2", "0.2.0-rc.3")).toBeLessThan(0); // 同为 rc 线比尾号
+        expect(semverCompare("0.2.0-rc.2", "0.2.0")).toBeLessThan(0); // 预发布低于正式版
+        expect(semverCompare("0.2.0-rc.2", "0.2.0-rc.2")).toBe(0); // 同版=合法瞬时态
+        expect(semverCompare("0.2.0", "0.1.9-rc.9")).toBeGreaterThan(0); // 主版本线优先于预发布
     });
 });

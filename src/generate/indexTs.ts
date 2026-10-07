@@ -29,7 +29,7 @@ function configDeclaration(): string[] {
  * 生成顶层插件入口 src/index.ts
  * @param answers - 完整问卷答案
  * @param index - 生成计划里的 index 拼装行
- * @param manifest - 目标轨 manifest(0.1.7 起动态配置由宿主原生表单承担)
+ * @param manifest - 目标轨 manifest(动态配置的入口形态按轨分叉)
  * @returns 文件内容
  */
 export function generateHostIndex(
@@ -38,10 +38,6 @@ export function generateHostIndex(
     manifest: TrackManifest,
 ): string {
     const dynamic = answers.config === "dynamic";
-    // 0.1.5 的 installSection 注册式动态配置在 0.1.7 已移除:Config schema 由宿主
-    // 原生投影成表单(SettingsForms),编辑保存后宿主以新配置重跑 apply。故 next 轨
-    // 的 dynamic 退化为与 static 相同的入口形态(注释里说明热更新来源)。
-    const legacyDynamic = dynamic && manifest.target === "latest";
     const lines: string[] = [];
 
     lines.push(`// ${answers.pkgName} — 插件入口(由 dshp 生成)。`);
@@ -49,26 +45,17 @@ export function generateHostIndex(
     if (answers.config !== "none") {
         lines.push("import z from '@deepseek-ai/schemastery'");
     }
-    if (legacyDynamic) {
-        lines.push(
-            "import type {} from '@deepseek-ai/dsh-settings' // ctx.settings 的类型来源(动态配置)",
-        );
-    }
     for (const imp of index.imports) lines.push(imp);
 
     lines.push("");
     lines.push("// 插件名:Cordis 注册名(loader 诊断与其他插件引用用)");
     lines.push(`export const name = '${answers.pluginId}'`);
 
-    if (index.injects.length > 0 || legacyDynamic) {
-        // 动态配置要用 ctx.settings,inject 并入 settings(加载顺序)
-        const injects = legacyDynamic
-            ? [...index.injects, "settings"]
-            : index.injects;
+    if (index.injects.length > 0) {
         lines.push("");
         lines.push("// 要求就绪的服务(决定加载顺序)");
         lines.push(
-            `export const inject = [${injects.map((s) => `'${s}'`).join(", ")}]`,
+            `export const inject = [${index.injects.map((s) => `'${s}'`).join(", ")}]`,
         );
     }
 
@@ -99,34 +86,28 @@ export function generateHostIndex(
         if (answers.config !== "none")
             lines.push("    void config // TODO: 把配置接进你的实现");
     }
-    if (legacyDynamic) {
-        lines.push(
-            "    // 动态配置:注册 settings section;部署侧 provider(dsh-settings-file)变更时热更新",
-        );
-        lines.push("    let getSource: () => Config = () => config");
-        lines.push(
-            "    ctx.settings.installSection(ctx, '" +
-                answers.pluginId +
-                "', Config, config, {",
-        );
-        lines.push("        setSource: (source) => {");
-        lines.push("            getSource = source");
-        lines.push("        },");
-        lines.push("        onChange: () => {");
-        lines.push("            const current = getSource()");
-        lines.push(
-            "            void current // TODO: 响应配置变化(如热更新 API key)",
-        );
-        lines.push("        },");
-        lines.push("    })");
-    } else if (dynamic) {
-        lines.push(
-            "    // 动态配置(0.1.7):Config schema 由宿主原生投影成设置页表单,",
-        );
-        lines.push(
-            "    // 编辑保存后宿主以新配置重跑 apply——在 apply 里消费 config 即热更新。",
-        );
-        lines.push("    void config // TODO: 把配置接进你的实现");
+    if (dynamic) {
+        // 动态配置的入口形态按轨分叉(轨名是稳定容器,晋升只换内容):
+        // 两臂当前逐行相同,官方变更配置注入契约时只把落后的那臂改回它需要的形态
+        if (manifest.target === "latest") {
+            lines.push(
+                "    // 动态配置:Config schema 由宿主原生投影成设置页表单,",
+            );
+            lines.push(
+                "    // 编辑保存后宿主以新配置重跑 apply——在 apply 里消费 config 即热更新。",
+            );
+        } else if (manifest.target === "next") {
+            lines.push(
+                "    // 动态配置:Config schema 由宿主原生投影成设置页表单,",
+            );
+            lines.push(
+                "    // 编辑保存后宿主以新配置重跑 apply——在 apply 里消费 config 即热更新。",
+            );
+        }
+        if (index.calls.length === 0) {
+            // 无能力拼装行时上面的 void config 未出现,这里补一句免配置悬空
+            lines.push("    void config // TODO: 把配置接进你的实现");
+        }
     }
     lines.push("}");
     return lines.join("\n") + "\n";

@@ -23,7 +23,8 @@ export const EVENT_DOMAINS = [
         desc: () => t("domain.events.agent.desc"),
         pkgs: ["@deepseek-ai/dsh-agent", "@deepseek-ai/dsh-agent-loop"],
         events: [
-            { id: "agent/session-start", mode: "emit" },
+            { id: "agent/created", mode: "serial" },
+            { id: "agent/disposed", mode: "emit" },
             { id: "agent/pre-step", mode: "waterfall" },
             { id: "agent/request", mode: "waterfall" },
             { id: "agent/request-error", mode: "waterfall" },
@@ -66,11 +67,8 @@ export const EVENT_DOMAINS = [
         id: "settings",
         label: () => t("domain.events.settings.label"),
         desc: () => t("domain.events.settings.desc"),
-        pkgs: ["@deepseek-ai/dsh-settings", "@deepseek-ai/dsh-settings-file"],
-        events: [
-            { id: "settings/updated", mode: "emit" },
-            { id: "settings/document-updated", mode: "emit" },
-        ],
+        pkgs: ["@deepseek-ai/dsh-settings"],
+        events: [{ id: "settings/document-updated", mode: "emit" }],
     },
 ] as const satisfies readonly {
     id: string;

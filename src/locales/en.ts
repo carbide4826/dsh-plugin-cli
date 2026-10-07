@@ -188,7 +188,7 @@ Language:
         },
         events: {
             tools: { label: "Tool execution", desc: "Intercept, transform and observe tool execution: gates, audit, metrics" },
-            agent: { label: "Agent lifecycle", desc: "Agent loop hooks: session start, pre-step, request, turn stop, errors" },
+            agent: { label: "Agent lifecycle", desc: "Agent loop hooks: create, dispose, pre-step, request, turn stop, errors" },
             session: { label: "Session events", desc: "Session creation, disposal and event subscription" },
             approval: { label: "Approval flow", desc: "Approval request waterfall: custom approval UI, audit trail" },
             fs: { label: "File watching", desc: "File system changes (auto-format / sync style plugins)" },

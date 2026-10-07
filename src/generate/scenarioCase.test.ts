@@ -223,10 +223,22 @@ describe("copyScenarioCase 拷贝与身份重写", () => {
             if (nx.dependencies?.["@deepseek-ai/schemastery"]) {
                 expect(nx.dependencies["@deepseek-ai/schemastery"]).toBe(NEXT_MANIFEST.schemasteryVersion);
             }
-            // 两轨产物必须不同(渲染确实消费了轨 manifest,不是同一份拷贝)
-            expect(nx.peerDependencies?.["@deepseek-ai/dsh-tools"]).not.toBe(
-                lt.peerDependencies?.["@deepseek-ai/dsh-tools"],
-            );
+            // 「按入参取值」用合成 manifest 探针证明,不用「两轨产物互异」当判据:
+            // 互异只在两轨分叉的那段日子里成立(追平瞬时态会假红,且抓不到「两轨都取错同一常量」),
+            // 探针给一对刻意改写的版本喂进去,同版/分叉两态都成立
+            const probe = mkdtempSync(join(tmpdir(), "dshp-case-pb-"));
+            try {
+                copyScenarioCase("quick-tool", probe, "dual-demo", {
+                    ...NEXT_MANIFEST,
+                    version: "9.9.9-rc.1",
+                    cordisPeer: "~9.9.9",
+                });
+                const pb = readPkg(probe);
+                expect(pb.peerDependencies?.["@deepseek-ai/dsh-tools"]).toBe("9.9.9-rc.1");
+                expect(pb.peerDependencies?.["@deepseek-ai/cordis"]).toBe("~9.9.9");
+            } finally {
+                rmSync(probe, { recursive: true, force: true });
+            }
         } finally {
             rmSync(latest, { recursive: true, force: true });
             rmSync(next, { recursive: true, force: true });

@@ -88,12 +88,10 @@ export function collectDeps(answers: Answers, manifest: TrackManifest): DepBucke
         for (const pkg of SEAM_FRAGMENT_DEPS[seamId] ?? []) peer.add(pkg);
     }
 
-    // 配置方式:静态起装 schemastery;动态再加 settings 服务
+    // 配置方式:两轨一致只装 schemastery(Config schema 由宿主原生投影成表单,
+    // 插件侧不再依赖 settings 服务;settings 服务只在勾选 settings 事件域时进 peer)
     if (answers.config !== "none") {
         deps.add("@deepseek-ai/schemastery");
-    }
-    if (answers.config === "dynamic") {
-        peer.add("@deepseek-ai/dsh-settings");
     }
 
     //  去重收尾:Set → 排序数组(输出稳定,便于 diff 与测试断言)

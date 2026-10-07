@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import type { Answers } from "../domain/types";
 import { collectDeps } from "../domain/deps";
-import { LATEST_MANIFEST } from "../domain/manifests";
+import { LATEST_MANIFEST, NEXT_MANIFEST } from "../domain/manifests";
 import { generatePackageJson } from "./packageJson";
 import { generateCordisPatch, generateDevPatch } from "./patches";
 import { generateHostIndex } from "./indexTs";
@@ -107,14 +107,21 @@ describe("generateHostIndex", () => {
         expect(stat).toContain("export function apply(ctx: Context, config: Config): void {");
     });
 
-    it("dynamic:inject 并入 settings + installSection 接线", () => {
-        const dyn = generateHostIndex(
-            { ...base, config: "dynamic" },
-            { injects: ["tools"], imports: [], calls: ["registerTool(ctx)"] },
-            LATEST_MANIFEST,
-        );
-        expect(dyn).toContain("export const inject = ['tools', 'settings']");
-        expect(dyn).toContain("ctx.settings.installSection(ctx, 'demo', Config, config, {");
+    it("dynamic:两轨各自成臂,当前产出都不含 installSection", () => {
+        // 入口形态的分叉接缝按轨保留(晋升只改落后的那臂);这里逐轨核对自己 manifest 的契约:
+        // 两轨现钉的宿主都已删除 installSection,且 settings 不是动态配置的运行时依赖。
+        for (const manifest of [LATEST_MANIFEST, NEXT_MANIFEST]) {
+            const dyn = generateHostIndex(
+                { ...base, config: "dynamic" },
+                { injects: ["tools"], imports: [], calls: ["registerTool(ctx)"] },
+                manifest,
+            );
+            expect(dyn, `${manifest.target} 轨入口`).not.toContain("installSection");
+            expect(dyn, `${manifest.target} 轨入口`).toContain("export const inject = ['tools']");
+            expect(dyn, `${manifest.target} 轨入口`).toContain("export function apply(ctx: Context, config: Config): void {");
+            expect(dyn, `${manifest.target} 轨入口`).toContain("Config schema 由宿主原生投影成设置页表单");
+            expect(dyn.match(/void config/g), `${manifest.target} 轨入口`).toHaveLength(1);
+        }
     });
 });
 
