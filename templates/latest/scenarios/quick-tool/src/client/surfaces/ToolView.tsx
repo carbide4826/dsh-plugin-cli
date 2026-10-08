@@ -19,7 +19,7 @@ export const ToolView = memo(function ToolView(props: ToolCallViewProps) {
     return (
         <div className={styles.card}>
             <div className={styles.title}>
-                {running ? '⏳ count_chars 统计中…' : failed ? '❌ count_chars 失败' : '✅ count_chars'}
+                {running ? `⏳ ${props.toolName} 统计中…` : failed ? `❌ ${props.toolName} 失败` : `✅ ${props.toolName}`}
             </div>
             {text !== null && <div className={styles.result}>{text}</div>}
         </div>
