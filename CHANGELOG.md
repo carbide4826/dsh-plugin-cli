@@ -5,6 +5,30 @@
 
 中文 · [English](https://github.com/carbide4826/dsh-plugin-cli/blob/main/CHANGELOG.en.md)
 
+## [0.1.9] - 2026-10-08
+
+### 新增
+
+- 界面位依赖护栏:勾选界面位时校验其依赖原子——要 `tool-view` 却没勾 `tool` 会在问卷里报错并重问,不再生成注册键为空的哑界面。
+- 占位符漂移护栏:模板素材里的占位符在变量表里取不到值时,生成当场报错并列出「文件 · 键」,不再把残留的花括号落进生成项目。
+
+### 变更
+
+- 精选案例素材的 package.json 补进包白名单 `files`(`dist` / `icon.svg` / `locale` / `cordis.patch.yml`),与预设管线的产出同值;此前没有该字段,npm 会回落到 `.gitignore` 黑名单,发布物有缺 `dist` 的风险。
+- 交互问卷的「目标轨」一步把 `--target` 作为初值:显式给了 `--target next` 再回车即锁定 next,不再静默回落 latest。
+- 交互路径「目录已存在」的退出码由 0 改为 1,与非交互路径一致;用户主动中止仍为 0。
+- quick-tool 案例结果卡片标题里的工具名改由宿主 props 提供,案例内工具名收敛到 `src/tool.ts` 一处定义。
+- protocol 原子的端口注释改为面向插件作者的改造提示(想让端口可配置就声明 `Config` 字段并从配置读端口)。
+
+### 修复
+
+- canary 前瞻:修掉探针里 Node 片段的语法错误(该步骤此前每轮必然中止),并在 manifest 版本号或 npm `dist-tags.latest` 取空时立即失败,不再让空串流进后续替换。
+- 依赖清单核对补齐 `@deepseek-ai/dsh-client-ui-settings`(模板槽型引用的转手包),已知宿主包集合覆盖到真实引用面。
+
+### 其他
+
+- publish 工作流移除未使用的 `id-token` 权限(发布走仓库密钥 `NPM_TOKEN` 认证,未启用 provenance)。
+
 ## [0.1.8] - 2026-10-07
 
 ### 变更

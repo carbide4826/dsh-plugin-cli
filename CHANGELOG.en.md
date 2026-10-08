@@ -5,6 +5,30 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
 
 [中文](https://github.com/carbide4826/dsh-plugin-cli/blob/main/CHANGELOG.md) · English
 
+## [0.1.9] - 2026-10-08
+
+### Added
+
+- Surface dependency guard: picking a UI surface now validates the atoms it needs — choosing `tool-view` without `tool` reports and re-asks in the questionnaire instead of generating a surface registered under an empty key.
+- Placeholder drift guard: a template token the variable table cannot resolve fails generation immediately and lists "file · key", so leftover braces no longer land in generated projects.
+
+### Changed
+
+- Curated case manifests gained the `files` allow-list (`dist` / `icon.svg` / `locale` / `cordis.patch.yml`), matching what the preset pipeline emits; without it npm fell back to the `.gitignore` blacklist and a published plugin risked shipping no `dist`.
+- The interactive "target track" step uses `--target` as its initial value: passing `--target next` and pressing Enter locks the next track instead of silently falling back to latest.
+- The interactive "directory already exists" outcome now exits with code 1, matching the non-interactive path; a deliberate user abort still exits 0.
+- The quick-tool case reads its result-card title from the host's tool-name prop, collapsing the tool name to a single definition in `src/tool.ts`.
+- The protocol atom's port comment now speaks to the plugin author (declare a `Config` field and read the port from it if you want it configurable).
+
+### Fixed
+
+- Canary probe: fixed the syntax error in the inline Node snippet (the step failed every run) and made the job exit when the manifest version or npm `dist-tags.latest` resolves empty, so an empty string can no longer reach the later substitution.
+- The dependency audit covers `@deepseek-ai/dsh-client-ui-settings` (the package that hands over the slot types), so the known host package set matches what templates actually reference.
+
+### Internal
+
+- The publish workflow drops the unused `id-token` permission (release authentication runs on the `NPM_TOKEN` repository secret; provenance is not enabled).
+
 ## [0.1.8] - 2026-10-07
 
 ### Changed
