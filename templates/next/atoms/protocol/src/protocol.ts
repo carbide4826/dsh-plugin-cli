@@ -6,7 +6,7 @@ import { brandString } from '@deepseek-ai/dsh-brand'
 import { boundContextSummary, createUserMessage } from '@deepseek-ai/dsh-llm'
 import type { SessionId } from '@deepseek-ai/dsh-session'
 
-// TODO: 移到 Config(Schemastery),不要硬编码端口
+// 起手端口写死 8787;想让端口可配置就声明 Config(schemastery)字段并从配置读端口(案例 webhook-bridge 同款)
 const PORT = 8787
 
 /**
