@@ -239,9 +239,10 @@ program
         const pluginId = await askPluginId(dirName); // 插件 id 默认与目录名联动,回车即用
 
         // 目标版本轴:配套哪一代 dsh 宿主(latest 保守跟随;next 积极跟随)
+        // --target 在交互路径同样生效:作为选项初值(非法值已在上面报错退出),回车即锁定该轨
         const pickedTrack = await p.select({
             message: t("cli.targetMessage"),
-            initialValue: "latest",
+            initialValue: options.target ?? "latest",
             options: [
                 { value: "latest", label: `latest · dsh ${getTrackManifest("latest").version}`, hint: t("cli.targetLatestHint") },
                 { value: "next", label: `next · dsh ${getTrackManifest("next").version}`, hint: t("cli.targetNextHint") },
@@ -283,6 +284,7 @@ program
             const targetDir = resolve(process.cwd(), dirName);
             if (dirName !== "." && existsSync(targetDir)) {
                 p.cancel(t("cli.dirExists", { dir: targetDir }));
+                process.exitCode = 1; // 目录被占用是失败态(区别于用户主动中止),与非交互路径同码
                 return;
             }
             const files = copyScenarioCase(selected, targetDir, pluginId, track, {
@@ -329,6 +331,7 @@ program
         const targetDir = resolve(process.cwd(), answers.dirName);
         if (answers.dirName !== "." && existsSync(targetDir)) {
             p.cancel(t("cli.dirExists", { dir: targetDir }));
+            process.exitCode = 1; // 同上:目录被占用是失败态,与非交互路径同码
             return;
         }
 
