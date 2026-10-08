@@ -33,7 +33,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
 
 ### Internal
 
-- Releases now publish via GitHub Actions trusted publishing — push a `v*` tag and CI builds and publishes (OIDC, no token); added the repository field to package.json.
+- Releases now publish from GitHub Actions — push a `v*` tag and CI builds and publishes (authenticated with the `NPM_TOKEN` repository secret); added the repository field to package.json.
 
 ## [0.1.5] - 2026-09-29
 

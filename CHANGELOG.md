@@ -7,12 +7,12 @@
 
 ## [0.1.8] - 2026-10-07
 
-### Changed
+### 变更
 
 - latest 轨追平 dsh `0.2.0-rc.2`,与 next 轨同版;模板依赖与案例素材的配套版本随之统一。
 - 动态配置的入口仍按轨分叉生成(latest / next 两臂),两臂当前产出一致。
 
-### Fixed
+### 修复
 
 - 动态配置的入口不再生成宿主已移除的 `ctx.settings.installSection` 接线,也不再声明 `settings` 就绪与 `@deepseek-ai/dsh-settings` peer。
 - `settings` 事件域的 peer 清单移除上游已删除的 `@deepseek-ai/dsh-settings-file`(生成项目安装依赖时报 404)。
@@ -21,19 +21,19 @@
 
 ## [0.1.7] - 2026-09-30
 
-### Changed
+### 变更
 
 - 双轨晋升:latest 轨对齐 dsh `0.1.7-rc.2`(原 next 树转正),next 轨对齐 dsh `0.2.0-rc.2`;两轨的 settings 卡片均为「插件页签」形态,cordis / schemastery 配套两轨相同(`~4.0.4` / `~3.18.4`)。
 
-### Fixed
+### 修复
 
 - 修复 `ui` 预设生成的项目 typecheck 报错(TS2322):配置示例的 volatile 字段与保留的 `z<Config>` 类型注解冲突,已移除该注解。
 
 ## [0.1.6] - 2026-09-29
 
-### Internal
+### 其他
 
-- 发布改为 GitHub Actions 可信发布:推送 `v*` tag 自动构建并发包(OIDC 免令牌);package.json 补充仓库地址。
+- 发布改为 GitHub Actions 自动发布:推送 `v*` tag 自动构建并发包(仓库密钥配置 `NPM_TOKEN` 鉴权);package.json 补充仓库地址。
 
 ## [0.1.5] - 2026-09-29
 
