@@ -8,8 +8,7 @@ on:
     tags: ["v*"]
 
 permissions:
-  contents: read
-  id-token: write # 可信发布:npm publish --provenance 经 OIDC 验证发布来源,无需 NPM_TOKEN
+  contents: read # 发布用仓库密钥 NPM_TOKEN 认证,不走 OIDC 可信发布(未启用 --provenance)
 
 jobs:
   publish:
