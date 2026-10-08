@@ -32,6 +32,7 @@
     "./client": "./dist/client.js",
     "./cordis.patch.yml": "./cordis.patch.yml"
   },
+  "files": ["dist", "icon.svg", "locale", "cordis.patch.yml"],
   "dependencies": {},
   "peerDependencies": {
     "@deepseek-ai/cordis": "__CORDIS_VERSION__",

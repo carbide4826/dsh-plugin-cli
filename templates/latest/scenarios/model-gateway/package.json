@@ -34,6 +34,7 @@
     "./client": "./dist/client.js",
     "./cordis.patch.yml": "./cordis.patch.yml"
   },
+  "files": ["dist", "icon.svg", "locale", "cordis.patch.yml"],
   "dependencies": {
     "@deepseek-ai/schemastery": "__SCHEMASTERY_VERSION__"
   },
