@@ -5,7 +5,7 @@ import type { Answers, AtomId } from "../domain/types";
 import { ATOMS } from "../domain/atoms";
 import { SEAMS } from "../domain/seams";
 import { EVENT_DOMAINS } from "../domain/events";
-import { UI_SURFACES } from "../domain/uiSurfaces";
+import { UI_SURFACES, unsatisfiedSurfaces } from "../domain/uiSurfaces";
 import { unwrap, link } from "../utils/prompt";
 import { t } from "../locales";
 
@@ -95,21 +95,31 @@ export async function askCapabilities(): Promise<CapabilityResult> {
             eventDomains = [];
         }
 
-        // 勾了 UI → 界面位多选
+        // 勾了 UI → 界面位多选(依赖未满足就重问:缺原子的界面位会生成空注册键的哑界面)
         if (atoms.includes("ui")) {
-            uiSurfaces = unwrap(
-                await p.multiselect({
-                    message: t("prompts.capabilities.uiMessage", {
-                        link: link(UI_DOC, t("prompts.capabilities.uiLink")),
+            for (;;) {
+                uiSurfaces = unwrap(
+                    await p.multiselect({
+                        message: t("prompts.capabilities.uiMessage", {
+                            link: link(UI_DOC, t("prompts.capabilities.uiLink")),
+                        }),
+                        options: UI_SURFACES.map((s) => ({
+                            value: s.id,
+                            label: s.label(),
+                            hint: s.desc(),
+                        })),
+                        initialValues: uiSurfaces,
                     }),
-                    options: UI_SURFACES.map((s) => ({
-                        value: s.id,
-                        label: s.label(),
-                        hint: s.desc(),
-                    })),
-                    initialValues: uiSurfaces,
-                }),
-            ) as string[];
+                ) as string[];
+                const blocking = unsatisfiedSurfaces(uiSurfaces, atoms);
+                if (blocking.length === 0) break;
+                p.log.error(
+                    t("prompts.capabilities.uiRequiresError", {
+                        surfaces: blocking.map((s) => s.id).join(", "),
+                        atoms: [...new Set(blocking.flatMap((s) => s.requires))].join(", "),
+                    }),
+                );
+            }
         } else {
             uiSurfaces = [];
         }

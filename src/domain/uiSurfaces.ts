@@ -1,5 +1,6 @@
 // UI surface 清单(界面位 → Owner 包 + 槽位 key;label/desc 惰性求值,见 domain/atoms.ts 同款注释)
 import { t } from "../locales";
+import type { AtomId } from "./types";
 
 export const UI_SURFACES = [
     {
@@ -55,3 +56,33 @@ export const UI_SURFACES = [
 }[];
 
 export type UISurfaceId = (typeof UI_SURFACES)[number]["id"];
+
+// 界面位 → 必须同勾的原子(缺了就没有可挂的注册键,生成出静默不渲染的哑界面)。
+// satisfies 全键约束:新增界面位必须在这里登记依赖(没有就填空数组)
+const SURFACE_REQUIRES = {
+    "settings-card": [],
+    "chat-node": [],
+    "input-dock": [],
+    sidebar: [],
+    "tool-view": ["tool"],
+    "session-header": [],
+} as const satisfies Record<UISurfaceId, readonly AtomId[]>;
+
+/**
+ * 找出「已勾界面位里依赖未满足」的条目(界面位 requires 声明的原子必须同勾)。
+ * @param picked - 已勾界面位 id
+ * @param atoms - 已勾原子 id
+ * @returns 依赖未满足的界面位 id 与其缺失的原子
+ */
+export function unsatisfiedSurfaces(
+    picked: readonly string[],
+    atoms: readonly AtomId[],
+): { id: string; requires: readonly AtomId[] }[] {
+    return (Object.entries(SURFACE_REQUIRES) as [string, readonly AtomId[]][])
+        .filter(([id, requires]) => picked.includes(id))
+        .map(([id, requires]) => ({
+            id,
+            requires: requires.filter((a) => !atoms.includes(a)),
+        }))
+        .filter((x) => x.requires.length > 0);
+}

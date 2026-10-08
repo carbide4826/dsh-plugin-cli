@@ -106,6 +106,8 @@ Language:
             uiMessage:
                 "UI surfaces (owner packages and slots are handled by templates; for slots beyond this list see {link}, custom sub-slots allowed)",
             uiLink: "ui-slots docs",
+            uiRequiresError:
+                "Surface(s) {surfaces} need atom {atoms} to have a registration key (tick {atoms}, or drop the surface)",
             serviceMessage:
                 "Service: create a new one, or extend a common capability seam (multi-select; full list see {link})",
             serviceLink: "capability-seams overview",
@@ -248,5 +250,7 @@ Language:
         config: "--config only supports: {values}",
         configNone:
             "preset {id} includes settings-card; --config none is unavailable (a settings card must have config to show)",
+        unresolvedPlaceholder:
+            "template placeholders have no matching variable — material and generator drifted: {list}",
     },
 } as const satisfies Dict;

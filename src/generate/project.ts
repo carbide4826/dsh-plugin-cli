@@ -6,7 +6,7 @@ import type { Answers } from "../domain/types";
 import type { TrackManifest, TrackTarget } from "../domain/manifests";
 import { collectDeps } from "../domain/deps";
 import { planGeneration } from "../atoms";
-import { renderString, writeFile, type Vars } from "../render/render";
+import { renderString, writeFile, findUnresolved, type Vars } from "../render/render";
 import { t, getLang } from "../locales";
 import { buildVars } from "./vars";
 import { generatePackageJson } from "./packageJson";
@@ -77,17 +77,21 @@ export function writeProject(
     const vars: Vars = buildVars(answers, plan.readmeStructure.join("\n"), manifest);
     const root = templatesRoot(manifest.target);
 
+    // 未被变量表覆盖的占位符=素材与本生成器漂移,落盘就是废代码,直接中止
+    const unresolved = new Set<string>();
+    const renderTemplate = (source: string, dest: string): string => {
+        const raw = readTemplate(source);
+        for (const key of findUnresolved(raw, vars)) unresolved.add(`${dest} · {{${key}}}`);
+        return renderString(raw, vars);
+    };
+
     // base 模板(tsconfig / README / _gitignore→.gitignore / tsdown)
     // README 按生成时刻的语言选素材(en 版素材名 README.en.md),落盘名恒为 README.md(生成物单语言)
     const readmeSource = getLang() === "en" ? "README.en.md" : "README.md";
     for (const source of BASE_FILES) {
         const dest = destName(source);
         const src = source === "README.md" ? readmeSource : source;
-        writeFile(
-            targetDir,
-            dest,
-            renderString(readTemplate(join(root, src)), vars),
-        );
+        writeFile(targetDir, dest, renderTemplate(join(root, src), dest));
         written.push(dest);
     }
 
@@ -96,7 +100,7 @@ export function writeProject(
         writeFile(
             targetDir,
             c.to,
-            renderString(readTemplate(join(root, "atoms", c.from)), vars),
+            renderTemplate(join(root, "atoms", c.from), c.to),
         );
         written.push(c.to);
     }
@@ -125,6 +129,10 @@ export function writeProject(
     for (const agg of plan.aggregates) {
         writeFile(targetDir, agg.file, generateAggregator(agg));
         written.push(agg.file);
+    }
+
+    if (unresolved.size > 0) {
+        throw new Error(t("errors.unresolvedPlaceholder", { list: [...unresolved].join("; ") }));
     }
 
     return written;

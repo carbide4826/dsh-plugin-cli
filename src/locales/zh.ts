@@ -103,6 +103,8 @@ export const zh = {
             uiMessage:
                 "界面位 UI surfaces(Owner 包与槽位由模板处理;清单外槽位见 {link},可自行声明子槽)",
             uiLink: "ui-slots 文档",
+            uiRequiresError:
+                "界面位 {surfaces} 要配原子 {atoms} 才有注册名(补勾 {atoms},或取消该界面位)",
             serviceMessage:
                 "服务 Service:新建,或扩展常用能力缝 Seam(可多选,清单外见 {link})",
             serviceLink: "capability-seams 全景",
@@ -165,9 +167,9 @@ export const zh = {
         atoms: {
             tool: { label: "工具", desc: "给模型加可调用工具" },
             events: { label: "事件", desc: "拦截和响应:权限门、审计、事件流" },
-            service: { label: "服务", desc: "新建服务,或者扩展常用能力seam" },
-            ui: { label: "UI 界面", desc: "往web界面新增面板/卡片 调整视图层" },
-            protocol: { label: "协议驱动", desc: "把外部程序/协议桥接进DSH" },
+            service: { label: "服务", desc: "新建服务,或者扩展常用能力 seam" },
+            ui: { label: "UI 界面", desc: "往 web 界面新增面板/卡片 调整视图层" },
+            protocol: { label: "协议驱动", desc: "把外部程序/协议桥接进 DSH" },
         },
         seams: {
             llm: { label: "模型接入(llm)", desc: "注册 LLM 适配器,接入新的模型/供应商" },
@@ -245,5 +247,7 @@ export const zh = {
         config: "--config 仅支持:{values}",
         configNone:
             "场景 {id} 含 settings-card,--config none 不可用(设置卡片必须有配置可展示)",
+        unresolvedPlaceholder:
+            "模板占位符没有对应变量,素材与生成器已漂移:{list}",
     },
 } as const;

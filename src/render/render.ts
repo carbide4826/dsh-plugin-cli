@@ -42,6 +42,19 @@ export function renderString(content: string, vars: Vars): string {
     return content.replace(/\{\{([A-Z0-9_]+)\}\}/g, (whole, key: string) => vars[key] ?? whole);
 }
 
+/**
+ * 找出内容里变量表覆盖不到的占位符键(渲染素材与 buildVars 漂移的信号)。
+ * @param content - 模板原文(渲染前)
+ * @param vars - 占位符变量表
+ * @returns 未覆盖的占位符键(按出现顺序,不去重)
+ */
+export function findUnresolved(content: string, vars: Vars): string[] {
+    const tokens = content.match(/\{\{[A-Z0-9_]+\}\}/g) ?? [];
+    return tokens
+        .map((token) => token.slice(2, -2))
+        .filter((key) => vars[key] === undefined);
+}
+
 /** 判断文件是否需要做内容替换(非二进制才替换) */
 function isTextFile(path: string): boolean {
     const dot = path.lastIndexOf(".");
