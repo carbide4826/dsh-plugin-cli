@@ -43,6 +43,8 @@ const declared = new Set<string>([
     // ui 原子的公共 peer(collectDeps 内联)
     "@deepseek-ai/dsh-client-ui-slots",
     "@deepseek-ai/dsh-client-ui-renderer",
+    // settings-card 的槽型声明包(collectDeps 内联,非界面位 pkg)
+    "@deepseek-ai/dsh-client-ui-settings",
 ]);
 
 /** 我们引用的全部 @deepseek-ai/dsh-* 子包(排序输出,便于 diff;两轨引用面相同) */
