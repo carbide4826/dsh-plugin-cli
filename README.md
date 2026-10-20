@@ -172,6 +172,25 @@ my-plugin/                  ← 项目目录 = 你填的目录名
 >
 > 宿主命令行参数可多可杂?`docs/dsh-command-builder.html` 是可视化组装器:浏览器直接打开,点选、增删 flag,拼出完整命令后复制运行。
 
+## Agent skill
+
+本包随附一份 agent skill(`skills/dshp/`),教 agent 用 dshp 生成 dsh 插件工程:选生成入口(预设 / 精选案例 / 自由原子组合)、定轨、验证三步、宿主联调,并把一批只踩一次就会记住的坑写进去 —— approve-builds 放行、cordis 双实例、typecheck 假绿、界面位必须 `build` + `plugin add` 才渲染。
+
+skill 随 npm 包一起发布。取出来放进你的 agent 的 skill 目录即可(目录名各 agent 不同,常见是 `~/.claude/skills/` 或 `~/.minimax/skills/`):
+
+```sh
+npm pack create-dsh-plugin-cli          # 取包
+tar -xzf create-dsh-plugin-cli-*.tgz package/skills/dshp
+cp -r package/skills/dshp ~/.minimax/skills/dshp
+```
+
+skill 里附带一个驱动脚本,把交互问卷固化成一条命令 —— 自由原子组合(任意勾选原子 / 事件域 / 界面位 / 缝)在 CLI 上只有交互问卷能表达,这个脚本把它变成可脚本化调用,产出**纯生成器产物**(零手改):
+
+```sh
+node skills/dshp/scripts/drive-questionnaire.mjs --dir my-orders --target next \
+  --atoms tool,ui --surfaces settings-card --tool-name query_orders
+```
+
 ## 版本说明
 
 **轨道与配套**(生成时以 `--target` 选择,默认 latest;官方 npm 的 latest / next 现同为 `0.2.0-rc.2`,本 CLI 两轨均已配套该版本):
@@ -202,7 +221,7 @@ dsh plugin --profile web allow-version <插件名>@<插件版本> --dsh-version 
 - 随 dsh 版本调整持续更新适配 —— 版本统一管理,升级跟随官方版本线 ✅
 - `--template` 自定义模板源:支持 local path / git URL / npm 包
 - 本地化(多语言支持)—— 0.1.1 已交付:`--lang zh|en` 双语界面,生成项目 README 按语言单份交付 ✅
-- 支持 agent 工具识别与调用,规划做成 skill 或 MCP 形态
+- 支持 agent 工具识别与调用 —— skill 形态已交付(随包发布 `skills/dshp/`);MCP 形态待立项
 - 双轨模板(0.1.5):latest / next 两套模板各配一代宿主(`--target` 选择);依赖精确钉官方元包配套版本;生成项目自带插件图标与双语清单元信息 ✅(现态:两轨同钉 `0.2.0-rc.2`,代际差只在晋升后出现)
 
 ## License

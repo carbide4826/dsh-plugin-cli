@@ -5,6 +5,12 @@
 
 中文 · [English](https://github.com/carbide4826/dsh-plugin-cli/blob/main/CHANGELOG.en.md)
 
+## [Unreleased]
+
+### 新增
+
+- Agent skill:仓内新增 `skills/dshp/`,随 npm 包一起发布。教 agent 用 dshp 生成 dsh 插件工程:选生成入口(预设 / 精选案例 / 自由组合的边界)、定轨、验证三步、宿主联调,并沉淀了一批只踩一次就会记住的坑(approve-builds 放行、cordis 双实例、typecheck 假绿、界面位必须 build + plugin add 才渲染)。
+
 ## [0.1.9] - 2026-10-08
 
 ### 新增

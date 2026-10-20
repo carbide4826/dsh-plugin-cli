@@ -29,6 +29,7 @@
   "files": [
     "dist",
     "templates",
+    "skills",
     "docs/dsh-command-builder.html"
   ],
   "engines": {

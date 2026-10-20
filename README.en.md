@@ -174,6 +174,25 @@ my-plugin/                  ← project dir = the directory name you entered
 >
 > Host CLI flags confusing? `docs/dsh-command-builder.html` is a visual assembler: open it in a browser, click flags on and off, copy the assembled command.
 
+## Agent skill
+
+This package ships an agent skill (`skills/dshp/`) that teaches an agent how to scaffold a dsh plugin project with dshp: picking an entry point (preset / curated case / free atom combination), choosing a track, the three verification steps, host integration — and it records the pitfalls that are expensive to rediscover (approve-builds, the cordis double instance, typecheck going green on missing types, UI surfaces only rendering after `build` + `plugin add`).
+
+The skill ships with the npm package. Unpack it into your agent's skill directory (the directory name differs per agent; common ones are `~/.claude/skills/` or `~/.minimax/skills/`):
+
+```sh
+npm pack create-dsh-plugin-cli          # fetch the package
+tar -xzf create-dsh-plugin-cli-*.tgz package/skills/dshp
+cp -r package/skills/dshp ~/.minimax/skills/dshp
+```
+
+The skill bundles a driver script that turns the interactive questionnaire into a single command — free atom combinations (any mix of atoms / event domains / UI surfaces / seams) are only expressible through the interactive questionnaire on the CLI, and this script makes them scriptable, producing a **pure generator artifact** (no hand-editing):
+
+```sh
+node skills/dshp/scripts/drive-questionnaire.mjs --dir my-orders --target next \
+  --atoms tool,ui --surfaces settings-card --tool-name query_orders
+```
+
 ## Version notes
 
 **Tracks and pairing** (chosen at generation time via `--target`, default latest; the official npm latest and next tags are both `0.2.0-rc.2`, and both of our tracks pair that version):
@@ -204,7 +223,7 @@ Full release notes for every version live in [CHANGELOG.en.md](https://github.co
 - Keep tracking dsh version bumps — versions are managed uniformly and follow the official dsh line ✅
 - `--template` custom sources: local path / git URL / npm package
 - Localization — delivered in 0.1.1: bilingual UI via `--lang zh|en`, per-language README in generated projects ✅
-- Agent tool recognition and invocation, planned as a skill or MCP form
+- Agent tool recognition and invocation — the skill form is delivered (ships as `skills/dshp/` with the package); the MCP form is still to be scoped
 - Dual-track templates (0.1.5): latest / next trees each pairing one host generation (choose via `--target`); dependencies pinned exactly to the official meta-package pairing; generated projects ship a plugin icon and bilingual inventory metadata ✅ (current state: both tracks pin `0.2.0-rc.2`; a generation gap only appears after promotion)
 
 ## License

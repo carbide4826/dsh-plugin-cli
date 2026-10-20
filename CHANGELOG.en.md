@@ -5,6 +5,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
 
 [中文](https://github.com/carbide4826/dsh-plugin-cli/blob/main/CHANGELOG.md) · English
 
+## [Unreleased]
+
+### Added
+
+- Agent skill: the repository now ships `skills/dshp/` with the npm package. It teaches an agent how to scaffold a dsh plugin project with dshp — picking an entry point (preset / curated case / where the free-combination boundary lies), choosing a track, the three verification steps, host integration — and records the pitfalls that are expensive to rediscover (approve-builds, the cordis double instance, typecheck going green on missing types, UI surfaces only rendering after `build` + `plugin add`).
+
 ## [0.1.9] - 2026-10-08
 
 ### Added
