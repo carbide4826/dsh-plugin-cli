@@ -7,6 +7,10 @@
 
 ## [Unreleased]
 
+### 变更
+
+- 双轨跟随上游 dsh `0.2.1-rc.2`:官方 npm 的 latest / next 已同收编到该版本(registry 序列差值 7),latest 轨随之追平,两轨同钉 `0.2.1-rc.2`;配套版本按官方元包声明同步(cordis `~4.0.5` / schemastery `~3.18.5`)。模板零改动 —— 素材一律走版本占位符,引用到的 31 个 dsh 子包在新版全部存在,槽位键/事件名/工具调用块形状等契约复核全通。
+
 ### 新增
 
 - Agent skill:仓内新增 `skills/dshp/`,随 npm 包一起发布。教 agent 用 dshp 生成 dsh 插件工程:选生成入口(预设 / 精选案例 / 自由组合的边界)、定轨、验证三步、宿主联调,并沉淀了一批只踩一次就会记住的坑(approve-builds 放行、cordis 双实例、typecheck 假绿、界面位必须 build + plugin add 才渲染)。

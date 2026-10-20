@@ -7,6 +7,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
 
 ## [Unreleased]
 
+### Changed
+
+- Both tracks now follow upstream dsh `0.2.1-rc.2`: the official npm latest / next tags have both been folded into that version (registry sequence delta 7), and the latest track catches up, so both tracks pin `0.2.1-rc.2`; the paired versions move with the official meta-package declarations (cordis `~4.0.5` / schemastery `~3.18.5`). Zero template changes — the material uses version placeholders throughout, all 31 referenced dsh sub-packages exist in the new version, and the slot keys / event names / tool-call block shape all check out.
+
 ### Added
 
 - Agent skill: the repository now ships `skills/dshp/` with the npm package. It teaches an agent how to scaffold a dsh plugin project with dshp — picking an entry point (preset / curated case / where the free-combination boundary lies), choosing a track, the three verification steps, host integration — and records the pitfalls that are expensive to rediscover (approve-builds, the cordis double instance, typecheck going green on missing types, UI surfaces only rendering after `build` + `plugin add`).

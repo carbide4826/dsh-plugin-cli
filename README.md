@@ -9,8 +9,8 @@
 交互式脚手架 CLI,一键搭建 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)(`dsh`)插件项目骨架。
 
 - npm 包名:`create-dsh-plugin-cli`,bin 命令:`dshp`
-- 双轨配套:latest 与 next 轨现均配 dsh `0.2.0-rc.2`;`--target` 选择,默认 latest
-  - 注:官方 npm 的 latest / next 现同为 `0.2.0-rc.2`,本 CLI 的 latest 轨已追平;轨名是稳定容器,配套版本只随晋升单向前移,两轨同版是合法瞬时态,分叉只落在模板内容与 manifest 配对上
+- 双轨配套:latest 与 next 轨现均配 dsh `0.2.1-rc.2`;`--target` 选择,默认 latest
+  - 注:官方 npm 的 latest / next 现同为 `0.2.1-rc.2`,本 CLI 的 latest 轨已追平;轨名是稳定容器,配套版本只随晋升单向前移,两轨同版是合法瞬时态,分叉只落在模板内容与 manifest 配对上
 - Node 要求:`^22.19.0 || >=24.0.0`
 
 > 开发与验证均基于 web(`dsh web`);其他宿主 profile 未经验证,遇到问题欢迎提 [issue](https://github.com/carbide4826/dsh-plugin-cli/issues)。
@@ -71,8 +71,8 @@ dshp create my-plugin              # 交互式问卷生成插件骨架
 │  my-plugin
 │
 ◆  配套哪一代 dsh 宿主?
-│  ● latest · dsh 0.2.0-rc.2
-│  ○ next · dsh 0.2.0-rc.2
+│  ● latest · dsh 0.2.1-rc.2
+│  ○ next · dsh 0.2.1-rc.2
 │
 ◆  从哪里开始?
 │
@@ -122,7 +122,7 @@ dshp create my-notes --template notebook -s --description <text> --author <name>
 dshp create my-llm --template llm --pkg-position library --author <name> --description <text>
 ```
 
-配套 next 轨宿主(`--target next`,生成项目按 dsh 0.2.0-rc.2 钉版;latest 轨与交互式生成同样适用):
+配套 next 轨宿主(`--target next`,生成项目按 dsh 0.2.1-rc.2 钉版;latest 轨与交互式生成同样适用):
 
 ```sh
 dshp create my-gw --template model-gateway -s --target next
@@ -149,7 +149,7 @@ dshp create my-gw --template model-gateway -s --target next
 cd my-plugin
 pnpm install                      # ① 安装依赖(项目根自带 pnpm-workspace.yaml 做 workspace 定界,正常安装即可)
 pnpm approve-builds               # ② 供应链保护拦截构建脚本:放行 node-pty / koffi / @deepseek-ai/dsh-subprocess-local(@google/genai / protobufjs 是 no-op 不用批),放行后再 install 一次让脚本真正执行
-pnpm add -D @deepseek-ai/dsh@0.2.0-rc.2   # ③ 安装 dsh 宿主(latest / next 轨现均配 0.2.0-rc.2,与 --target 对应;裸 latest tag 可能是其他线,别裸装;装完同样 approve-builds 放行)
+pnpm add -D @deepseek-ai/dsh@0.2.1-rc.2   # ③ 安装 dsh 宿主(latest / next 轨现均配 0.2.1-rc.2,与 --target 对应;裸 latest tag 可能是其他线,别裸装;装完同样 approve-builds 放行)
 pnpm build                        # ④ 构建
 pnpm dsh web --patch ./dev.patch.yml      # ⑤ 启动 dsh 宿主(直载源码调试)
 ```
@@ -193,12 +193,12 @@ node skills/dshp/scripts/drive-questionnaire.mjs --dir my-orders --target next \
 
 ## 版本说明
 
-**轨道与配套**(生成时以 `--target` 选择,默认 latest;官方 npm 的 latest / next 现同为 `0.2.0-rc.2`,本 CLI 两轨均已配套该版本):
+**轨道与配套**(生成时以 `--target` 选择,默认 latest;官方 npm 的 latest / next 现同为 `0.2.1-rc.2`,本 CLI 两轨均已配套该版本):
 
 | 轨道 | dsh 宿主 | 关键配套(cordis / schemastery) |
 | --- | --- | --- |
-| `latest` | `0.2.0-rc.2` | `~4.0.4` / `~3.18.4` |
-| `next` | `0.2.0-rc.2` | `~4.0.4` / `~3.18.4` |
+| `latest` | `0.2.1-rc.2` | `~4.0.5` / `~3.18.5` |
+| `next` | `0.2.1-rc.2` | `~4.0.5` / `~3.18.5` |
 
 依赖与宿主版本精确配套;混用不配套的组合可能在安装树中产生双实例,导致类型声明合并冲突、typecheck 失败。
 
@@ -222,7 +222,7 @@ dsh plugin --profile web allow-version <插件名>@<插件版本> --dsh-version 
 - `--template` 自定义模板源:支持 local path / git URL / npm 包
 - 本地化(多语言支持)—— 0.1.1 已交付:`--lang zh|en` 双语界面,生成项目 README 按语言单份交付 ✅
 - 支持 agent 工具识别与调用 —— skill 形态已交付(随包发布 `skills/dshp/`);MCP 形态待立项
-- 双轨模板(0.1.5):latest / next 两套模板各配一代宿主(`--target` 选择);依赖精确钉官方元包配套版本;生成项目自带插件图标与双语清单元信息 ✅(现态:两轨同钉 `0.2.0-rc.2`,代际差只在晋升后出现)
+- 双轨模板(0.1.5):latest / next 两套模板各配一代宿主(`--target` 选择);依赖精确钉官方元包配套版本;生成项目自带插件图标与双语清单元信息 ✅(现态:两轨同钉 `0.2.1-rc.2`,代际差只在晋升后出现)
 
 ## License
 

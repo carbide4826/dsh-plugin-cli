@@ -9,8 +9,8 @@
 An interactive scaffolding CLI that sets up a [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (`dsh`) plugin project skeleton in one shot.
 
 - npm package: `create-dsh-plugin-cli`, bin command: `dshp`
-- Dual-track pairing: both the latest and next tracks currently pair dsh `0.2.0-rc.2`; choose via `--target`, default latest
-  - Note: the official npm latest and next tags are both `0.2.0-rc.2`, and our latest track has caught up; track names are stable containers and their paired version only moves forward on promotion — both tracks sharing a version is a legitimate transient state, and divergence lives in the template tree content plus its manifest pairing
+- Dual-track pairing: both the latest and next tracks currently pair dsh `0.2.1-rc.2`; choose via `--target`, default latest
+  - Note: the official npm latest and next tags are both `0.2.1-rc.2`, and our latest track has caught up; track names are stable containers and their paired version only moves forward on promotion — both tracks sharing a version is a legitimate transient state, and divergence lives in the template tree content plus its manifest pairing
 - Node requirement: `^22.19.0 || >=24.0.0`
 
 > Development and verification are based on the web host (`dsh web`); other host profiles are unverified — please open an [issue](https://github.com/carbide4826/dsh-plugin-cli/issues) if you hit problems.
@@ -71,8 +71,8 @@ Interactive snapshot
 │  my-plugin
 │
 ◆  Which dsh host generation to pair with?
-│  ● latest · dsh 0.2.0-rc.2
-│  ○ next · dsh 0.2.0-rc.2
+│  ● latest · dsh 0.2.1-rc.2
+│  ○ next · dsh 0.2.1-rc.2
 │
 ◆  Where do you want to start?
 │
@@ -124,7 +124,7 @@ Atom combination (assembled from picked capabilities):
 dshp create my-llm --template llm --pkg-position library --author <name> --description <text>
 ```
 
-Pair with the next-track host (`--target next`; the project pins dsh 0.2.0-rc.2 — the latest track and interactive mode work the same way):
+Pair with the next-track host (`--target next`; the project pins dsh 0.2.1-rc.2 — the latest track and interactive mode work the same way):
 
 ```sh
 dshp create my-gw --template model-gateway -s --target next
@@ -151,7 +151,7 @@ dshp create my-gw --template model-gateway -s --target next
 cd my-plugin
 pnpm install                      # ① install deps (the project root ships a pnpm-workspace.yaml for workspace bounding; a plain install works)
 pnpm approve-builds               # ② supply-chain protection blocks build scripts: approve node-pty / koffi / @deepseek-ai/dsh-subprocess-local (@google/genai / protobufjs are no-ops); re-run install once after approving
-pnpm add -D @deepseek-ai/dsh@0.2.0-rc.2   # ③ install the dsh host (both tracks currently pair 0.2.0-rc.2, matching --target; the bare latest tag may be another line, don't install it bare; approve-builds again after)
+pnpm add -D @deepseek-ai/dsh@0.2.1-rc.2   # ③ install the dsh host (both tracks currently pair 0.2.1-rc.2, matching --target; the bare latest tag may be another line, don't install it bare; approve-builds again after)
 pnpm build                        # ④ build
 pnpm dsh web --patch ./dev.patch.yml      # ⑤ launch the dsh host (direct source load for debugging)
 ```
@@ -195,12 +195,12 @@ node skills/dshp/scripts/drive-questionnaire.mjs --dir my-orders --target next \
 
 ## Version notes
 
-**Tracks and pairing** (chosen at generation time via `--target`, default latest; the official npm latest and next tags are both `0.2.0-rc.2`, and both of our tracks pair that version):
+**Tracks and pairing** (chosen at generation time via `--target`, default latest; the official npm latest and next tags are both `0.2.1-rc.2`, and both of our tracks pair that version):
 
 | Track | dsh host | Key pairing (cordis / schemastery) |
 | --- | --- | --- |
-| `latest` | `0.2.0-rc.2` | `~4.0.4` / `~3.18.4` |
-| `next` | `0.2.0-rc.2` | `~4.0.4` / `~3.18.4` |
+| `latest` | `0.2.1-rc.2` | `~4.0.5` / `~3.18.5` |
+| `next` | `0.2.1-rc.2` | `~4.0.5` / `~3.18.5` |
 
 Dependencies pair exactly with the host version; mismatched mixes can spawn a second instance in the install tree, breaking declaration merging and failing typecheck.
 
@@ -224,7 +224,7 @@ Full release notes for every version live in [CHANGELOG.en.md](https://github.co
 - `--template` custom sources: local path / git URL / npm package
 - Localization — delivered in 0.1.1: bilingual UI via `--lang zh|en`, per-language README in generated projects ✅
 - Agent tool recognition and invocation — the skill form is delivered (ships as `skills/dshp/` with the package); the MCP form is still to be scoped
-- Dual-track templates (0.1.5): latest / next trees each pairing one host generation (choose via `--target`); dependencies pinned exactly to the official meta-package pairing; generated projects ship a plugin icon and bilingual inventory metadata ✅ (current state: both tracks pin `0.2.0-rc.2`; a generation gap only appears after promotion)
+- Dual-track templates (0.1.5): latest / next trees each pairing one host generation (choose via `--target`); dependencies pinned exactly to the official meta-package pairing; generated projects ship a plugin icon and bilingual inventory metadata ✅ (current state: both tracks pin `0.2.1-rc.2`; a generation gap only appears after promotion)
 
 ## License
 

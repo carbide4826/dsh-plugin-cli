@@ -190,7 +190,7 @@ describe("manifest 自身健康度", () => {
         expect(LATEST_MANIFEST.target).toBe("latest");
         expect(NEXT_MANIFEST.target).toBe("next");
         // 版本不变式取「next ≥ latest」而非「next ≠ latest」:晋升协议里 latest 追平 next 是
-        // 合法瞬时态(官方 dist-tags 双 0.2.0-rc.2 即此态),写死互异会在每次追平后被迫拆逻辑;
+        // 合法瞬时态(官方 dist-tags 双 0.2.1-rc.2 即此态),写死互异会在每次追平后被迫拆逻辑;
         // 反过来「latest 跑到 next 前面」只可能是晋升方向写错或某轨漏更,这条才是常驻风险
         expect(
             semverCompare(LATEST_MANIFEST.version, NEXT_MANIFEST.version) <= 0,
