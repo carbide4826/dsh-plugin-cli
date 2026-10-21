@@ -16,81 +16,139 @@ description: |
 
 本 skill 覆盖的是「从零生成一个能跑起来的 dsh 插件工程」;改已有插件的代码不走这里。
 
-## Inputs to collect
+## 核心:这是一次访谈,不是一张填空表
 
-生成前确认这几项(缺省值可用,但要心里有数):
+`dshp create` 的参数表是**给已经想清楚的人**用的。把参数表直接甩给用户,用户答不了
+「原子要勾哪几个」这种问题 —— 于是要么跳过、要么瞎勾,生成的东西不对还要返工。
 
-- **插件要做什么** —— 决定走预设还是精选案例(见 Procedure 第 1 步)。
-- **目录名** —— 生成位置。目录已存在会直接失败(退出码 1),不要先占位再生成。
-- **是否含界面位(UI)** —— 含 UI 的插件必须 `build` + `plugin add` 才渲染,`--patch` 直载只加载 host 半边。
-- **宿主版本轴** —— `--target latest|next`,语义见 references/host-contracts.md。
-- **插件 id / 包名** —— 默认与目录名同值;要改就生成时显式给 `--plugin-id` / `--pkg-name`。
+所以本 skill 的主流程是**先访谈、再生成**:
+
+- **一次只问一项**,用宿主提供的**结构化提问功能**(如 `ask_user` 问卷 UI)。别在聊天框里
+  平铺一串问题,用户会分不清哪些必答、哪些能跳。
+- **每一项都带「跳过」**。跳过 = 不填该项,交给 CLI 的默认值(清单里写了跳过的后果)。
+  用户说「你定就行」就整份跳过,别反复确认。
+- **选项顺序按需求排**:与用户描述相符的选项排最前,并在提示里说明**为什么推荐它**;
+  其余列在后面。用户一眼看到的是最贴近自己需求的那个。
+- **给建议,不要替用户决定**:建议要有理由,让用户能改。用户明确说「按你说的来」才自己定。
+- **收齐了才动手**。信息不够就继续问,不要先跑一个错的骨架再返工。
+
+清单在代码里(`src/core/spec.ts`),三边共用一个源:
+
+| 取法 | 命令 |
+| --- | --- |
+| 人读 | `dshp spec` |
+| 机器读 | `dshp spec --json` |
+| MCP | `dshp_spec` tool(带缺项判定) |
+
+⚠️ **不要凭记忆抄清单**。清单会随 CLI 加参数而变;要问什么、哪些可跳过,以上面三种取法
+现取的为准。`dshp list --json` 给的是「能选什么」(预设/案例/原子/事件域/界面位/缝),
+`dshp spec --json` 给的是「要问什么」——两个都要。
+
+逐步清单(问法 / 跳过后果 / 规格键 → CLI 参数对照表)见 [references/interview.md](references/interview.md)。
 
 ## Procedure
 
-### 1. 选生成入口(三条路,选错会拿到不对的骨架)
+### 1. 问需求(开放式,一句话)
 
-| 入口 | 命令形态 | 产物 |
+用结构化提问功能问一句开放式的话,让用户说这个插件要干什么:
+
+> 这个插件要做什么?一句话描述用途就行(比如「查订单」「接外部 webhook」「加一个设置卡片」)
+
+**这一步不要给选项**。用户答完之后,后面每一步的选择都要靠它 —— 先问需求再给建议,
+反过来就是让用户在选项里找自己的需求。
+
+### 2. 给建议 + 选路线(模板 vs 自配)
+
+拿到需求后,先给**两条路**的对比建议,再让用户选:
+
+| 路线 | 适合 | 产物 |
 | --- | --- | --- |
-| 预设组合 | `dshp create <dir> --template <preset>` | 能力组合被预设锁定的骨架 |
-| 精选案例 | `dshp create <dir> --template <case> -s` | 真实工程整目录拷贝,身份已重写 |
-| 自由原子组合 | `dshp create <dir> --atoms <list> [--ui-surfaces <list>]` | 任意勾选原子/事件域/界面位/缝,**非交互** |
+| 走模板 | 需求贴近某个现成形态(「查订单」→ `quick-tool`;「接外部 webhook」→ `webhook-bridge`) | 真实工程整份拷贝,身份已重写,**省掉全部手改** |
+| 自己配 | 要精确的能力组合,或需求介于两者之间 | 纯生成器产物(零手改),但组合由你逐项定 |
 
-决策顺序:用户描述贴近某个案例的形态 → 用精选案例;只是要个最小骨架 → 用预设;
-要精确的能力组合 → 用自由组合入口。
+选「走模板」→ 第 3 步;选「自己配」→ 第 4 步。
 
-⭐ **自由原子组合已有原生非交互入口**(2026-10-21 起):
+> 别跳过建议直接问「用哪个模板」。**建议要带理由**(「你说要查订单,`quick-tool` 就是
+> 自定义查询工具 + 结果卡片」),用户能据此改。
 
-```sh
-dshp create <dir> --atoms tool,ui --ui-surfaces settings-card --config dynamic \
-  --tool-name query_orders --target next
-```
+### 3. 模板路线:列候选,让用户选
 
-能力类 flag:`--atoms` / `--event-domains` / `--ui-surfaces` / `--service-seams`(逗号分隔)
-/ `--new-service`。给了任一能力类 flag 就走这条路径,不进问卷;硬约束由 CLI 校验并以稳定
-错误码报错(未知 id / 界面位缺原子 / settings-card 配 config=none)。
-⚠️ 勾界面位必须同勾 `ui` 原子(`tool-view` 还要 `tool`):界面位实现由 `ui` 原子产出,
+从 `dshp list --json` 取现成的预设组合与精选案例(两轨的案例集可能不同,按目标轨看)。
+**把与需求相符的排最前**,其余按「相关度」往下排:
+
+> 推荐 `quick-tool`:你说要查订单,这个案例就是「自定义查询工具 + 结果卡片」,工具与界面都现成。
+> 其他可选:`model-gateway`(接自有模型服务)、`webhook-bridge`(外部事件桥接进会话)、
+> `notebook`(用户数据存取)、`session-bot`(监听会话自动响应)。
+
+用户选定后,记下 `template` 与 `templateKind`(预设组合 / 精选案例),跳到第 5 步。
+
+### 4. 自配路线:先原子,再按原子追问
+
+**先问原子** —— 原子决定插件的能力面(工具 / 事件 / 服务 / 界面 / 协议)。选项来自
+`dshp list --json` 的 `atoms`,**与需求相符的排最前并说明理由**,其余列后:
+
+> 推荐勾 `tool`(你要对外提供查询能力)和 `ui`(要在会话里展示结果)。
+> 其余可选:`events`(订阅宿主事件)、`service`(扩展能力缝)、`protocol`(提供 HTTP 端点)。
+
+⚠️ **界面位必须同勾 `ui` 原子**(`tool-view` 还要 `tool`):界面位实现由 `ui` 原子产出,
 缺了界面位选择会被**静默丢弃**,生成物里根本没有 `client/`。
 
-需求超出单个预设/案例时,三条路,按成本排序:
+勾完原子后,按原子追问对应清单(没勾的能力不问,别问无关的):
 
-1. **自由组合 flag**(推荐,最快)。上面那条命令直接产出**纯生成器产物**(零手改):
-   ```sh
-   node scripts/drive-questionnaire.mjs --dir my-orders --target next \
-     --atoms tool,ui --surfaces settings-card --tool-name query_orders
-   ```
-   脚本是 CLI 原生入口的薄壳(参数校验 + 生成后自检 + JSON 摘要),旧参数面保持兼容;
-   直接调 CLI 也一样,脚本多给一个「按勾选推应有的文件并自检,缺文件即非零退出」。
-2. **最接近的预设/案例 + 手改**。挑手改面最小的一侧作底座:原子一般只值 1 个文件
-   (`src/tool.ts`),界面位则要动 4 个文件 + 聚合入口 + 依赖 + exports + client 出口 ——
-   底座选错了手改量差一个量级。手改时**不要凭记忆写生成器的接线**:另生成一份同轨的另一个
-   预设工程当参照,逐字取它的 `inject` / import / call 形态与 peer 钉版,用完删掉。
-3. **让用户自己跑交互式** `dshp create`。最省你的时间,代价是要用户在场。
+| 勾了 | 接着问 | 清单键 |
+| --- | --- | --- |
+| `events` | 订阅哪些事件域 | `eventDomains` |
+| `ui` | 挂哪些宿主界面位 | `uiSurfaces` |
+| `service` | 扩展哪些能力缝 / 要不要新建自有服务 | `serviceSeams` / `newService` |
+| `tool` | 工具叫什么名字 | `toolName` |
 
-> 历史上自由组合只能靠驱动交互问卷(逆向 clack 按键语义,几十次试错)。**那套做法已经退役** ——
-> 现在有原生 flag,别再去逆向按键语义,也别绕道手改生成器接线。
+### 5. 逐项问细节(每一项都可跳过)
 
-⭐ **宿主挂了 MCP 时优先用 tool**:`dshp mcp` 起的是 stdio MCP server,暴露
-`dshp_list_scenarios` / `dshp_doctor` / `dshp_create_plugin` 三个 tool。tool 的入参 schema
-直接由领域清单生成(合法 id 是 enum,模型拿不到过期 id),`dshp_create_plugin` 缺省只算计划、
-显式传 `dryRun: false` 才落盘。宿主配置与细节见 references/cli-surface.md 的「MCP server」段。
+这几项决定工程「长什么样、叫什么、放哪」,**逐个问、一项一个提问框**,每项都给「跳过」:
 
-案例与预设的实时清单见 references/cli-surface.md。
+| 问 | 清单键 | 跳过 = |
+| --- | --- | --- |
+| 工程放在哪、叫什么? | `dirName` | 当前目录下的默认名(预设 `my-tool` 等 / 案例用案例 id / 自配 `my-plugin`) |
+| npm 包名用什么? | `pkgName` | 与插件 id 同值 |
+| 插件 id 用什么? | `pluginId` | 与目录名同值 |
+| 包定位(bundle / library)? | `pkgPosition` | `bundle` |
+| 配套哪一代 dsh 宿主? | `target` | `latest` |
+| 要不要带配置?怎么配? | `config` | 按所选界面位推导(无界面位则 `none`) |
+| 插件描述 / 作者 | `description` / `author` | 预设默认值 / 空 |
+| 生成物用哪种语言? | `lang` | 按环境探测 |
 
-### 2. 生成
+⚠️ **存储位置要说清**:可以给相对路径(如 `apps/my-orders`)或绝对路径;目录已存在会直接
+失败,不要先占位再生成。
+
+⚠️ **配置方式与界面位冲突**:选了 `settings-card` 界面位时不能配 `config: none`
+(设置卡片必须有配置可展示)。此时给 `static` / `dynamic` 两个选项。
+
+⚠️ **描述与作者在生成时就给上**:事后手改要动 `package.json` 与 `locale/*.json` 两处,
+不如一次给对。
+
+### 6. 收齐 → 编译成参数 → 生成
+
+问完之后,先用缺项判定确认收齐了(`dshp spec --json` 或 MCP `dshp_spec`,传入已收集的规格;
+`ready` 为 true 才够开跑)。没齐就继续问剩下那几项。
+
+然后把规格编译成 CLI 参数再生成 —— **参数形态与 CLI 需要的那份完全一致**:
 
 ```sh
-npx create-dsh-plugin-cli create <dir> --template <preset|case> -s? --target <latest|next> --lang <zh|en>
+npx create-dsh-plugin-cli create <dir> [能力参数] [--target <latest|next>] [--lang <zh|en>] ...
 ```
 
+- 模板路线:`--template <preset>` 或 `-s --template <case>`
+- 自配路线:`--atoms <list>` / `--event-domains <list>` / `--ui-surfaces <list>` /
+  `--service-seams <list>` / `--new-service` / `--tool-name <name>` / `--config <mode>`
 - `-s` 必须配 `--template`,单独给会报错退出。
-- `--lang` 决定生成物 README/locale 的语言(生成物单语言交付);用户用中文提问就用 `zh`。
-- 描述与作者在生成时就给上(`--description` / `--author`):事后手改 package.json 与 locale
-  两处,不如一次给对;不给出的话描述会落回预设默认值。
-- 身份默认三处同值:目录名 = `package.json` 的 `name` = `src/index.ts` 的 `export const name`。
-  精选案例会把全树的案例 id 按词边界替换成插件 id,不用手改。
 
-### 3. 验证三步(不能跳,跳了等于没验)
+⚠️ **自由组合路线一个原子都没选时也要给 `--atoms ""`**(空值仍走非交互路径,否则会落进交互
+问卷)。
+
+宿主挂了 MCP 时,用 `dshp_create_plugin` 代替命令行:入参与 CLI 参数同形,
+**缺省只算计划,确认后再调一次并显式传 `dryRun: false` 才落盘**。
+
+### 7. 验证三步(不能跳,跳了等于没验)
 
 ```sh
 cd <dir>
@@ -117,7 +175,7 @@ pnpm build
   在缺依赖的环境里照样"通过"。所以:先 `install` 成功再 `typecheck`,别在没装依赖的目录里跑。
 - `pnpm build` 失败多半是 UI 项目的 CSS 管线缺 `@tsdown/css`(生成物已带,装不上就是 install 没成功)。
 
-### 4. 装宿主并联调
+### 8. 装宿主并联调
 
 ```sh
 pnpm add -D @deepseek-ai/dsh@<版本>     # 版本取自生成物 package.json 里 @deepseek-ai/dsh-* 的钉版
@@ -143,10 +201,11 @@ pnpm dsh web --patch ./dev.patch.yml --dump-config | grep -A 4 <plugin-id>
 
 `dev.patch.yml` 是生成物,含本机绝对路径,已在 `.gitignore` 里 —— 不要提交,不要手改。
 
-### 5. 报告
+### 9. 报告
 
-告诉用户:生成了什么(目录 + 用了哪个预设/案例 + 哪条轨)、验证跑到哪一步(装依赖/类型/构建/
-组合树)、接下来怎么启动。若某步没跑成,明确说是哪一步、为什么。
+告诉用户:生成了什么(目录 + 走了哪条路线 + 用了哪个模板/原子组合 + 哪条轨)、访谈里哪些项
+是跳过的(跳过的项意味着什么默认值)、验证跑到哪一步(装依赖/类型/构建/组合树)、接下来怎么启动。
+若某步没跑成,明确说是哪一步、为什么。
 
 ## Failure handling
 
@@ -159,17 +218,19 @@ pnpm dsh web --patch ./dev.patch.yml --dump-config | grep -A 4 <plugin-id>
 | 界面位在 Web UI 里不渲染 | 只走了 `--patch` 直载 | `pnpm build` + `pnpm dsh plugin --profile web add .` |
 | `dsh plugin add` 被拒(rejected) | 宿主 peer 门禁:比对 peerDependencies 里的 dsh/dsh-* 条目 | 装与生成物 peer 钉版一致的宿主版本;确需跨版用 `dsh plugin allow-version` 精确配对 |
 | 生成器报目录已存在 | 目录占用是失败态 | 换目录名,不要覆盖 |
+| `SURFACE_REQUIRES_ATOM` | 选了界面位却没同勾 `ui` 原子(`tool-view` 还要 `tool`) | 补上原子,或去掉该界面位 |
 | 启动时端口占用 / 别的插件串进来 | `web` profile 是共用的 | 换自己命名的 profile 隔离 |
 
 排障细节(契约变化、依赖钉版规则、门禁语义)见 references/host-contracts.md。
 
 ## 事实核对纪律
 
-本 skill 与两份 reference 里的版本号、槽位键、包名都是**快照**,会随上游滚动失效。涉及
-「宿主现在是什么行为」的判断,别只信快照 —— 直接读源头,成本不高:
+本 skill 与三份 reference 里的版本号、槽位键、包名、清单条目都是**快照**,会随上游滚动失效。
+涉及「宿主现在是什么行为」「现在能选什么」的判断,别只信快照 —— 直接读源头,成本不高:
 
-- **能选什么**:`dshp list`(人读)/ `dshp list --json`(机器读)—— 权威实时清单,
-  预设/案例/原子/事件域/界面位/缝/两轨版本配套一次给全,别从本 skill 的快照里抄。
+- **要问什么、哪些可跳过**:`dshp spec` / `dshp spec --json`(权威实时清单)——
+  访谈步骤、问法、跳过后果、选项来源,全在这儿。
+- **能选什么**:`dshp list` / `dshp list --json` —— 预设/案例/原子/事件域/界面位/缝/两轨版本配套。
 - 宿主契约与槽位定义:`dsh-fork` 仓库的 `packages/client/**/slot-contract.ts`、
   `packages/boot/app-boot/src/plugin-compatibility.ts`(门控规则)。
 - 依赖配套:`npm view @deepseek-ai/dsh@<版本> dependencies`。
@@ -180,13 +241,16 @@ pnpm dsh web --patch ./dev.patch.yml --dump-config | grep -A 4 <plugin-id>
 ## Examples
 
 Input:「帮我起一个能查订单的 dsh 插件工程」
-Output: 走精选案例 `quick-tool`(tool + tool-view 结果卡片),生成 `my-orders` 目录,
-`pnpm install && pnpm typecheck && pnpm build` 三步跑通后,报告生成的目录与启动命令
-(`pnpm dsh web --patch ./dev.patch.yml`;若要做设置卡片则再 `plugin add`)。
+Output: 先问需求 → 建议「走模板,`quick-tool` 就是自定义查询工具 + 结果卡片」→ 用户确认 →
+问存储位置与命名(其余跳过)→ `dshp create my-orders -s --template quick-tool --lang zh`
+→ `pnpm install && pnpm typecheck && pnpm build` 三步跑通 → 报告生成的目录、跳过的项
+(包名/插件 id 默认与目录名同值)与启动命令(`pnpm dsh web --patch ./dev.patch.yml`;
+若要做设置卡片则再 `plugin add`)。
 
 Input:「用 next 轨起一个接外部 webhook 的插件」
-Output: `dshp create my-hook --template webhook-bridge -s --target next --lang zh`,
-再按第 3、4 步验证;报告时点明 next 轨当前钉的 dsh 版本(取自生成物 package.json)。
+Output: 需求 → 建议「`webhook-bridge` 案例正是外部事件桥接进会话,next 轨配套 dsh 0.2.1-rc.2」
+→ 确认后 `dshp create my-hook -s --template webhook-bridge --target next --lang zh`,
+再按第 7、8 步验证;报告时点明 next 轨当前钉的 dsh 版本(取自生成物 package.json)。
 
 ## Windows (win32) platform notes
 

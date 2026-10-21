@@ -18,6 +18,34 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
 
 ### Added
 
+- **One interview, everything asked**: new `dshp spec` subcommand (human-readable / `--json` /
+  `--mode <route>` for one route only) prints what a generation has to ask the user — each step's
+  question, whether it can be skipped, what the fallback is, and where the options come from
+  (options are read live, never copied from a snapshot). The skill and MCP used to be mere
+  restatements of the CLI's parameters, so a model got a fill-in-the-blank table and asked too
+  shallowly (storage location / naming / tool name / whether to carry configuration all fell back
+  to defaults); this table is now the single source of truth for "what to ask".
+- New `src/core/spec.ts`: the interview checklist plus gap detection (`specGaps` — which steps are
+  still missing, whether it is ready to build, what to ask next) and the spec → CLI arguments /
+  create-input compilers (`specToCliArgs` / `specToCreateArgs`). The spec's keys mirror
+  `dshp create`'s parameters, so the collected checklist compiles straight into command-line
+  arguments — the agent never assembles them by hand.
+- New MCP tool `dshp_spec`: pass the spec collected so far, get back which steps are still
+  missing, whether it is ready, and — once ready — the compiled CLI arguments and the
+  `dshp_create_plugin` input. The usual loop: start from an empty spec to get the first question,
+  merge each answer in and call again, and only generate once `ready` is true.
+- The agent skill is rewritten as an **interview flow**: ask for the need first (open-ended, no
+  options) → suggest "template vs. compose it yourself" with reasons → on the template route list
+  the candidates (matching ones first), on the custom route pick atoms first (matching ones first)
+  and then ask for event domains / surfaces / seams / service / tool name → ask about storage
+  location, naming, configuration, description and author, track and language one by one (every
+  item skippable) → only then call the CLI. The whole thing uses the host's structured question
+  feature, one question at a time. The skill also gains references/interview.md (checklist snapshot
+  plus the spec key → CLI argument table).
+- Surface options are de-duplicated by id and annotated with which tracks the case exists in (cases
+  with the same id in both tracks used to show up twice).
+
+
 - **MCP server** (`dshp mcp`, stdio transport) hands generation to models directly, with three tools — `dshp_list_scenarios` (what you can pick), `dshp_doctor` (diagnose this machine), `dshp_create_plugin` (generate a plugin project: preset / curated case / free combination). It ships with this package rather than living in its own repository: the material, the single source of version truth, the guard tests and the release pipeline all live here, and splitting them out means duplicating a payload that drifts.
 - The tool input schemas are **generated from the domain manifests** (atom / event domain / surface / seam / preset / case ids are all enums), so a model sees the legal values in the schema itself and never retries with a stale id — a hand-written list would inevitably expire with the version.
 - `dshp_create_plugin` only computes a plan by default (`dryRun` defaults to true) and returns the file list that would be produced; calling it again with the same arguments and an explicit `dryRun: false` writes to disk — this is how "confirm, then write" is realized on the MCP side.

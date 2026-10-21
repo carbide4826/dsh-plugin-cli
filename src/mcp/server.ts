@@ -12,6 +12,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { registerCreatePlugin } from "./tools/createPlugin";
 import { registerListScenarios } from "./tools/listScenarios";
 import { registerDoctor } from "./tools/doctor";
+import { registerSpec } from "./tools/spec";
 import pkgJson from "../../package.json" with { type: "json" };
 
 /** MCP server 的可选配置 */
@@ -30,12 +31,15 @@ export function createMcpServer(options: McpServerOptions = {}): McpServer {
         { name: "dshp", version: pkgJson.version },
         {
             instructions:
-                "用 dshp 生成 DeepSeek Harness(dsh)插件项目。先调 dshp_list_scenarios 看能选什么," +
-                "再调 dshp_doctor 看本机环境是否就绪," +
-                "最后调 dshp_create_plugin 生成(第一次只算计划,确认后显式传 dryRun=false 落盘)。",
+                "用 dshp 生成 DeepSeek Harness(dsh)插件项目。" +
+                "先调 dshp_list_scenarios 看能选什么(预设/案例/原子/事件域/界面位/缝);" +
+                "再调 dshp_spec 拿访谈清单与缺项判定 —— 逐项问用户(每项可跳过)," +
+                "spec.ready 为 true 后调 dshp_create_plugin 生成(第一次只算计划,确认后显式传 dryRun=false 落盘)。" +
+                "dshp_doctor 可随时体检本机环境是否就绪。",
         },
     );
     registerListScenarios(server);
+    registerSpec(server);
     registerCreatePlugin(server, options);
     registerDoctor(server);
     return server;

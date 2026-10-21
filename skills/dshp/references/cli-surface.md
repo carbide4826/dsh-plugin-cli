@@ -9,6 +9,7 @@
 | --- | --- |
 | `create [name]` | 生成插件项目(预设 / 精选案例 / 自由组合 / 交互问卷) |
 | `list [--json]` | 一览能选什么;`--json` 机器可读 |
+| `spec [--json] [--mode <m>]` | 一次访谈要问什么(问法 / 可否跳过 / 选项);`--json` 机器可读 |
 | `mcp [--lang <lang>]` | 起 MCP server(stdio),把生成能力交给模型 |
 
 `create` 的位置参数 `[name]` = 项目目录名(缺省:预设给默认目录名,交互给
@@ -149,6 +150,7 @@ dshp mcp --lang zh     # stdio 协议;stdout 是 JSON-RPC 通道,别在里面写
 | tool | 作用 |
 | --- | --- |
 | `dshp_list_scenarios` | 一览能选什么(`scope`: all / presets / cases / capabilities;`target` 按轨收窄) |
+| `dshp_spec` | 访谈清单 + 缺项判定(问什么 / 可否跳过 / 还缺哪几步 / 够不够开跑) |
 | `dshp_doctor` | 体检本机:node 版本、pnpm、dsh CLI、两轨素材与生成管线自检、目录可写性 |
 | `dshp_create_plugin` | 生成(`mode`: preset / case / free) |
 
@@ -156,6 +158,9 @@ dshp mcp --lang zh     # stdio 协议;stdout 是 JSON-RPC 通道,别在里面写
 
 - **合法取值在 schema 里**:原子 / 事件域 / 界面位 / 缝 / 预设 / 案例 id 全是 enum,
   模型拿到的是现值,不会握着过期 id 重试。
+- **`dshp_spec` 是访谈的流程源**:入参是「已收集到的规格」,返回「还缺哪几步、够不够开跑」,
+  以及齐了之后编译出的 CLI 参数与 create 参数。模型的正确用法是:空 spec 调一次拿第一问 →
+  每问完一步并进 spec 再调一次 → `ready` 为 true 才生成。详见 references/interview.md。
 - **写盘要显式确认**:`dshp_create_plugin` 缺省只算计划(`dryRun` 默认 true),返回将生成
   哪些文件;确认后同参数再调一次、传 `dryRun: false` 才落盘。
 - **语言**:宿主 spawn 子进程通常不继承 `LANG`,环境探测拿不到用户语言 —— 中文环境

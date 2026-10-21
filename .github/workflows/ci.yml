@@ -82,7 +82,14 @@ jobs:
           pnpm build
       - name: mcp-free install / typecheck / build
         run: |
-          cd mcp-smoke/mcp-free
+          cd mcp-smoke/tool-side/mcp-free
+          pnpm install
+          pnpm typecheck
+          pnpm build
+      # 访谈流程(spec → CLI 参数)产出的工程也要能装能编译
+      - name: spec-free install / typecheck / build
+        run: |
+          cd mcp-smoke/tool-side/spec-free
           pnpm install
           pnpm typecheck
           pnpm build

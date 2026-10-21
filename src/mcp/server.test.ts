@@ -58,13 +58,14 @@ function textOf(res: unknown): string {
 }
 
 describe("MCP tool 清单", () => {
-    it("三个 tool 都在,名字固定(宿主配置按名字引用)", async () => {
+    it("四个 tool 都在,名字固定(宿主配置按名字引用)", async () => {
         const client = await connect();
         const tools = await client.listTools();
         expect(tools.tools.map((t) => t.name).sort()).toEqual([
             "dshp_create_plugin",
             "dshp_doctor",
             "dshp_list_scenarios",
+            "dshp_spec",
         ]);
         await client.close();
     });

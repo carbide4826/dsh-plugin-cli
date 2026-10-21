@@ -18,6 +18,7 @@ import { listScenarioCases } from "./generate/scenarioCase";
 import { getTrackManifest, resolveTrackTarget, type TrackTarget } from "./domain/manifests";
 import { parseIdList } from "./core/capabilities";
 import { describeCatalog } from "./core/describe";
+import { specOptions, specSteps, type SpecMode } from "./core/spec";
 import {
     resolveCreate,
     planCreate,
@@ -206,6 +207,71 @@ program
         out.push("", t("cli.listSeams"));
         for (const s of catalog.seams) {
             out.push(line(`  ${s.id}`, `${s.label} · ${s.desc}`));
+        }
+        process.stdout.write(out.join("\n") + "\n");
+    });
+
+// spec 子命令:打印「一次访谈要问什么」的清单(问什么 / 能不能跳过 / 跳过用啥默认 / 选项现取)。
+// 这是 agent 侧的事实源:skill 引用它、MCP 暴露它,避免三边各抄一份、随 CLI 加参数而漂。
+program
+    .command("spec")
+    .description("Show the interview checklist: what to ask the user, what can be skipped")
+    .option("--json", "machine-readable JSON output")
+    .option("--mode <mode>", "only steps for one mode: preset | case | free")
+    .action((options: { json?: boolean; mode?: string }) => {
+        applyLang(program.opts().lang);
+        if (process.exitCode) return;
+
+        const mode = options.mode;
+        if (mode !== undefined && !["preset", "case", "free"].includes(mode)) {
+            p.log.error(
+                renderError(
+                    new DshpError("CONFIG_INVALID", {
+                        values: "preset | case | free",
+                    }),
+                ),
+            );
+            process.exitCode = 1;
+            return;
+        }
+
+        // 不指定模式时列出全部步骤,并标注各自适用的路线(否则使用者会以为漏了)
+        const steps = specSteps().filter(
+            (s) => mode === undefined || !s.modes || s.modes.includes(mode as SpecMode),
+        );
+        const withOptions = steps.map((s) => ({
+            ...s,
+            options: s.options ? specOptions(s.options) : undefined,
+        }));
+
+        if (options.json) {
+            process.stdout.write(
+                JSON.stringify({ mode: mode ?? null, steps: withOptions }, null, 2) + "\n",
+            );
+            return;
+        }
+
+        const out: string[] = [t("spec.title")];
+        let n = 0;
+        for (const s of withOptions) {
+            n += 1;
+            out.push("");
+            const scope = s.modes ? ` [${s.modes.join("/")}]` : "";
+            out.push(`${n}. ${s.ask}${scope}`);
+            out.push(
+                `   ${s.required ? t("spec.required") : t("spec.skippable")}` +
+                    (s.skip ? ` · ${s.skip}` : ""),
+            );
+            if (s.note) out.push(`   ⚠️ ${s.note}`);
+            if (s.options) {
+                for (const o of s.options) {
+                    out.push(
+                        `   - ${o.value}${o.hint ? ` · ${o.hint}` : ""}${
+                            o.requires?.length ? ` · ${t("spec.needs")} ${o.requires.join(",")}` : ""
+                        }`,
+                    );
+                }
+            }
         }
         process.stdout.write(out.join("\n") + "\n");
     });

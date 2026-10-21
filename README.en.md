@@ -40,6 +40,8 @@ dshp --help              # main command overview
 dshp create --help       # full options plus the preset / curated-case list
 dshp list                # what you can pick: presets / cases / atoms / event domains / surfaces / seams / both tracks' version pairing
 dshp list --json         # the same, machine-readable (consumed directly by agents / MCP)
+dshp spec                # what one interview has to ask (the question, whether it can be skipped, the options)
+dshp spec --json         # the same, machine-readable (consumed directly by agents / MCP)
 dshp mcp                 # run the MCP server over stdio, handing generation to models
 ```
 
@@ -203,6 +205,31 @@ my-plugin/                  ← project dir = the directory name you entered
 >
 > Host CLI flags confusing? `docs/dsh-command-builder.html` is a visual assembler: open it in a browser, click flags on and off, copy the assembled command.
 
+## One interview, everything asked
+
+`dshp spec` prints what a generation has to ask the user: each step's question, whether it can be
+skipped, what the fallback is, and where the options come from. The table exists for **agents** —
+a model walks it step by step instead of dumping the CLI's parameter table on the user.
+
+```sh
+dshp spec                 # human-readable: the interview checklist
+dshp spec --json          # machine-readable: steps + questions + skip semantics + options
+dshp spec --mode free     # only the steps of the custom-combination route
+```
+
+On the MCP side this is the `dshp_spec` tool: pass the spec collected so far, get back which
+steps are still missing, whether it is ready to build, and — once ready — the compiled CLI
+arguments and the `dshp_create_plugin` input. The usual loop:
+
+```
+empty spec → dshp_spec (get the first question) → ask the user → merge into the spec
+           → dshp_spec (what is still missing) → … → ready=true → dshp_create_plugin
+```
+
+The spec's keys mirror `dshp create`'s parameters (`mode` / `template` / `atoms` / `uiSurfaces` /
+`dirName` …), so the collected checklist compiles straight into command-line arguments — the agent
+never has to assemble them by hand.
+
 ## Agent skill
 
 This package ships an agent skill (`skills/dshp/`) that teaches an agent how to scaffold a dsh plugin project with dshp: picking an entry point (preset / curated case / free atom combination), choosing a track, the three verification steps, host integration — and it records the pitfalls that are expensive to rediscover (approve-builds, the cordis double instance, typecheck going green on missing types, UI surfaces only rendering after `build` + `plugin add`).
@@ -248,6 +275,7 @@ Three tools:
 | tool | what it does |
 | --- | --- |
 | `dshp_list_scenarios` | what you can pick: presets / curated cases / atoms / event domains / UI surfaces / seams (with host package, slot key and required atoms) |
+| `dshp_spec` | interview checklist and gap check: what each step asks, whether it can be skipped, which steps are still missing, whether it is ready to build |
 | `dshp_doctor` | diagnoses this machine: node version, pnpm, the dsh CLI, both tracks' material and generation-pipeline self-checks, whether the current directory is writable |
 | `dshp_create_plugin` | generates a plugin project (preset / curated case / free combination) |
 

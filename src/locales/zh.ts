@@ -257,6 +257,94 @@ export const zh = {
         wireSurface: "界面位",
         mountService: "ctx.plugin(ExampleService) // 挂载自有服务",
     },
+    spec: {
+        title: "dshp · 生成访谈清单(一次问全,每项可跳过)",
+        required: "必答",
+        skippable: "可跳过",
+        needs: "需原子",
+        need: {
+            ask: "这个插件要做什么?一句话描述用途就行(比如「查订单」「接外部 webhook」「加一个设置卡片」)",
+            note: "先问需求再给建议 —— 后面每一步的选择都要靠它,别跳过直接问参数",
+        },
+        route: {
+            ask: "想走现成模板,还是自己配能力组合?",
+            note: "贴近某个现成形态就用模板(省手改);要精确的能力组合就自己配(产物是纯生成器产物,零手改)",
+            optionTemplate: "走模板(预设组合 / 精选案例,现成工程整份拷贝)",
+            optionCustom: "自己配(逐项勾原子/事件域/界面位/缝)",
+        },
+        template: {
+            ask: "用哪个模板?",
+            note: "把与需求相符的排在最前面,并说明为什么推荐它;其余列在后面",
+            caseHint: "精选案例 · {tracks} 轨(宿主 dsh {dsh})",
+        },
+        atoms: {
+            ask: "要勾哪些能力原子?",
+            note: "把与需求相符的原子排在最前面并说明理由,其余列在后面;「原子」决定插件的能力面(工具/事件/服务/界面/协议)",
+        },
+        domains: {
+            ask: "要订阅哪些事件域?",
+            skip: "跳过 = 不订阅任何事件",
+        },
+        surfaces: {
+            ask: "要挂哪些宿主界面位?",
+            skip: "跳过 = 不做界面",
+            note: "界面位实现由 ui 原子产出,选界面位就必须同勾 ui 原子(tool-view 还要 tool)",
+        },
+        seams: {
+            ask: "要扩展哪些能力缝?",
+            skip: "跳过 = 不扩展缝",
+        },
+        newService: {
+            ask: "要不要新建自己的服务(extend Service)?",
+            skip: "跳过 = 不新建服务",
+        },
+        toolName: {
+            ask: "工具叫什么名字?(会给大模型/宿主调用)",
+            skip: "跳过 = example_tool",
+        },
+        config: {
+            ask: "要不要带配置?",
+            skip: "跳过 = 按所选界面位推导(无界面位则 none)",
+            none: "不要配置(none)",
+            static: "静态配置(static,值写死在代码里)",
+            dynamic: "动态配置(dynamic,能在宿主设置页改)",
+        },
+        dirName: {
+            ask: "工程放在哪、叫什么?",
+            skip: "跳过 = 当前目录下的默认名(预设 my-tool 等 / 案例用案例 id / 自配 my-plugin)",
+            note: "可以给相对路径(如 apps/my-orders)或绝对路径;目录已存在会直接失败,不要先占位",
+        },
+        pkgName: {
+            ask: "npm 包名用什么?",
+            skip: "跳过 = 与插件 id 同值",
+        },
+        pluginId: {
+            ask: "插件 id 用什么?(宿主里的标识,别的插件 inject 它)",
+            skip: "跳过 = 与目录名同值",
+        },
+        pkgPosition: {
+            ask: "包定位选哪种?",
+            skip: "跳过 = bundle(独立插件包)",
+            bundle: "bundle(独立插件包,带 cordis.patch.yml,能被宿主 plugin add 装)",
+            library: "library(库形态,不生成 cordis.patch.yml)",
+        },
+        target: {
+            ask: "配套哪一代 dsh 宿主?",
+            skip: "跳过 = latest",
+        },
+        description: {
+            ask: "插件描述写什么?",
+            skip: "跳过 = 用预设默认值(自配则为空)",
+        },
+        author: {
+            ask: "作者写什么?",
+            skip: "跳过 = 空",
+        },
+        lang: {
+            ask: "生成物用哪种语言?(README 与注释文案)",
+            skip: "跳过 = 按环境探测",
+        },
+    },
     errors: {
         unknownDep: "未知依赖包,请补版本映射: {pkg}",
         unknownAggregate: "未知的聚合文件契约: {file}",

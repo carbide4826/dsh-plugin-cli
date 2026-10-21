@@ -40,6 +40,8 @@ dshp --help              # 主命令总览
 dshp create --help       # create 的完整选项与场景/案例一览
 dshp list                # 一览能选什么(预设/案例/原子/事件域/界面位/缝/两轨版本配套)
 dshp list --json         # 同上,机器可读(agent / MCP 直接消费)
+dshp spec                # 一次访谈要问什么(问法 / 能不能跳过 / 选项)
+dshp spec --json         # 同上,机器可读(agent / MCP 直接消费)
 dshp mcp                 # 起 MCP server(stdio),把生成能力交给模型
 ```
 
@@ -199,6 +201,28 @@ my-plugin/                  ← 项目目录 = 你填的目录名
 >
 > 宿主命令行参数可多可杂?`docs/dsh-command-builder.html` 是可视化组装器:浏览器直接打开,点选、增删 flag,拼出完整命令后复制运行。
 
+## 一次访谈问全
+
+`dshp spec` 打印的是「一次生成要问用户哪些问题」—— 每一步问什么、能不能跳过、跳过用啥默认、
+选项从哪来。这张表是给 **agent 用的**:模型照着它逐项问用户,而不是把 CLI 的参数表甩给用户。
+
+```sh
+dshp spec                 # 人读:访谈清单
+dshp spec --json          # 机器读:步骤 + 问法 + 跳过后果 + 选项
+dshp spec --mode free     # 只看自配路线的步骤
+```
+
+MCP 侧对应 `dshp_spec` tool:传入「已收集到的规格」,返回「还缺哪几步、够不够开跑」,
+以及收齐后编译出的 CLI 参数与 `dshp_create_plugin` 入参。典型循环:
+
+```
+空规格 → dshp_spec(拿第一问) → 问用户 → 并进规格 → dshp_spec(看还缺什么)
+       → … → ready=true → dshp_create_plugin 生成
+```
+
+规格的键与 `dshp create` 的参数同形(`mode` / `template` / `atoms` / `uiSurfaces` / `dirName` …),
+所以「问出来的清单」能直接编译成命令行参数,不靠 agent 自己拼。
+
 ## Agent skill
 
 本包随附一份 agent skill(`skills/dshp/`),教 agent 用 dshp 生成 dsh 插件工程:选生成入口(预设 / 精选案例 / 自由原子组合)、定轨、验证三步、宿主联调,并把一批只踩一次就会记住的坑写进去 —— approve-builds 放行、cordis 双实例、typecheck 假绿、界面位必须 `build` + `plugin add` 才渲染。
@@ -244,6 +268,7 @@ dshp mcp --lang zh     # 起 MCP server(--lang 指定生成物语言,缺省按�
 | tool | 作用 |
 | --- | --- |
 | `dshp_list_scenarios` | 一览能选什么:预设 / 精选案例 / 原子 / 事件域 / 界面位 / 缝(带宿主包、槽位键、依赖原子) |
+| `dshp_spec` | 访谈清单 + 缺项判定:每步问什么、能不能跳过、还缺哪几步、够不够开跑 |
 | `dshp_doctor` | 体检本机环境:node 版本、pnpm、dsh CLI、两轨素材与生成管线自检、当前目录可写性 |
 | `dshp_create_plugin` | 生成插件项目(预设 / 精选案例 / 自由组合三种模式) |
 

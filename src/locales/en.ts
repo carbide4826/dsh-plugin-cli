@@ -260,6 +260,94 @@ Language:
         wireSurface: "surface",
         mountService: "ctx.plugin(ExampleService) // mount own service",
     },
+    spec: {
+        title: "dshp · generation interview checklist (ask everything, every item skippable)",
+        required: "required",
+        skippable: "skippable",
+        needs: "requires",
+        need: {
+            ask: "What should this plugin do? One sentence is enough (e.g. \"look up orders\", \"bridge an external webhook\", \"add a settings card\")",
+            note: "Ask for the need first and give suggestions from it — every later choice depends on it; do not jump straight to parameters",
+        },
+        route: {
+            ask: "Use a ready-made template, or compose the capabilities yourself?",
+            note: "Close to an existing shape → template (no hand-editing); exact capability mix → compose it yourself (the artifact is pure generator output, zero hand-editing)",
+            optionTemplate: "Use a template (preset combination / curated case, a whole existing project)",
+            optionCustom: "Compose it myself (pick atoms / event domains / surfaces / seams one by one)",
+        },
+        template: {
+            ask: "Which template?",
+            note: "Put the ones that match the need first and say why you recommend them; list the rest after",
+            caseHint: "curated case · {tracks} track(s) (host dsh {dsh})",
+        },
+        atoms: {
+            ask: "Which capability atoms do you want?",
+            note: "Put the atoms that match the need first and say why; list the rest after. Atoms decide the plugin's capability surface (tool / events / service / ui / protocol)",
+        },
+        domains: {
+            ask: "Which event domains should it subscribe to?",
+            skip: "Skip = subscribe to no events",
+        },
+        surfaces: {
+            ask: "Which host UI surfaces should it attach to?",
+            skip: "Skip = no UI at all",
+            note: "Surface implementations are produced by the ui atom, so picking a surface requires the ui atom too (tool-view also needs tool)",
+        },
+        seams: {
+            ask: "Which capability seams should it extend?",
+            skip: "Skip = extend no seam",
+        },
+        newService: {
+            ask: "Should it define its own service (extend Service)?",
+            skip: "Skip = no own service",
+        },
+        toolName: {
+            ask: "What should the tool be called? (the model / host invokes it by this name)",
+            skip: "Skip = example_tool",
+        },
+        config: {
+            ask: "Should it carry configuration?",
+            skip: "Skip = derived from the chosen surfaces (none when there are no surfaces)",
+            none: "No configuration (none)",
+            static: "Static configuration (static, values hard-coded)",
+            dynamic: "Dynamic configuration (dynamic, editable on the host settings page)",
+        },
+        dirName: {
+            ask: "Where should the project live, and what should it be called?",
+            skip: "Skip = the default name in the current directory (preset my-tool etc. / the case id for a case / my-plugin for a custom mix)",
+            note: "A relative path (e.g. apps/my-orders) or an absolute path both work; an existing directory fails outright, so do not pre-create it",
+        },
+        pkgName: {
+            ask: "Which npm package name?",
+            skip: "Skip = same as the plugin id",
+        },
+        pluginId: {
+            ask: "Which plugin id? (the host-side identity other plugins inject)",
+            skip: "Skip = same as the directory name",
+        },
+        pkgPosition: {
+            ask: "Which package position?",
+            skip: "Skip = bundle",
+            bundle: "bundle (standalone plugin package, ships cordis.patch.yml, installable via the host's plugin add)",
+            library: "library (library shape, no cordis.patch.yml)",
+        },
+        target: {
+            ask: "Which generation of the dsh host should it pair with?",
+            skip: "Skip = latest",
+        },
+        description: {
+            ask: "What should the description say?",
+            skip: "Skip = the preset default (empty for a custom mix)",
+        },
+        author: {
+            ask: "Who is the author?",
+            skip: "Skip = empty",
+        },
+        lang: {
+            ask: "Which language for the generated project? (README and comment text)",
+            skip: "Skip = detected from the environment",
+        },
+    },
     errors: {
         unknownDep: "unknown dependency, please add a version mapping: {pkg}",
         unknownAggregate: "unknown aggregate file contract: {file}",
