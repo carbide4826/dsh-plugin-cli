@@ -40,11 +40,21 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
 
-      # 两路生成:预设组合(tool)+ 精选案例(quick-tool,含 UI 卡片走 CSS 内联管线)
+      # 三路生成:预设组合(tool)+ 精选案例(quick-tool,含 UI 卡片走 CSS 内联管线)+ 自由组合
+      # (自由组合是 CLI 的非交互入口:给能力类 flag 即走,不经问卷;tool+ui 两原子 + settings-card 界面位)
       - name: scaffold preset (tool)
         run: node dist/cli.mjs create preset-tool --template tool --lang en --target ${{ matrix.track }}
       - name: scaffold curated case (quick-tool)
         run: node dist/cli.mjs create case-qt --template quick-tool -s --lang en --target ${{ matrix.track }}
+      - name: scaffold free combination (tool + ui)
+        run: >
+          node dist/cli.mjs create free-combo
+          --atoms tool,ui
+          --ui-surfaces settings-card
+          --config dynamic
+          --tool-name query_orders
+          --lang en
+          --target ${{ matrix.track }}
 
       # 生成工程三步验证;生成项目自带 pnpm-workspace.yaml 定界(防祖先 workspace 劫持),勿加 --ignore-workspace
       - name: preset-tool install / typecheck / build
@@ -56,6 +66,12 @@ jobs:
       - name: case-qt install / typecheck / build
         run: |
           cd case-qt
+          pnpm install
+          pnpm typecheck
+          pnpm build
+      - name: free-combo install / typecheck / build
+        run: |
+          cd free-combo
           pnpm install
           pnpm typecheck
           pnpm build
