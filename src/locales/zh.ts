@@ -20,7 +20,7 @@ export const zh = {
         errUnknownScenario:
             '未知场景 "{name}"。可用场景:{ids}(详见 dshp create --help)',
         errCheckFailed: "参数校验失败",
-        errUnknownTarget: '未知目标轴 "{targets}"(详见 dshp create --help)',
+        errUnknownTarget: '未知目标轴 "{value}"(可用:{targets};详见 dshp create --help)',
         targetMessage: "配套哪一代 dsh 宿主?",
         targetLatestHint: "当前稳定线,保守跟随(默认)",
         targetNextHint: "下一代 rc 线,积极跟随",
@@ -35,6 +35,16 @@ export const zh = {
         copied: "已拷贝 {n} 个文件 → {dir}(项目身份重写为 {name})",
         generated: "已生成 {n} 个文件 → {dir}",
         fileList: "文件清单",
+        introFree: "自由组合 · 原子:{atoms}",
+        listTracks: "版本轴:",
+        listPresets: "预设组合:",
+        listCases: "精选案例:",
+        listAtoms: "原子(可自由勾选):",
+        listEventDomains: "事件域:",
+        listUiSurfaces: "界面位:",
+        listSeams: "能力缝:",
+        dryRunTitle: "将生成 {n} 个文件(不落盘)· {dir}",
+        dryRunHint: "dry-run:未写入任何文件",
         confirmGenerate: "按以上答案生成项目?",
         caseHints: {
             "quick-tool": "查询工具+结果卡片",
@@ -66,6 +76,9 @@ export const zh = {
      webhook-bridge  外部事件桥接进会话(protocol + events)
      notebook        用户数据存取(storage 缝 + tool)
 
+3) 自由组合(非交互,给任一能力类参数即走这条):
+   dshp create <name> --atoms tool,ui --ui-surfaces settings-card --config dynamic
+
 参数配置:
   --pkg-name <name>          npm 包名
   --plugin-id <id>           插件 id
@@ -74,6 +87,16 @@ export const zh = {
   --author <name>            作者
   --pkg-position <position>  bundle | library
   --config <mode>            none | static | dynamic
+
+自由组合:
+  --atoms <list>             原子,逗号分隔:tool | events | service | ui | protocol
+  --event-domains <list>     事件域:tools | agent | session | approval | fs | settings
+  --ui-surfaces <list>       界面位:settings-card | chat-node | input-dock | sidebar | tool-view | session-header
+  --service-seams <list>     能力缝:llm | systemPrompt | subagents | web | commands | storage
+  --new-service              新建自有服务(配合 --atoms service)
+
+其他:
+  --dry-run                  打印将生成的文件清单,不落盘
 
 语言:
   --lang <lang>              zh | en(缺省自动检测 LANG)`,
@@ -246,8 +269,15 @@ export const zh = {
         pkgPosition: "--pkg-position 仅支持:{values}",
         config: "--config 仅支持:{values}",
         configNone:
-            "场景 {id} 含 settings-card,--config none 不可用(设置卡片必须有配置可展示)",
+            "--config none 不可用于含 settings-card 界面位的配置(设置卡片必须有配置可展示)· 上下文:{id}",
         unresolvedPlaceholder:
             "模板占位符没有对应变量,素材与生成器已漂移:{list}",
+        errInvalidLang: "--lang 仅支持:{values}",
+        errAtomUnknown: "未知原子:{name}(可用:{ids})",
+        errEventDomainUnknown: "未知事件域:{name}(可用:{ids})",
+        errUiSurfaceUnknown: "未知界面位:{name}(可用:{ids})",
+        errSeamUnknown: "未知能力缝:{name}(可用:{ids})",
+        errSurfaceRequiresAtom:
+            "界面位 {surfaces} 要配原子 {atoms} 才有注册名(补上 --atoms {atoms},或去掉该界面位)",
     },
 } as const;

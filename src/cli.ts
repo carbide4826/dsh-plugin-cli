@@ -15,10 +15,13 @@ import {
 import { askCapabilities } from "./prompts/capabilities";
 import { askConfig } from "./prompts/config";
 import { printSummary } from "./prompts/summary";
-import { writeProject } from "./generate/project";
+import { writeProject, planProject } from "./generate/project";
 import { copyScenarioCase, listScenarioCases } from "./generate/scenarioCase";
-import { getTrackManifest, resolveTrackTarget } from "./domain/manifests";
-import { t, setLang, type Lang } from "./locales";
+import { getTrackManifest, resolveTrackTarget, type TrackTarget } from "./domain/manifests";
+import { buildFreeAnswers, parseIdList } from "./core/capabilities";
+import { describeCatalog } from "./core/describe";
+import { t, setLang, renderError, type Lang } from "./locales";
+import { DshpError } from "./core/errors";
 import pkgJson from "../package.json" with { type: "json" };
 
 const program = new Command();
@@ -32,7 +35,11 @@ program.option("--lang <lang>", "ui language: zh | en (default: auto-detect from
 function applyLang(raw: unknown): void {
     if (raw === undefined) return;
     if (typeof raw !== "string" || !(LANGS as readonly string[]).includes(raw)) {
-        process.stderr.write(`invalid --lang "${String(raw)}"; supported: ${LANGS.join(" | ")}\n`);
+        p.log.error(
+            renderError(
+                new DshpError("LANG_INVALID", { values: LANGS.join(" | ") }),
+            ),
+        );
         process.exitCode = 1;
         return;
     }
@@ -53,6 +60,23 @@ function nextSteps(dirName: string): string {
 // 报错提示用的场景 id 清单(如 "tool, llm, ui, events, protocol")
 const SCENARIO_IDS = SCENARIOS.map((s) => s.id).join(", ");
 
+/**
+ * dryRun:打印将要生成的文件清单,但**不落盘**。
+ * 用途:agent/脚本先看清要生成什么再决定写不写(MCP 路径的「显式确认后写盘」也依赖这层)。
+ */
+function printDryRun(
+    answers: Answers,
+    targetDir: string,
+    manifest: ReturnType<typeof resolveTrackTarget> & object,
+): void {
+    const files = planProject(answers, targetDir, manifest);
+    p.note(
+        files.map((f) => `  ${f.path}`).join("\n"),
+        t("cli.dryRunTitle", { n: files.length, dir: targetDir }),
+    );
+    p.outro(t("cli.dryRunHint"));
+}
+
 // 精选案例的一句话描述(交互与 --help 案例一览共用文案;惰性求值跟随语言)
 function caseHint(id: string): string {
     return t(`cli.caseHints.${id}`);
@@ -70,6 +94,12 @@ interface CreateOptions {
     author?: string;
     pkgPosition?: string;
     config?: string;
+    atoms?: string;
+    eventDomains?: string;
+    uiSurfaces?: string;
+    serviceSeams?: string;
+    newService?: boolean;
+    dryRun?: boolean;
 }
 
 // 覆盖类参数清单(用于"未配合 --template 时"的误用提醒)
@@ -81,6 +111,15 @@ const OVERRIDE_KEYS = [
     "author",
     "pkgPosition",
     "config",
+] as const satisfies readonly (keyof CreateOptions)[];
+
+// 能力类参数清单:任一出现即走自由组合的非交互路径(不给则走交互问卷)
+const CAPABILITY_KEYS = [
+    "atoms",
+    "eventDomains",
+    "uiSurfaces",
+    "serviceSeams",
+    "newService",
 ] as const satisfies readonly (keyof CreateOptions)[];
 
 // 精选案例(-s)模式下不适用的覆盖参数:生成结构随案例锁定
@@ -97,6 +136,85 @@ program
         "Scaffold DeepSeek Harness (dsh) plugin projects interactively",
     )
     .version(pkgJson.version);
+
+// list 子命令:一览「能选什么」(预设 / 案例 / 原子 / 事件域 / 界面位 / 缝 / 两轨版本配套)。
+// --json 给机器读(agent / MCP 的 list tool 直接消费);默认给人读。
+program
+    .command("list")
+    .description("List available presets, curated cases, atoms, surfaces and seams")
+    .option("--json", "machine-readable JSON output")
+    .option("--target <track>", "only list one track: latest | next")
+    .action((options: { json?: boolean; target?: string }) => {
+        applyLang(program.opts().lang);
+        if (process.exitCode) return;
+
+        // --target 过滤:校验轨名后取该轨(非法轨名报错,不静默回落)
+        let targets: TrackTarget[] | undefined;
+        if (options.target !== undefined) {
+            const m = resolveTrackTarget(options.target);
+            if (!m) {
+                p.log.error(
+                    renderError(
+                        new DshpError("UNKNOWN_TARGET", {
+                            value: options.target,
+                            targets: "latest, next",
+                        }),
+                    ),
+                );
+                process.exitCode = 1;
+                return;
+            }
+            targets = [m.target];
+        }
+
+        const catalog = describeCatalog(targets);
+
+        if (options.json) {
+            process.stdout.write(JSON.stringify(catalog, null, 2) + "\n");
+            return;
+        }
+
+        // 列宽 18:最长的 id(settings-card = 13 字符)+ 2 缩进 + 至少 2 空格分隔
+        const line = (k: string, v: string) => `${k.padEnd(18)}${v}`;
+        const out: string[] = [];
+        out.push(t("cli.listTracks"));
+        for (const tr of catalog.tracks) {
+            out.push(
+                line(
+                    `  ${tr.target}`,
+                    `dsh ${tr.dshVersion} · cordis ${tr.cordisPeer} · schemastery ${tr.schemasteryVersion} · 槽位 ${tr.settingsSlot}`,
+                ),
+            );
+        }
+        out.push("", t("cli.listPresets"));
+        for (const s of catalog.presets) {
+            out.push(line(`  ${s.id}`, `${s.label} · 原子 ${s.atoms.join(",") || "-"}`));
+        }
+        out.push("", t("cli.listCases"));
+        for (const c of catalog.cases) {
+            out.push(line(`  ${c.target}/${c.id}`, ""));
+        }
+        out.push("", t("cli.listAtoms"));
+        for (const a of catalog.atoms) {
+            out.push(line(`  ${a.id}`, `${a.label} · ${a.desc}`));
+        }
+        out.push("", t("cli.listEventDomains"));
+        for (const d of catalog.eventDomains) {
+            out.push(line(`  ${d.id}`, `${d.label} · ${d.eventCount} 事件`));
+        }
+        out.push("", t("cli.listUiSurfaces"));
+        for (const s of catalog.uiSurfaces) {
+            const req = s.requires.length ? ` · 需原子 ${s.requires.join(",")}` : "";
+            out.push(
+                line(`  ${s.id}`, `${s.label} · 槽位 ${s.slots.join("/")}${req}`),
+            );
+        }
+        out.push("", t("cli.listSeams"));
+        for (const s of catalog.seams) {
+            out.push(line(`  ${s.id}`, `${s.label} · ${s.desc}`));
+        }
+        process.stdout.write(out.join("\n") + "\n");
+    });
 
 program
     .command("create [name]")
@@ -120,6 +238,30 @@ program
     .option("--author <name>", "override author")
     .option("--pkg-position <position>", "package position: bundle | library (default: bundle)")
     .option("--config <mode>", "config mode: none | static | dynamic (default: scenario preset)")
+    .option(
+        "--atoms <list>",
+        "comma-separated atoms for free combination (tool, events, service, ui, protocol); non-interactive",
+    )
+    .option(
+        "--event-domains <list>",
+        "comma-separated event domains (tools, agent, session, approval, fs, settings)",
+    )
+    .option(
+        "--ui-surfaces <list>",
+        "comma-separated UI surfaces (settings-card, chat-node, input-dock, sidebar, tool-view, session-header)",
+    )
+    .option(
+        "--service-seams <list>",
+        "comma-separated capability seams (llm, systemPrompt, subagents, web, commands, storage)",
+    )
+    .option(
+        "--new-service",
+        "create a new own service (extends Service); only with --atoms service",
+    )
+    .option(
+        "--dry-run",
+        "print the file tree that would be generated without writing anything to disk",
+    )
     .addHelpText("after", () => {
         // help 渲染早于 action,--lang 在此先落一次(双语并排的手工 help 段收敛为按语言输出)
         applyLang(program.opts().lang);
@@ -132,14 +274,21 @@ program
         // 目标轨解析:缺省 latest;非法值报错并列出合法轨名
         const manifest = resolveTrackTarget(options.target);
         if (!manifest) {
-            p.log.error(t("cli.errUnknownTarget", { targets: "latest, next" }));
+            p.log.error(
+                renderError(
+                    new DshpError("UNKNOWN_TARGET", {
+                        value: String(options.target),
+                        targets: "latest, next",
+                    }),
+                ),
+            );
             process.exitCode = 1;
             return;
         }
 
         // -s 精选案例路径:从 templates/scenarios/ 整目录拷贝并重写身份(所见即所得)
         if (options.scenario && !options.template) {
-            p.log.error(t("cli.errScenarioNeedsTemplate"));
+            p.log.error(renderError(new DshpError("SCENARIO_REQUIRES_TEMPLATE")));
             process.exitCode = 1;
             return;
         }
@@ -150,7 +299,14 @@ program
             if (options.scenario) {
                 const cases = listScenarioCases(manifest);
                 if (!cases.includes(options.template)) {
-                    p.log.error(t("cli.errCaseNotFound", { name: options.template, cases: cases.join(", ") }));
+                    p.log.error(
+                        renderError(
+                            new DshpError("CASE_NOT_FOUND", {
+                                name: options.template,
+                                cases: cases.join(", "),
+                            }),
+                        ),
+                    );
                     process.exitCode = 1;
                     return;
                 }
@@ -158,13 +314,19 @@ program
                     .filter(([k]) => options[k as keyof CreateOptions] !== undefined)
                     .map(([, flag]) => flag ?? "");
                 if (inapplicable.length > 0) {
-                    p.log.warn(t("cli.warnCaseInapplicable", { flags: inapplicable.join(" ") }));
+                    p.log.warn(
+                        renderError(
+                            new DshpError("CASE_FLAG_INAPPLICABLE", {
+                                flags: inapplicable.join(" "),
+                            }),
+                        ),
+                    );
                 }
 
                 const dirName = name ?? options.template;
                 const targetDir = resolve(process.cwd(), dirName);
                 if (dirName !== "." && existsSync(targetDir)) {
-                    p.cancel(t("cli.dirExists", { dir: targetDir }));
+                    p.cancel(renderError(new DshpError("DIR_EXISTS", { dir: targetDir })));
                     process.exitCode = 1;
                     return;
                 }
@@ -185,7 +347,14 @@ program
 
             const preset = findScenario(options.template);
             if (!preset) {
-                p.log.error(t("cli.errUnknownScenario", { name: options.template, ids: SCENARIO_IDS }));
+                p.log.error(
+                    renderError(
+                        new DshpError("UNKNOWN_SCENARIO", {
+                            name: options.template,
+                            ids: SCENARIO_IDS,
+                        }),
+                    ),
+                );
                 process.exitCode = 1;
                 return;
             }
@@ -202,18 +371,22 @@ program
                 toolName: options.toolName,
             });
             if (!built.answers) {
-                p.log.error(built.error ?? t("cli.errCheckFailed"));
+                p.log.error(
+                    built.error
+                        ? renderError(built.error)
+                        : t("cli.errCheckFailed"),
+                );
                 process.exitCode = 1;
                 return;
             }
             if (options.toolName && !preset.capabilities.atoms.includes("tool")) {
-                p.log.warn(t("cli.warnToolNameIgnored"));
+                p.log.warn(renderError(new DshpError("TOOL_NAME_IGNORED")));
             }
             const answers = built.answers;
 
             const targetDir = resolve(process.cwd(), answers.dirName);
             if (answers.dirName !== "." && existsSync(targetDir)) {
-                p.cancel(t("cli.dirExists", { dir: targetDir }));
+                p.cancel(renderError(new DshpError("DIR_EXISTS", { dir: targetDir })));
                 process.exitCode = 1;
                 return;
             }
@@ -221,15 +394,64 @@ program
             p.intro(t("cli.introPreset", { id: preset.id, label: preset.label() }));
             printSummary(answers, manifest); // 汇总照打,但不阻塞确认(非交互约定)
 
+            if (options.dryRun) {
+                printDryRun(answers, targetDir, manifest);
+                return;
+            }
             const files = writeProject(answers, targetDir, manifest);
             p.log.info(t("cli.generated", { n: files.length, dir: targetDir }));
             p.outro(nextSteps(answers.dirName));
             return;
         }
 
+        // 自由组合非交互入口:给了任一能力类参数就走这条路(不经问卷)
+        // —— agent/脚本/CI 需要「我要 tool + ui + settings-card」这种精确意图,而问卷是 TTY 的
+        if (CAPABILITY_KEYS.some((k) => options[k] !== undefined)) {
+            const dirName = name ?? "my-plugin";
+            const answers = buildFreeAnswers(
+                {
+                    atoms: parseIdList(options.atoms),
+                    eventDomains: parseIdList(options.eventDomains),
+                    uiSurfaces: parseIdList(options.uiSurfaces),
+                    serviceSeams: parseIdList(options.serviceSeams),
+                    serviceCreate: options.newService,
+                    config: options.config,
+                    toolName: options.toolName,
+                },
+                {
+                    dirName,
+                    pkgName: options.pkgName,
+                    pluginId: options.pluginId,
+                    description: options.description,
+                    author: options.author,
+                    pkgPosition: options.pkgPosition,
+                },
+            );
+
+            const targetDir = resolve(process.cwd(), answers.dirName);
+            if (answers.dirName !== "." && existsSync(targetDir)) {
+                p.cancel(renderError(new DshpError("DIR_EXISTS", { dir: targetDir })));
+                process.exitCode = 1;
+                return;
+            }
+
+            p.intro(t("cli.introFree", { atoms: answers.atoms.join(", ") || "-" }));
+            printSummary(answers, manifest);
+
+            if (options.dryRun) {
+                printDryRun(answers, targetDir, manifest);
+                return;
+            }
+            const files = writeProject(answers, targetDir, manifest);
+            p.log.info(t("cli.generated", { n: files.length, dir: targetDir }));
+            p.note(files.map((f) => `  ${f}`).join("\n"), t("cli.fileList"));
+            p.outro(nextSteps(answers.dirName));
+            return;
+        }
+
         p.intro(t("cli.intro")); // 问卷横幅
         if (OVERRIDE_KEYS.some((k) => options[k] !== undefined)) {
-            p.log.warn(t("cli.warnOverride"));
+            p.log.warn(renderError(new DshpError("OVERRIDE_WITHOUT_TEMPLATE")));
         }
 
         // 公共配置:目录名/描述/作者/包名/插件 id(与起点无关,分支前统一问完)
@@ -283,7 +505,7 @@ program
             }
             const targetDir = resolve(process.cwd(), dirName);
             if (dirName !== "." && existsSync(targetDir)) {
-                p.cancel(t("cli.dirExists", { dir: targetDir }));
+                p.cancel(renderError(new DshpError("DIR_EXISTS", { dir: targetDir })));
                 process.exitCode = 1; // 目录被占用是失败态(区别于用户主动中止),与非交互路径同码
                 return;
             }
@@ -330,7 +552,7 @@ program
 
         const targetDir = resolve(process.cwd(), answers.dirName);
         if (answers.dirName !== "." && existsSync(targetDir)) {
-            p.cancel(t("cli.dirExists", { dir: targetDir }));
+            p.cancel(renderError(new DshpError("DIR_EXISTS", { dir: targetDir })));
             process.exitCode = 1; // 同上:目录被占用是失败态,与非交互路径同码
             return;
         }
@@ -341,4 +563,12 @@ program
         p.outro(nextSteps(answers.dirName));
     });
 
-program.parseAsync(process.argv);
+program.parseAsync(process.argv).catch((err: unknown) => {
+    // 领域错误带稳定 code,按 code 渲染人话;非领域错误(真 bug)原样抛栈
+    if (err instanceof DshpError) {
+        p.log.error(renderError(err));
+        process.exitCode = 1;
+        return;
+    }
+    throw err;
+});

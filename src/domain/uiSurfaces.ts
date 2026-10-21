@@ -59,7 +59,9 @@ export type UISurfaceId = (typeof UI_SURFACES)[number]["id"];
 
 // 界面位 → 必须同勾的原子(缺了就没有可挂的注册键,生成出静默不渲染的哑界面)。
 // satisfies 全键约束:新增界面位必须在这里登记依赖(没有就填空数组)
-const SURFACE_REQUIRES = {
+// 导出:机器可读清单(core/describe.ts)要用它 —— 界面位与原子的依赖关系是
+// 「能选什么」的一部分,模型选界面位时必须一并知道,否则会挑出哑界面。
+export const SURFACE_REQUIRES = {
     "settings-card": [],
     "chat-node": [],
     "input-dock": [],

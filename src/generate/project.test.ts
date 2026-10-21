@@ -1,5 +1,5 @@
 // 生成器单测:package.json / patch / 入口 / 编排落盘
-import { mkdtempSync, readFileSync, rmSync, existsSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, existsSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -9,7 +9,7 @@ import { LATEST_MANIFEST, NEXT_MANIFEST } from "../domain/manifests";
 import { generatePackageJson } from "./packageJson";
 import { generateCordisPatch, generateDevPatch } from "./patches";
 import { generateHostIndex } from "./indexTs";
-import { writeProject } from "./project";
+import { writeProject, planProject } from "./project";
 
 const base: Answers = {
     dirName: "demo",
@@ -209,5 +209,40 @@ describe("writeProject", () => {
         // UI 专属工具链:@tsdown/css 进 devDeps(tsdown 的 CSS 管线,缺位即构建报错)
         const pkg = JSON.parse(readFileSync(join(dir, "package.json"), "utf8"));
         expect(pkg.devDependencies["@tsdown/css"]).toBe("^0.23.0");
+    });
+});
+
+describe("planProject(算内容不落盘)", () => {
+    it("plan 出文件清单但目录里一个文件都没有", () => {
+        const dir = freshDir();
+        const files = planProject(
+            { ...base, atoms: ["tool", "ui"], uiSurfaces: ["sidebar"] },
+            dir,
+            LATEST_MANIFEST,
+        );
+        expect(files.length).toBeGreaterThan(0);
+        // 计划里每个文件都有内容
+        for (const f of files) {
+            expect(typeof f.path).toBe("string");
+            expect(typeof f.content).toBe("string");
+        }
+        // 关键:全程不落盘
+        expect(readdirSync(dir)).toEqual([]);
+    });
+
+    it("plan 的内容与 writeProject 落盘的内容一致(算与写同源)", () => {
+        // 同一目标目录:dev.patch.yml 内含本机绝对路径,换目录内容本就该不同
+        const dir = freshDir();
+        const answers: Answers = {
+            ...base,
+            atoms: ["tool", "ui"],
+            uiSurfaces: ["sidebar"],
+        };
+        const planned = planProject(answers, dir, LATEST_MANIFEST);
+        const written = writeProject(answers, dir, LATEST_MANIFEST);
+        expect(written).toEqual(planned.map((f) => f.path));
+        for (const f of planned) {
+            expect(readFileSync(join(dir, f.path), "utf8")).toBe(f.content);
+        }
     });
 });

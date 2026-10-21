@@ -1,6 +1,7 @@
 // 轻量 i18n:字典查值 + 语言检测与覆盖(无第三方依赖;CLI 文案无复数/日期格式需求,不值得引 i18next)
 import { zh } from "./zh";
 import { en } from "./en";
+import { LOCALE_KEY, type DshpError } from "../core/errors";
 
 export type Lang = "zh" | "en";
 
@@ -53,4 +54,14 @@ export function t(
     return raw.replace(/\{(\w+)\}/g, (_, name) =>
         params[name] !== undefined ? String(params[name]) : `{${name}}`,
     );
+}
+
+/**
+ * 把 DshpError 渲染成当前语言的人话(CLI 呈现层用)。
+ * 领域层只抛 code + params,文案在这里按 code 查表渲染——语言选择在最后一刻生效。
+ * @param err - 领域错误
+ * @returns 本地化文案;code 未登记文案时回落成 code 本身(便于发现漏配)
+ */
+export function renderError(err: DshpError): string {
+    return t(LOCALE_KEY[err.code], err.params);
 }

@@ -10,10 +10,21 @@
 ### 变更
 
 - 双轨跟随上游 dsh `0.2.1-rc.2`:官方 npm 的 latest / next 已同收编到该版本(registry 序列差值 7),latest 轨随之追平,两轨同钉 `0.2.1-rc.2`;配套版本按官方元包声明同步(cordis `~4.0.5` / schemastery `~3.18.5`)。模板零改动 —— 素材一律走版本占位符,引用到的 31 个 dsh 子包在新版全部存在,槽位键/事件名/工具调用块形状等契约复核全通。
+- 错误改成**稳定错误码 + 文案**两层:新增 `src/core/errors.ts`,`DshpError{code, params}` 的 code 是程序可分支的契约(文案随 `--lang` 变,code 不变),CLI 层按 code 渲染人话。此前失败一律表达成 `throw new Error(t(...))`,调用方只能匹配本地化句子,无法当接口用 —— MCP 尤其致命。
+- 自由组合的能力校验抽到 `src/core/capabilities.ts`(纯函数):原子/事件域/界面位/缝的取值校验、界面位依赖原子的硬约束、`settings-card` 与 `config=none` 的互斥,与交互问卷共用同一套规则,不各写一份。
+- 生成拆成 plan 与 write 两层:新增 `planProject()` 算出全部待落盘文件但**不写盘**,`writeProject()` 降级为 plan + 落盘(产物逐字节一致)。`--dry-run` 与将来的 MCP「显式确认后写盘」都基于这层。
+- Agent skill 的驱动脚本重写:391 行的交互问卷按键驱动退役,改为 242 行的薄壳(参数 → CLI 原生 flag → 生成,保留参数校验、生成后自检与 JSON 摘要,旧参数面兼容)。顺带消掉「提示语文本即同步锚点,CLI 改文案即失配」这个脆点。
 
 ### 新增
 
+- `dshp list` 子命令:一览「能选什么」—— 预设 / 精选案例 / 原子 / 事件域 / 界面位 / 能力缝 / 两轨版本配套,人读默认、`--json` 机器可读。界面位条目带宿主包、槽位键与**依赖原子**(模型据此选,选不出静默不渲染的哑界面)。清单从领域清单现取(`src/core/describe.ts`),不再靠文档快照抄一份 —— 此前这些信息散在 `domain/*` 多个清单里、没有任何出口把它们拼起来。
 - Agent skill:仓内新增 `skills/dshp/`,随 npm 包一起发布。教 agent 用 dshp 生成 dsh 插件工程:选生成入口(预设 / 精选案例 / 自由组合的边界)、定轨、验证三步、宿主联调,并沉淀了一批只踩一次就会记住的坑(approve-builds 放行、cordis 双实例、typecheck 假绿、界面位必须 build + plugin add 才渲染)。
+- 自由组合有了**非交互入口**:新增 `--atoms` / `--event-domains` / `--ui-surfaces` / `--service-seams` / `--new-service`,给了任一能力类参数即走自由组合路径、不进交互问卷。此前任意能力组合只能靠 agent 驱动交互问卷(逆向 clack 按键语义,一次几十次试错),或退化成「预设 + 手改」。
+- `--dry-run`:打印将生成的文件清单但不落盘(「先看清再写」的入口)。
+
+### 修复
+
+- 生成物 README 的构建脚本放行说明此前不完整:只说了要放行 `node-pty` / `koffi` / `@deepseek-ai/dsh-subprocess-local`,对 `@google/genai` / `protobufjs` 一句「脚本是 no-op,不用批」带过 —— 但 pnpm 11 严格模式下**不把它们列进 `allowBuilds` 同样会让 install 直接失败**(不是警告),用到 llm 能力的插件(model-gateway / session-bot)在装自身依赖的第一步就装不上。现在按**装插件自身依赖**与**装宿主 CLI** 两组分别说明,并区分两类包:要真跑的三个(`node-pty` / `koffi` / `dsh-subprocess-local`,原生模块编译与 spawn helper)填 `true`;`@google/genai` / `protobufjs` 的脚本确为 no-op,**按官方 dsh 自己的口径列出来填 `false` 拒绝执行**(dsh 仓 `pnpm-workspace.yaml` 即写 `'@google/genai': false` / `protobufjs: false`,注释为「no-ops we don't need, so we deny them — install still succeeds」)。同时点明 `pnpm approve-builds` 只能写 `true`,要「拒绝执行但不让 install 失败」需手写 `pnpm-workspace.yaml` 的 `allowBuilds` 段。仓库根 README 的同一处注释与 agent skill 的放行清单同步更正。
 
 ## [0.1.9] - 2026-10-08
 

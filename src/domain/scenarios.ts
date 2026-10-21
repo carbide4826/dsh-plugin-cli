@@ -1,4 +1,5 @@
 import type { Answers } from "./types";
+import { DshpError } from "../core/errors";
 import { t } from "../locales";
 
 export type ScenarioCapabilities = Pick<
@@ -132,28 +133,40 @@ const CONFIG_MODES = ["none", "static", "dynamic"] as const;
 /**
  * 场景预设 + 命令行覆盖合并为完整 Answers(纯函数,含取值与硬约束校验)。
  * 覆盖规则:参数传了用传的,没传回落场景预设;包名/插件 id 缺省由目录名推导。
- * @returns error 非空表示参数非法或违反硬约束(调用方负责报错退出)
+ * @returns error 非空表示参数非法或违反硬约束(调用方负责渲染报错并退出)
  */
 export function buildScenarioAnswers(
     preset: ScenarioPreset,
     o: ScenarioOverrides,
 ):
     | { answers: Answers; error?: undefined }
-    | { answers?: undefined; error: string } {
+    | { answers?: undefined; error: DshpError } {
     if (
         o.pkgPosition &&
         !(PKG_POSITIONS as readonly string[]).includes(o.pkgPosition)
     ) {
-        return { error: t("errors.pkgPosition", { values: PKG_POSITIONS.join(" | ") }) };
+        return {
+            error: new DshpError("PKG_POSITION_INVALID", {
+                values: PKG_POSITIONS.join(" | "),
+            }),
+        };
     }
     if (o.config && !(CONFIG_MODES as readonly string[]).includes(o.config)) {
-        return { error: t("errors.config", { values: CONFIG_MODES.join(" | ") }) };
+        return {
+            error: new DshpError("CONFIG_INVALID", {
+                values: CONFIG_MODES.join(" | "),
+            }),
+        };
     }
     if (
         o.config === "none" &&
         preset.capabilities.uiSurfaces.includes("settings-card")
     ) {
-        return { error: t("errors.configNone", { id: preset.id }) };
+        return {
+            error: new DshpError("CONFIG_NONE_REQUIRES_SETTINGS_CARD", {
+                id: preset.id,
+            }),
+        };
     }
 
     const capabilities = { ...preset.capabilities };

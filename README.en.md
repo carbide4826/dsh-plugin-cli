@@ -35,12 +35,16 @@ npm i create-dsh-plugin-cli        # in-project install: invoke via npx dshp / p
 
 ## Commands
 
-`dshp` currently has a single subcommand `create` (interactive questionnaire, or non-interactive `--template`):
-
 ```sh
 dshp --help              # main command overview
 dshp create --help       # full options plus the preset / curated-case list
+dshp list                # what you can pick: presets / cases / atoms / event domains / surfaces / seams / both tracks' version pairing
+dshp list --json         # the same, machine-readable (consumed directly by agents / MCP)
 ```
+
+`dshp list` is the **authoritative live catalog** — to find out which atoms exist, which host
+package and slot key a surface lands on, which atoms a surface requires, or which dsh version
+a track pins, run it instead of reading a doc snapshot.
 
 Options supported by `dshp create` are listed under [Overridable parameters](#overridable-parameters) below.
 
@@ -142,15 +146,39 @@ dshp create my-gw --template model-gateway -s --target next
 | `--pkg-position <position>` | `bundle` / `library`          | `bundle`                      |
 | `--config <mode>`           | `none` / `static` / `dynamic` | preset (ui preset uses `static`) |
 | `--target <track>`          | `latest` / `next`             | `latest` (pairing track: dsh version and dependency pairing pin per track) |
+| `--dry-run`                 | boolean                       | off (prints the file list that would be generated, writes nothing) |
 
 > Curated cases do not take `--tool-name` / `--pkg-position` / `--config` (the structure is locked by the case).
+
+#### Free combination (non-interactive)
+
+Passing any capability flag takes this path — the questionnaire is skipped:
+
+```sh
+dshp create my-orders --atoms tool,ui --ui-surfaces settings-card --config dynamic \
+  --tool-name query_orders --target next
+```
+
+| Flag                       | Values                                                            |
+| -------------------------- | ----------------------------------------------------------------- |
+| `--atoms <list>`           | `tool` / `events` / `service` / `ui` / `protocol` (comma-separated) |
+| `--event-domains <list>`   | `tools` / `agent` / `session` / `approval` / `fs` / `settings`    |
+| `--ui-surfaces <list>`     | `settings-card` / `chat-node` / `input-dock` / `sidebar` / `tool-view` / `session-header` |
+| `--service-seams <list>`   | `llm` / `systemPrompt` / `subagents` / `web` / `commands` / `storage` |
+| `--new-service`            | boolean (create a new own service; pairs with `--atoms service`)   |
+
+Hard constraints are validated by the CLI and reported with **stable error codes** (the text
+follows the language, the code does not): unknown id (`ATOM_UNKNOWN` /
+`EVENT_DOMAIN_UNKNOWN` / `UI_SURFACE_UNKNOWN` / `SEAM_UNKNOWN`), a surface missing its
+required atom (`SURFACE_REQUIRES_ATOM`, e.g. `tool-view` without `tool`), and
+`settings-card` with `config=none` (`CONFIG_NONE_REQUIRES_SETTINGS_CARD`).
 
 ## After generation
 
 ```sh
 cd my-plugin
-pnpm install                      # ① install deps (the project root ships a pnpm-workspace.yaml for workspace bounding; a plain install works)
-pnpm approve-builds               # ② supply-chain protection blocks build scripts: approve node-pty / koffi / @deepseek-ai/dsh-subprocess-local (@google/genai / protobufjs are no-ops); re-run install once after approving
+pnpm install                      # ① install deps (the project root ships a pnpm-workspace.yaml for workspace bounding; a plain install works — plugins that use LLM capabilities fail here until the build scripts are approved in ②, then re-run)
+pnpm approve-builds               # ② supply-chain protection blocks build scripts: pnpm 11 strict mode makes install fail outright (not a warning) unless every entry is handled; pick true for the ones that genuinely need to run (node-pty / koffi / dsh-subprocess-local), and list the no-op ones (@google/genai / protobufjs) with false to deny execution the way the official repo does, then re-run install once so the scripts actually execute
 pnpm add -D @deepseek-ai/dsh@0.2.1-rc.2   # ③ install the dsh host (both tracks currently pair 0.2.1-rc.2, matching --target; the bare latest tag may be another line, don't install it bare; approve-builds again after)
 pnpm build                        # ④ build
 pnpm dsh web --patch ./dev.patch.yml      # ⑤ launch the dsh host (direct source load for debugging)
@@ -223,7 +251,7 @@ Full release notes for every version live in [CHANGELOG.en.md](https://github.co
 - Keep tracking dsh version bumps — versions are managed uniformly and follow the official dsh line ✅
 - `--template` custom sources: local path / git URL / npm package
 - Localization — delivered in 0.1.1: bilingual UI via `--lang zh|en`, per-language README in generated projects ✅
-- Agent tool recognition and invocation — the skill form is delivered (ships as `skills/dshp/` with the package); the MCP form is still to be scoped
+- Agent tool recognition and invocation — the skill form is delivered (ships as `skills/dshp/` with the package); the MCP form is still to be scoped (the core is already pure functions, and the plan layer / error-code layer / machine-readable catalog it needs are in place)
 - Dual-track templates (0.1.5): latest / next trees each pairing one host generation (choose via `--target`); dependencies pinned exactly to the official meta-package pairing; generated projects ship a plugin icon and bilingual inventory metadata ✅ (current state: both tracks pin `0.2.1-rc.2`; a generation gap only appears after promotion)
 
 ## License

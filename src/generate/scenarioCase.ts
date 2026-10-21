@@ -13,7 +13,8 @@ import { join, relative, resolve } from "node:path";
 import { writeFile } from "../render/render";
 import { templatesRoot } from "./project";
 import { DEV_PATCH_NOTES } from "./patches";
-import { t, getLang } from "../locales";
+import { DshpError } from "../core/errors";
+import { getLang } from "../locales";
 import type { TrackManifest } from "../domain/manifests";
 
 // 拷贝时的排除项:产物目录与机器私有文件(defensive;入库的案例本身不应含这些)
@@ -55,9 +56,10 @@ export function copyScenarioCase(
 ): string[] {
     const sourceDir = join(casesRoot(manifest), caseId);
     if (!existsSync(sourceDir)) {
-        throw new Error(
-            t("errors.caseMissing", { name: caseId, cases: listScenarioCases(manifest).join(", ") }),
-        );
+        throw new DshpError("CASE_MISSING", {
+            name: caseId,
+            cases: listScenarioCases(manifest).join(", "),
+        });
     }
 
     cpSync(sourceDir, targetDir, {
@@ -115,12 +117,12 @@ export function copyScenarioCase(
     // config 块原样保留——仅把 name 换成源码入口绝对路径(直载 .ts,Node ESM 不支持目录导入)。
     const distPatch = join(targetDir, "cordis.patch.yml");
     if (!existsSync(distPatch)) {
-        throw new Error(t("errors.patchMissing", { name: caseId }));
+        throw new DshpError("PATCH_MISSING", { name: caseId });
     }
     const body = readFileSync(distPatch, "utf8");
     const insertAt = body.indexOf("- insert:");
     if (insertAt < 0) {
-        throw new Error(t("errors.insertMissing", { name: caseId }));
+        throw new DshpError("INSERT_MISSING", { name: caseId });
     }
     const entryFile = resolve(targetDir, "src/index.ts");
     const named = body

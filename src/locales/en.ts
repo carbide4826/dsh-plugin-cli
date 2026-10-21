@@ -22,7 +22,7 @@ export const en = {
         errUnknownScenario:
             'unknown preset "{name}". Available presets: {ids} (see dshp create --help)',
         errCheckFailed: "option validation failed",
-        errUnknownTarget: 'unknown target track "{targets}" (see dshp create --help)',
+        errUnknownTarget: 'unknown target track "{value}" (available: {targets}; see dshp create --help)',
         targetMessage: "Which dsh host generation to pair with?",
         targetLatestHint: "current stable line, conservative tracking (default)",
         targetNextHint: "next rc line, aggressive tracking",
@@ -37,6 +37,16 @@ export const en = {
         copied: "Copied {n} files → {dir} (identity rewritten to {name})",
         generated: "Generated {n} files → {dir}",
         fileList: "Files",
+        introFree: "Free combination · atoms: {atoms}",
+        listTracks: "Version tracks:",
+        listPresets: "Presets:",
+        listCases: "Curated cases:",
+        listAtoms: "Atoms (freely combinable):",
+        listEventDomains: "Event domains:",
+        listUiSurfaces: "UI surfaces:",
+        listSeams: "Capability seams:",
+        dryRunTitle: "Would generate {n} files (nothing written) · {dir}",
+        dryRunHint: "dry-run: no files were written",
         confirmGenerate: "Generate the project with these answers?",
         caseHints: {
             "quick-tool": "query tool + result card",
@@ -68,6 +78,9 @@ export const en = {
      webhook-bridge  Bridge external events into sessions (protocol + events)
      notebook        Per-user notes (storage seam + tool)
 
+3) Free combination (non-interactive; any capability flag takes this path):
+   dshp create <name> --atoms tool,ui --ui-surfaces settings-card --config dynamic
+
 Overridable fields:
   --pkg-name <name>          npm package name
   --plugin-id <id>           plugin id
@@ -76,6 +89,16 @@ Overridable fields:
   --author <name>            author
   --pkg-position <position>  bundle | library
   --config <mode>            none | static | dynamic
+
+Free combination:
+  --atoms <list>             atoms, comma-separated: tool | events | service | ui | protocol
+  --event-domains <list>     event domains: tools | agent | session | approval | fs | settings
+  --ui-surfaces <list>       surfaces: settings-card | chat-node | input-dock | sidebar | tool-view | session-header
+  --service-seams <list>     seams: llm | systemPrompt | subagents | web | commands | storage
+  --new-service              create a new own service (pairs with --atoms service)
+
+Other:
+  --dry-run                  print the file list that would be generated, write nothing
 
 Language:
   --lang <lang>              zh | en (default: auto-detect from LANG)`,
@@ -249,8 +272,15 @@ Language:
         pkgPosition: "--pkg-position only supports: {values}",
         config: "--config only supports: {values}",
         configNone:
-            "preset {id} includes settings-card; --config none is unavailable (a settings card must have config to show)",
+            "--config none is unavailable for configurations with a settings-card surface (a settings card must have config to show) · context: {id}",
         unresolvedPlaceholder:
             "template placeholders have no matching variable — material and generator drifted: {list}",
+        errInvalidLang: "--lang only supports: {values}",
+        errAtomUnknown: "unknown atom: {name} (available: {ids})",
+        errEventDomainUnknown: "unknown event domain: {name} (available: {ids})",
+        errUiSurfaceUnknown: "unknown UI surface: {name} (available: {ids})",
+        errSeamUnknown: "unknown capability seam: {name} (available: {ids})",
+        errSurfaceRequiresAtom:
+            "surface {surfaces} needs atom {atoms} to have a registration key (add --atoms {atoms}, or drop that surface)",
     },
 } as const satisfies Dict;

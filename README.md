@@ -35,12 +35,15 @@ npm i create-dsh-plugin-cli        # 项目内安装:用 npx dshp / pnpm dshp �
 
 ## 系统命令
 
-`dshp` 目前只挂一个子命令 `create`(交互式问卷,或 `--template` 非交互二选一):
-
 ```sh
 dshp --help              # 主命令总览
 dshp create --help       # create 的完整选项与场景/案例一览
+dshp list                # 一览能选什么(预设/案例/原子/事件域/界面位/缝/两轨版本配套)
+dshp list --json         # 同上,机器可读(agent / MCP 直接消费)
 ```
+
+`dshp list` 是**权威实时清单** —— 想知道有哪些原子、界面位落到哪个宿主包的哪个槽位键、
+界面位要配哪些原子、某条轨钉的 dsh 版本,跑它就行,不用翻文档快照。
 
 `dshp create` 支持的选项见下方 [可覆盖参数](#可覆盖参数)。
 
@@ -140,15 +143,38 @@ dshp create my-gw --template model-gateway -s --target next
 | `--pkg-position <position>` | `bundle` / `library`          | `bundle`                     |
 | `--config <mode>`           | `none` / `static` / `dynamic` | 场景预设(ui 场景为 `static`) |
 | `--target <track>`          | `latest` / `next`             | `latest`(配套轴:dsh 版本与依赖配套按轨钉定) |
+| `--dry-run`                 | 布尔                          | 关(打印将生成的文件清单,不落盘) |
 
 > 精选案例不适用 `--tool-name` / `--pkg-position` / `--config`(生成结构随案例锁定)。
+
+#### 自由组合(非交互)
+
+给了任一能力类参数即走这条路径,不进交互问卷:
+
+```sh
+dshp create my-orders --atoms tool,ui --ui-surfaces settings-card --config dynamic \
+  --tool-name query_orders --target next
+```
+
+| 参数                        | 取值                                                        |
+| --------------------------- | ----------------------------------------------------------- |
+| `--atoms <list>`            | `tool` / `events` / `service` / `ui` / `protocol`(逗号分隔) |
+| `--event-domains <list>`    | `tools` / `agent` / `session` / `approval` / `fs` / `settings` |
+| `--ui-surfaces <list>`      | `settings-card` / `chat-node` / `input-dock` / `sidebar` / `tool-view` / `session-header` |
+| `--service-seams <list>`    | `llm` / `systemPrompt` / `subagents` / `web` / `commands` / `storage` |
+| `--new-service`             | 布尔(新建自有服务,配合 `--atoms service`)                   |
+
+硬约束由 CLI 校验并以**稳定错误码**报错(文案随语言变,code 不变):未知 id
+(`ATOM_UNKNOWN` / `EVENT_DOMAIN_UNKNOWN` / `UI_SURFACE_UNKNOWN` / `SEAM_UNKNOWN`)、
+界面位缺依赖原子(`SURFACE_REQUIRES_ATOM`,如 `tool-view` 缺 `tool`)、
+`settings-card` 配 `config=none`(`CONFIG_NONE_REQUIRES_SETTINGS_CARD`)。
 
 ## 生成之后
 
 ```sh
 cd my-plugin
-pnpm install                      # ① 安装依赖(项目根自带 pnpm-workspace.yaml 做 workspace 定界,正常安装即可)
-pnpm approve-builds               # ② 供应链保护拦截构建脚本:放行 node-pty / koffi / @deepseek-ai/dsh-subprocess-local(@google/genai / protobufjs 是 no-op 不用批),放行后再 install 一次让脚本真正执行
+pnpm install                      # ① 安装依赖(项目根自带 pnpm-workspace.yaml 做 workspace 定界,正常安装即可;用到 llm 能力的插件会因构建脚本未放行在这一步失败,按 ② 放行后重跑)
+pnpm approve-builds               # ② 供应链保护拦截构建脚本:pnpm 11 严格模式下未处理会让 install 直接失败(不是警告);真要跑的(node-pty / koffi / dsh-subprocess-local)选 true,no-op 的(@google/genai / protobufjs)按官方口径列出来填 false 拒绝执行,放行后再 install 一次让脚本真正执行
 pnpm add -D @deepseek-ai/dsh@0.2.1-rc.2   # ③ 安装 dsh 宿主(latest / next 轨现均配 0.2.1-rc.2,与 --target 对应;裸 latest tag 可能是其他线,别裸装;装完同样 approve-builds 放行)
 pnpm build                        # ④ 构建
 pnpm dsh web --patch ./dev.patch.yml      # ⑤ 启动 dsh 宿主(直载源码调试)
@@ -221,7 +247,7 @@ dsh plugin --profile web allow-version <插件名>@<插件版本> --dsh-version 
 - 随 dsh 版本调整持续更新适配 —— 版本统一管理,升级跟随官方版本线 ✅
 - `--template` 自定义模板源:支持 local path / git URL / npm 包
 - 本地化(多语言支持)—— 0.1.1 已交付:`--lang zh|en` 双语界面,生成项目 README 按语言单份交付 ✅
-- 支持 agent 工具识别与调用 —— skill 形态已交付(随包发布 `skills/dshp/`);MCP 形态待立项
+- 支持 agent 工具识别与调用 —— skill 形态已交付(随包发布 `skills/dshp/`);MCP 形态待立项(核心已是纯函数,前置的 plan 层 / 错误码层 / 机器可读清单已就位)
 - 双轨模板(0.1.5):latest / next 两套模板各配一代宿主(`--target` 选择);依赖精确钉官方元包配套版本;生成项目自带插件图标与双语清单元信息 ✅(现态:两轨同钉 `0.2.1-rc.2`,代际差只在晋升后出现)
 
 ## License

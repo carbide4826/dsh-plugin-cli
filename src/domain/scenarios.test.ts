@@ -139,19 +139,20 @@ describe("buildScenarioAnswers 场景覆盖", () => {
         expect(answers!.toolName).toBe("my_tool");
     });
 
-    it("非法 pkgPosition / config 取值报错", () => {
+    it("非法 pkgPosition / config 取值报错(带稳定 code,不再只给文案)", () => {
+        // 错误码是程序可分支的契约;文案随语言变,不能当接口用
         expect(
-            buildScenarioAnswers(tool, { dirName: "d", pkgPosition: "app" }).error,
-        ).toContain("--pkg-position");
-        expect(buildScenarioAnswers(tool, { dirName: "d", config: "auto" }).error).toContain(
-            "--config",
-        );
+            buildScenarioAnswers(tool, { dirName: "d", pkgPosition: "app" }).error?.code,
+        ).toBe("PKG_POSITION_INVALID");
+        expect(
+            buildScenarioAnswers(tool, { dirName: "d", config: "auto" }).error?.code,
+        ).toBe("CONFIG_INVALID");
     });
 
     it("settings-card 场景禁 --config none,允许 static/dynamic", () => {
-        expect(buildScenarioAnswers(ui, { dirName: "d", config: "none" }).error).toContain(
-            "settings-card",
-        );
+        expect(
+            buildScenarioAnswers(ui, { dirName: "d", config: "none" }).error?.code,
+        ).toBe("CONFIG_NONE_REQUIRES_SETTINGS_CARD");
         expect(
             buildScenarioAnswers(ui, { dirName: "d", config: "dynamic" }).error,
         ).toBeUndefined();

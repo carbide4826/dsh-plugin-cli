@@ -2,7 +2,7 @@
 import type { Answers } from "../domain/types";
 import type { TrackManifest } from "../domain/manifests";
 import { UI_SURFACES } from "../domain/uiSurfaces";
-import { t } from "../locales";
+import { DshpError } from "../core/errors";
 import type { DepBuckets } from "../domain/deps";
 
 // 工具链版本(dsh rc 线之外;react 系对齐官方 ui 包的声明)
@@ -22,7 +22,7 @@ function versionFor(pkg: string, manifest: TrackManifest): string {
     if (pkg.startsWith("@deepseek-ai/dsh-")) return manifest.version; // dist-tag 陷阱:精确钉死
     if (pkg === "@deepseek-ai/schemastery") return manifest.schemasteryVersion; // 精确配套:防双实例劈叉 Config 类型
     const v = TOOLCHAIN[pkg];
-    if (v === undefined) throw new Error(t("errors.unknownDep", { pkg }));
+    if (v === undefined) throw new DshpError("UNKNOWN_DEP", { pkg });
     return v;
 }
 

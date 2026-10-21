@@ -20,6 +20,12 @@
 | `--author <name>` | 字符串 | 覆盖作者 |
 | `--pkg-position <position>` | `bundle` \| `library` | 包定位;`library` 不生成 `cordis.patch.yml` |
 | `--config <mode>` | `none` \| `static` \| `dynamic` | 配置方式;`none` 与 settings-card 互斥 |
+| `--atoms <list>` | 逗号分隔 | 自由组合的原子(非交互);给了任一能力类 flag 就走自由组合路径 |
+| `--event-domains <list>` | 逗号分隔 | 自由组合的事件域 |
+| `--ui-surfaces <list>` | 逗号分隔 | 自由组合的界面位 |
+| `--service-seams <list>` | 逗号分隔 | 自由组合的能力缝 |
+| `--new-service` | 布尔 | 新建自有服务(配合 `--atoms service`) |
+| `--dry-run` | 布尔 | 打印将生成的文件清单,不落盘 |
 | `--lang <lang>` | `zh` \| `en` | program 级选项,缺省按 `LANG`/`DSHP_LANG` 探测 |
 
 `--lang` 是 program 级:help 渲染也走它,非交互调用建议显式给,避免生成物语言与预期不符。
@@ -56,6 +62,29 @@
 拷贝时会把全树里出现的案例 id 按**词边界**替换成插件 id(覆盖 `export const name`、
 `cordis.patch.yml` 的 id、`tsdown.config.ts` 的 client id、README 行文),包名不参与替换,
 由 `--pkg-name` 结构化写入 `package.json`。
+
+## 自由组合(非交互入口)
+
+给了任一能力类 flag(`--atoms` / `--event-domains` / `--ui-surfaces` / `--service-seams` /
+`--new-service`)就走这条路径,**不进问卷**:
+
+```sh
+dshp create my-orders --atoms tool,ui --ui-surfaces settings-card \
+  --config dynamic --tool-name query_orders --target next
+```
+
+硬约束由 CLI 校验,失败即退出码 1 并给出稳定错误码(文案随语言变,code 不变):
+
+| 错误码 | 触发条件 |
+| --- | --- |
+| `ATOM_UNKNOWN` / `EVENT_DOMAIN_UNKNOWN` / `UI_SURFACE_UNKNOWN` / `SEAM_UNKNOWN` | id 不在清单里 |
+| `SURFACE_REQUIRES_ATOM` | 界面位依赖的原子没同勾(如 `tool-view` 缺 `tool`) |
+| `CONFIG_NONE_REQUIRES_SETTINGS_CARD` | `settings-card` 配了 `config=none` |
+| `CONFIG_INVALID` / `PKG_POSITION_INVALID` | 取值非法 |
+| `DIR_EXISTS` | 目标目录已存在 |
+
+`--dry-run` 打印将生成的文件清单但不落盘(「先看清再写」的入口;MCP 路径的
+「显式确认后写盘」也依赖同一层)。
 
 ## 可勾选清单(自由组合)
 
@@ -120,6 +149,14 @@
 
 ## 实时发现(优先于本文件的快照)
 
+**`dshp list` 是权威的实时清单** —— 预设 / 案例 / 原子 / 事件域 / 界面位 / 缝 / 两轨版本配套,
+一次全给:
+
+```sh
+dshp list            # 人读
+dshp list --json     # 机器读(agent / MCP 直接消费)
+```
+
 已安装包的素材目录是权威清单:
 
 ```sh
@@ -138,10 +175,15 @@ npx create-dsh-plugin-cli create --help
 cat <dir>/package.json
 ```
 
-## 驱动脚本:自由原子组合的唯一非交互入口
+## 驱动脚本:自由组合的便利壳
 
-`scripts/drive-questionnaire.mjs`(随本 skill 同包发布)把交互问卷的按键语义固化成一条命令,
-产出纯生成器产物。
+`scripts/drive-questionnaire.mjs`(随本 skill 同包发布)是 CLI 原生自由组合入口的**薄壳**:
+参数 → CLI 原生 flag → 生成,另加「按勾选推应有的文件并自检,缺文件即非零退出」与
+JSON 摘要。直接调 CLI 也一样。
+
+> 演化史:这脚本原本是**驱动交互问卷**的(CLI 当时没有自由组合 flag,只能逆向 clack 的
+> 按键语义,一次几十次试错)。CLI 有了原生入口后,按键驱动那套已删除 —— 顺带消掉了
+> 「提示语文本即同步锚点,CLI 改文案即失配」这个脆点。
 
 ```sh
 node scripts/drive-questionnaire.mjs --dir <项目目录> --target <latest|next> \
@@ -155,11 +197,9 @@ node scripts/drive-questionnaire.mjs --dir <项目目录> --target <latest|next>
 ```
 
 - `--atoms` 里含 `tool` 时必须给 `--tool-name`;含 `events`/`ui`/`service` 时必须给对应清单项
-  或 `--create-service`(脚本在启动前就拦,不等问卷里重问)。
-- 脚本只喂键不改产物:生成的每个文件都出自生成器,手改面为零。
+  或 `--create-service`(脚本在启动前就拦,不等 CLI 起来才说)。
+- 脚本只调 CLI 不改产物:生成的每个文件都出自生成器,手改面为零。
 - 生成后自检:按勾选推应有的文件(`src/tool.ts` / `src/events.ts` / `src/client/index.ts` …),
   缺文件即以非零退出并在 JSON 里列出 `missingFiles`。
-- `--dry-run` 打印将要发送的按键序列,不执行。
+- `--dry-run` 打印将要执行的命令,不执行。
 - 脚本默认用同包 `dist/cli.mjs`;也可用 `--cli <path>` 指定别的 CLI(便于对改过的本地构建做验证)。
-- 选项顺序与初始勾选(原子清单里 `default:true` 的项、界面位初始为空)在脚本头部与
-  `src/domain/{atoms,events,uiSurfaces,seams}.ts` 同步 —— 升级 dshp 时两处一起改。

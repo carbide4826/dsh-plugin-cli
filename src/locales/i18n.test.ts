@@ -1,5 +1,7 @@
 // i18n 守门:字典结构对齐(key 集合两语言一致)+ 专有名词不被换译 + 语言切换生效
 import { describe, expect, it, afterEach } from "vitest";
+import { readdirSync, readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { zh } from "./zh";
 import { en } from "./en";
 import { t, setLang, detectLang } from "./index";
@@ -77,6 +79,45 @@ describe("语言切换与插值", () => {
         } finally {
             process.env.LANG = LANG;
             process.env.DSHP_LANG = DSHP_LANG;
+        }
+    });
+});
+
+describe("调用点 key 存在性", () => {
+    // 上一轮的坑:新文案误放进 errors.* 段,CLI 却按 cli.* 读 → 终端直接露出裸 key。
+    // zh/en key 集合一致这条守门抓不到(两边都放错了段),必须扫调用点。
+    it("源码里所有字面量 t(\"...\") 的 key 都能查到(不留裸 key)", () => {
+        const srcDir = new URL("../", import.meta.url);
+        const files: string[] = [];
+        const walk = (dir: URL): void => {
+            for (const e of readdirSync(dir, { withFileTypes: true })) {
+                const p = new URL(e.name + (e.isDirectory() ? "/" : ""), dir);
+                if (e.isDirectory()) walk(p);
+                else if (e.name.endsWith(".ts") && !e.name.endsWith(".test.ts")) {
+                    files.push(fileURLToPath(p));
+                }
+            }
+        };
+        walk(srcDir);
+
+        const zhKeys = new Set(Object.keys(flatten(zh)));
+        const enKeys = new Set(Object.keys(flatten(en)));
+        const used = new Set<string>();
+        for (const file of files) {
+            const text = readFileSync(file, "utf8");
+            // 注释里的 t("...") 是举例,不是调用点 —— 先剥掉行注释与块注释
+            const code = text
+                .replace(/\/\*[\s\S]*?\*\//g, "")
+                .replace(/(^|[^:])\/\/.*$/gm, "$1");
+            // 静态字面量调用:t("cli.foo") / t(`cli.foo`);模板拼接的键(如 t(`prompts.capabilities.${k}`))不在此列
+            for (const m of code.matchAll(/\bt\(\s*["'`]([a-zA-Z0-9_.]+)["'`]/g)) {
+                if (m[1]) used.add(m[1]);
+            }
+        }
+        expect(used.size).toBeGreaterThan(0);
+        for (const key of used) {
+            expect(zhKeys.has(key), `${key} 在 zh 字典里不存在`).toBe(true);
+            expect(enKeys.has(key), `${key} 在 en 字典里不存在`).toBe(true);
         }
     });
 });

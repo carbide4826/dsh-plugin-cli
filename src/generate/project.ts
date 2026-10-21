@@ -7,7 +7,8 @@ import type { TrackManifest, TrackTarget } from "../domain/manifests";
 import { collectDeps } from "../domain/deps";
 import { planGeneration } from "../atoms";
 import { renderString, writeFile, findUnresolved, type Vars } from "../render/render";
-import { t, getLang } from "../locales";
+import { DshpError } from "../core/errors";
+import { getLang } from "../locales";
 import { buildVars } from "./vars";
 import { generatePackageJson } from "./packageJson";
 import { generateCordisPatch, generateDevPatch } from "./patches";
@@ -50,28 +51,37 @@ export function templatesRoot(target: TrackTarget): string {
         }
         dir = dirname(dir);
     }
-    throw new Error(t("errors.templatesRootMissing"));
+    throw new DshpError("TEMPLATES_ROOT_MISSING");
 }
 
 /** 读模板文本;缺失直接抛错(渲染素材缺失是发布事故,不能静默) */
 function readTemplate(path: string): string {
-    if (!existsSync(path)) throw new Error(t("errors.templateMissing", { path }));
+    if (!existsSync(path)) throw new DshpError("TEMPLATE_MISSING", { path });
     return readFileSync(path, "utf8");
 }
 
+/** 一个待落盘的文件(相对目标目录的路径 + 内容) */
+export interface PlannedFile {
+    /** 相对目标目录的路径(如 "src/index.ts") */
+    path: string;
+    /** 文件完整内容 */
+    content: string;
+}
+
 /**
- * 生成完整项目到目标目录
+ * 生成计划:算出全部待落盘文件,但**不写盘**。
+ * 拆这层是为了两件事:dryRun(先看清要生成什么再落盘)与「显式确认后写盘」(MCP 路径要求)。
  * @param answers - 完整问卷答案
- * @param targetDir - 目标目录(需已存在或可创建)
  * @param manifest - 目标轨 manifest(决定素材树与版本单源)
- * @returns 实际写入的文件相对路径清单(供完成提示展示)
+ * @param targetDir - 目标目录(dev.patch.yml 里要写本机绝对路径,故需知目标位置)
+ * @returns 待落盘文件清单(顺序即写入顺序)
  */
-export function writeProject(
+export function planProject(
     answers: Answers,
     targetDir: string,
     manifest: TrackManifest,
-): string[] {
-    const written: string[] = [];
+): PlannedFile[] {
+    const files: PlannedFile[] = [];
     const plan = planGeneration(answers);
     const deps = collectDeps(answers, manifest);
     const vars: Vars = buildVars(answers, plan.readmeStructure.join("\n"), manifest);
@@ -91,49 +101,61 @@ export function writeProject(
     for (const source of BASE_FILES) {
         const dest = destName(source);
         const src = source === "README.md" ? readmeSource : source;
-        writeFile(targetDir, dest, renderTemplate(join(root, src), dest));
-        written.push(dest);
+        files.push({ path: dest, content: renderTemplate(join(root, src), dest) });
     }
 
     // 原子实现文件(拷贝 + 占位符渲染;copy.from 相对 templates/atoms/)
     for (const c of plan.copy) {
-        writeFile(
-            targetDir,
-            c.to,
-            renderTemplate(join(root, "atoms", c.from), c.to),
-        );
-        written.push(c.to);
+        files.push({
+            path: c.to,
+            content: renderTemplate(join(root, "atoms", c.from), c.to),
+        });
     }
 
     // 动态文件:package.json / patch / 入口 / 聚合
-    writeFile(targetDir, "package.json", generatePackageJson(answers, deps, manifest));
-    written.push("package.json");
+    files.push({
+        path: "package.json",
+        content: generatePackageJson(answers, deps, manifest),
+    });
 
     if (answers.pkgPosition === "bundle") {
-        writeFile(targetDir, "cordis.patch.yml", generateCordisPatch(answers));
-        written.push("cordis.patch.yml");
+        files.push({ path: "cordis.patch.yml", content: generateCordisPatch(answers) });
     }
-    writeFile(
-        targetDir,
-        "dev.patch.yml",
-        generateDevPatch(answers, resolve(targetDir, "src/index.ts")),
-    );
-    written.push("dev.patch.yml");
+    files.push({
+        path: "dev.patch.yml",
+        content: generateDevPatch(answers, resolve(targetDir, "src/index.ts")),
+    });
 
-    writeFile(
-        targetDir,
-        "src/index.ts",
-        generateHostIndex(answers, plan.index, manifest),
-    );
-    written.push("src/index.ts");
+    files.push({
+        path: "src/index.ts",
+        content: generateHostIndex(answers, plan.index, manifest),
+    });
     for (const agg of plan.aggregates) {
-        writeFile(targetDir, agg.file, generateAggregator(agg));
-        written.push(agg.file);
+        files.push({ path: agg.file, content: generateAggregator(agg) });
     }
 
     if (unresolved.size > 0) {
-        throw new Error(t("errors.unresolvedPlaceholder", { list: [...unresolved].join("; ") }));
+        throw new DshpError("UNRESOLVED_PLACEHOLDER", { list: [...unresolved].join("; ") });
     }
 
-    return written;
+    return files;
+}
+
+/**
+ * 生成完整项目到目标目录(算完即写;要「先看清再落盘」用 planProject)
+ * @param answers - 完整问卷答案
+ * @param targetDir - 目标目录(需已存在或可创建)
+ * @param manifest - 目标轨 manifest(决定素材树与版本单源)
+ * @returns 实际写入的文件相对路径清单(供完成提示展示)
+ */
+export function writeProject(
+    answers: Answers,
+    targetDir: string,
+    manifest: TrackManifest,
+): string[] {
+    const files = planProject(answers, targetDir, manifest);
+    for (const f of files) {
+        writeFile(targetDir, f.path, f.content);
+    }
+    return files.map((f) => f.path);
 }

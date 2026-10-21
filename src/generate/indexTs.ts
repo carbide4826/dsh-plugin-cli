@@ -1,7 +1,7 @@
 import type { Answers } from "../domain/types";
 import type { TrackManifest } from "../domain/manifests";
 import type { AggregatePlan } from "../atoms";
-import { t } from "../locales";
+import { DshpError } from "../core/errors";
 
 interface IndexBlock {
     injects: string[];
@@ -184,5 +184,5 @@ export function generateAggregator(aggregate: AggregatePlan): string {
         );
     }
 
-    throw new Error(t("errors.unknownAggregate", { file: aggregate.file }));
+    throw new DshpError("UNKNOWN_AGGREGATE", { file: aggregate.file });
 }
