@@ -58,7 +58,7 @@ jobs:
           --target ${{ matrix.track }}
 
       # MCP 路径:真起 stdio server,逐个调三个 tool(新表面不测 = 不知道提交后还行不行)
-      - name: MCP smoke (stdio server + three tools)
+      - name: MCP smoke (stdio server + four tools)
         run: node scripts/mcp-smoke.mjs mcp-smoke ${{ matrix.track }}
 
       # 生成工程三步验证;生成项目自带 pnpm-workspace.yaml 定界(防祖先 workspace 劫持),勿加 --ignore-workspace
