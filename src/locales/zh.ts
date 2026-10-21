@@ -279,5 +279,6 @@ export const zh = {
         errSeamUnknown: "未知能力缝:{name}(可用:{ids})",
         errSurfaceRequiresAtom:
             "界面位 {surfaces} 要配原子 {atoms} 才有注册名(补上 --atoms {atoms},或去掉该界面位)",
+        internalError: "生成器内部错误(非预期异常):{message}",
     },
 } as const;

@@ -41,9 +41,15 @@ describe("describeCatalog", () => {
             );
         }
         // 依赖原子的界面位:依赖关系必须能被模型读到
+        // (全部界面位都要 ui 原子;tool-view 额外要 tool —— 没有工具就没有可渲染的东西)
         expect(c.uiSurfaces.find((s) => s.id === "tool-view")?.requires).toEqual([
+            "ui",
             "tool",
         ]);
+        // 每个界面位都要登记依赖(漏登记 = 自由组合路径会挑出哑界面)
+        for (const s of c.uiSurfaces) {
+            expect(s.requires, `${s.id} 没登记依赖原子`).toContain("ui");
+        }
     });
 
     it("事件域带宿主包与事件数", () => {
@@ -76,6 +82,6 @@ describe("describeCatalog", () => {
     it("可 JSON 序列化(纯数据,无循环引用/函数)", () => {
         const round = JSON.parse(JSON.stringify(c));
         expect(round.atoms.length).toBe(c.atoms.length);
-        expect(round.uiSurfaces.find((s: { id: string }) => s.id === "tool-view").requires).toEqual(["tool"]);
+        expect(round.uiSurfaces.find((s: { id: string }) => s.id === "tool-view").requires).toEqual(["ui", "tool"]);
     });
 });

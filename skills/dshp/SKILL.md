@@ -49,6 +49,8 @@ dshp create <dir> --atoms tool,ui --ui-surfaces settings-card --config dynamic \
 能力类 flag:`--atoms` / `--event-domains` / `--ui-surfaces` / `--service-seams`(逗号分隔)
 / `--new-service`。给了任一能力类 flag 就走这条路径,不进问卷;硬约束由 CLI 校验并以稳定
 错误码报错(未知 id / 界面位缺原子 / settings-card 配 config=none)。
+⚠️ 勾界面位必须同勾 `ui` 原子(`tool-view` 还要 `tool`):界面位实现由 `ui` 原子产出,
+缺了界面位选择会被**静默丢弃**,生成物里根本没有 `client/`。
 
 需求超出单个预设/案例时,三条路,按成本排序:
 
@@ -67,6 +69,11 @@ dshp create <dir> --atoms tool,ui --ui-surfaces settings-card --config dynamic \
 
 > 历史上自由组合只能靠驱动交互问卷(逆向 clack 按键语义,几十次试错)。**那套做法已经退役** ——
 > 现在有原生 flag,别再去逆向按键语义,也别绕道手改生成器接线。
+
+⭐ **宿主挂了 MCP 时优先用 tool**:`dshp mcp` 起的是 stdio MCP server,暴露
+`dshp_list_scenarios` / `dshp_doctor` / `dshp_create_plugin` 三个 tool。tool 的入参 schema
+直接由领域清单生成(合法 id 是 enum,模型拿不到过期 id),`dshp_create_plugin` 缺省只算计划、
+显式传 `dryRun: false` 才落盘。宿主配置与细节见 references/cli-surface.md 的「MCP server」段。
 
 案例与预设的实时清单见 references/cli-surface.md。
 

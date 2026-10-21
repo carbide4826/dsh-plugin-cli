@@ -40,6 +40,7 @@ dshp --help              # 主命令总览
 dshp create --help       # create 的完整选项与场景/案例一览
 dshp list                # 一览能选什么(预设/案例/原子/事件域/界面位/缝/两轨版本配套)
 dshp list --json         # 同上,机器可读(agent / MCP 直接消费)
+dshp mcp                 # 起 MCP server(stdio),把生成能力交给模型
 ```
 
 `dshp list` 是**权威实时清单** —— 想知道有哪些原子、界面位落到哪个宿主包的哪个槽位键、
@@ -216,6 +217,44 @@ skill 里附带一个驱动脚本,把交互问卷固化成一条命令 —— �
 node skills/dshp/scripts/drive-questionnaire.mjs --dir my-orders --target next \
   --atoms tool,ui --surfaces settings-card --tool-name query_orders
 ```
+
+## MCP server
+
+本包自带一个 MCP server(`dshp mcp`,stdio 协议),把生成能力直接交给模型 —— agent 不用再逆向 CLI 参数、也不用驱动交互问卷。
+
+```sh
+dshp mcp --lang zh     # 起 MCP server(--lang 指定生成物语言,缺省按环境探测)
+```
+
+宿主配置示例:
+
+```json
+{
+  "mcpServers": {
+    "dshp": {
+      "command": "npx",
+      "args": ["-y", "create-dsh-plugin-cli", "mcp", "--lang", "zh"]
+    }
+  }
+}
+```
+
+三个 tool:
+
+| tool | 作用 |
+| --- | --- |
+| `dshp_list_scenarios` | 一览能选什么:预设 / 精选案例 / 原子 / 事件域 / 界面位 / 缝(带宿主包、槽位键、依赖原子) |
+| `dshp_doctor` | 体检本机环境:node 版本、pnpm、dsh CLI、两轨素材与生成管线自检、当前目录可写性 |
+| `dshp_create_plugin` | 生成插件项目(预设 / 精选案例 / 自由组合三种模式) |
+
+两个设计约定:
+
+- **合法取值从源码派生**:tool 的入参 schema 由领域清单现生成(原子 / 事件域 / 界面位 / 缝 / 预设 / 案例 id 全是 enum),模型在 schema 里就拿得到合法值,不会握着过期的 id 反复重试。
+- **写盘要显式确认**:`dshp_create_plugin` 缺省只算计划(`dryRun` 默认 true),先返回将生成哪些文件;确认后用同样的参数再调一次、显式传 `dryRun: false` 才落盘。
+
+MCP 与 CLI 共用同一份生成规则(同一个 `src/core/create.ts`),产物逐字节一致;失败一律带稳定错误码(如 `SURFACE_REQUIRES_ATOM` / `DIR_EXISTS` / `CASE_NOT_FOUND`),不是本地化句子。
+
+> 宿主 spawn 子进程时通常只继承 `HOME` / `PATH` / `SHELL` / `TERM` / `USER` 等少数环境变量,**不含 `LANG`** —— MCP 侧因此探测不到系统语言。中文环境下请用 `--lang zh` 起服务,或在调用 `dshp_create_plugin` 时传 `lang: "zh"`。
 
 ## 版本说明
 

@@ -1,4 +1,5 @@
 # CI:类型 + 测试 + 生成项目 E2E 冒烟(不装 dsh 宿主,只验证「生成的工程能装依赖/过类型/构建」)
+# 冒烟覆盖四条生成面:预设组合 / 精选案例 / 自由组合 / MCP server 产出的工程
 # 直连 push 与 PR 都触发(本仓库不走 PR 流程,push 触发是主通路)
 name: CI
 
@@ -56,6 +57,10 @@ jobs:
           --lang en
           --target ${{ matrix.track }}
 
+      # MCP 路径:真起 stdio server,逐个调三个 tool(新表面不测 = 不知道提交后还行不行)
+      - name: MCP smoke (stdio server + three tools)
+        run: node scripts/mcp-smoke.mjs mcp-smoke ${{ matrix.track }}
+
       # 生成工程三步验证;生成项目自带 pnpm-workspace.yaml 定界(防祖先 workspace 劫持),勿加 --ignore-workspace
       - name: preset-tool install / typecheck / build
         run: |
@@ -72,6 +77,12 @@ jobs:
       - name: free-combo install / typecheck / build
         run: |
           cd free-combo
+          pnpm install
+          pnpm typecheck
+          pnpm build
+      - name: mcp-free install / typecheck / build
+        run: |
+          cd mcp-smoke/mcp-free
           pnpm install
           pnpm typecheck
           pnpm build

@@ -38,6 +38,7 @@ export const ERROR_CODES = [
     "SEAM_UNKNOWN",
     "SURFACE_REQUIRES_ATOM",
     "OVERRIDE_WITHOUT_TEMPLATE",
+    "INTERNAL_ERROR",
 ] as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[number];
@@ -73,6 +74,7 @@ export const LOCALE_KEY: Record<ErrorCode, string> = {
     SEAM_UNKNOWN: "errors.errSeamUnknown",
     SURFACE_REQUIRES_ATOM: "errors.errSurfaceRequiresAtom",
     OVERRIDE_WITHOUT_TEMPLATE: "cli.warnOverride",
+    INTERNAL_ERROR: "errors.internalError",
 };
 
 /** 错误插值参数(值随 code 而定,只放「与语言无关的事实」) */

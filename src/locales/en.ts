@@ -282,5 +282,6 @@ Language:
         errSeamUnknown: "unknown capability seam: {name} (available: {ids})",
         errSurfaceRequiresAtom:
             "surface {surfaces} needs atom {atoms} to have a registration key (add --atoms {atoms}, or drop that surface)",
+        internalError: "internal generator error (unexpected exception): {message}",
     },
 } as const satisfies Dict;

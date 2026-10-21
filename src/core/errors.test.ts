@@ -56,6 +56,7 @@ describe("错误码全集", () => {
             UI_SURFACE_UNKNOWN: ["name", "ids"],
             SEAM_UNKNOWN: ["name", "ids"],
             SURFACE_REQUIRES_ATOM: ["surfaces", "atoms"],
+            INTERNAL_ERROR: ["message"],
         };
         for (const code of ERROR_CODES) {
             const key = LOCALE_KEY[code];

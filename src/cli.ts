@@ -3,8 +3,7 @@ import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { Command } from "commander";
 import * as p from "@clack/prompts";
-import type { Answers } from "./domain/types";
-import { buildScenarioAnswers, findScenario, SCENARIOS } from "./domain/scenarios";
+import { findScenario, SCENARIOS } from "./domain/scenarios";
 import {
     askDirectoryName,
     askPkgName,
@@ -15,13 +14,19 @@ import {
 import { askCapabilities } from "./prompts/capabilities";
 import { askConfig } from "./prompts/config";
 import { printSummary } from "./prompts/summary";
-import { writeProject, planProject } from "./generate/project";
-import { copyScenarioCase, listScenarioCases } from "./generate/scenarioCase";
+import { listScenarioCases } from "./generate/scenarioCase";
 import { getTrackManifest, resolveTrackTarget, type TrackTarget } from "./domain/manifests";
-import { buildFreeAnswers, parseIdList } from "./core/capabilities";
+import { parseIdList } from "./core/capabilities";
 import { describeCatalog } from "./core/describe";
+import {
+    resolveCreate,
+    planCreate,
+    writeCreate,
+    nextSteps as coreNextSteps,
+} from "./core/create";
 import { t, setLang, renderError, type Lang } from "./locales";
-import { DshpError } from "./core/errors";
+import { DshpError, isDshpError } from "./core/errors";
+import { startMcpServer } from "./mcp/server";
 import pkgJson from "../package.json" with { type: "json" };
 
 const program = new Command();
@@ -46,15 +51,9 @@ function applyLang(raw: unknown): void {
     setLang(raw as Lang);
 }
 
-// 生成完成后的统一提示(交互与非交互两条路径共用,避免文案漂移);单命令单行,目录名动态传入
+// 生成完成后的统一提示(交互与非交互两条路径共用,与 core/create 的 nextSteps 同源)
 function nextSteps(dirName: string): string {
-    return [
-        `cd ${dirName}`,
-        "pnpm install",
-        "pnpm typecheck",
-        "pnpm build",
-        "pnpm dsh web --patch ./dev.patch.yml",
-    ].join("\n");
+    return coreNextSteps(dirName).join("\n");
 }
 
 // 报错提示用的场景 id 清单(如 "tool, llm, ui, events, protocol")
@@ -64,14 +63,9 @@ const SCENARIO_IDS = SCENARIOS.map((s) => s.id).join(", ");
  * dryRun:打印将要生成的文件清单,但**不落盘**。
  * 用途:agent/脚本先看清要生成什么再决定写不写(MCP 路径的「显式确认后写盘」也依赖这层)。
  */
-function printDryRun(
-    answers: Answers,
-    targetDir: string,
-    manifest: ReturnType<typeof resolveTrackTarget> & object,
-): void {
-    const files = planProject(answers, targetDir, manifest);
+function printDryRun(files: string[], targetDir: string): void {
     p.note(
-        files.map((f) => `  ${f.path}`).join("\n"),
+        files.map((f) => `  ${f}`).join("\n"),
         t("cli.dryRunTitle", { n: files.length, dir: targetDir }),
     );
     p.outro(t("cli.dryRunHint"));
@@ -216,6 +210,27 @@ program
         process.stdout.write(out.join("\n") + "\n");
     });
 
+// mcp 子命令:以 stdio 协议起 MCP server,把生成能力暴露给模型。
+// stdout 是 JSON-RPC 通道,这个子命令一行都不往 stdout 写(提示与报错只走 stderr)。
+program
+    .command("mcp")
+    .description("Run the MCP server over stdio (tools: dshp_list_scenarios / dshp_create_plugin / dshp_doctor)")
+    .option("--lang <lang>", "ui language of generated projects: zh | en (default: auto-detect from LANG)")
+    .action(async (options: { lang?: string }) => {
+        // 语言:子命令级优先,其次 program 级(--lang 放在子命令前后都认)
+        const raw = options.lang ?? program.opts().lang;
+        if (raw !== undefined) {
+            if (typeof raw !== "string" || !(LANGS as readonly string[]).includes(raw)) {
+                // 报错走 stderr:stdout 是 JSON-RPC 通道,写进去会污染协议流
+                console.error(`[dshp] --lang 仅支持:${LANGS.join(" | ")}`);
+                process.exitCode = 1;
+                return;
+            }
+            setLang(raw as Lang);
+        }
+        await startMcpServer();
+    });
+
 program
     .command("create [name]")
     .description("Create a DSH plugin project skeleton")
@@ -271,87 +286,17 @@ program
         applyLang(program.opts().lang); // 语言先于一切文案落地
         if (process.exitCode) return;
 
-        // 目标轨解析:缺省 latest;非法值报错并列出合法轨名
-        const manifest = resolveTrackTarget(options.target);
-        if (!manifest) {
-            p.log.error(
-                renderError(
-                    new DshpError("UNKNOWN_TARGET", {
-                        value: String(options.target),
-                        targets: "latest, next",
-                    }),
-                ),
-            );
-            process.exitCode = 1;
-            return;
-        }
-
-        // -s 精选案例路径:从 templates/scenarios/ 整目录拷贝并重写身份(所见即所得)
-        if (options.scenario && !options.template) {
-            p.log.error(renderError(new DshpError("SCENARIO_REQUIRES_TEMPLATE")));
-            process.exitCode = 1;
-            return;
-        }
-
-        // --template 场景快捷入口:非交互一行命令,能力组合由场景预设锁定,
-        // 其余字段可被命令行参数覆盖(传了用传的,没传回落预设)
-        if (options.template) {
-            if (options.scenario) {
-                const cases = listScenarioCases(manifest);
-                if (!cases.includes(options.template)) {
-                    p.log.error(
-                        renderError(
-                            new DshpError("CASE_NOT_FOUND", {
-                                name: options.template,
-                                cases: cases.join(", "),
-                            }),
-                        ),
-                    );
-                    process.exitCode = 1;
-                    return;
-                }
-                const inapplicable = Object.entries(CASE_INAPPLICABLE_FLAGS)
-                    .filter(([k]) => options[k as keyof CreateOptions] !== undefined)
-                    .map(([, flag]) => flag ?? "");
-                if (inapplicable.length > 0) {
-                    p.log.warn(
-                        renderError(
-                            new DshpError("CASE_FLAG_INAPPLICABLE", {
-                                flags: inapplicable.join(" "),
-                            }),
-                        ),
-                    );
-                }
-
-                const dirName = name ?? options.template;
-                const targetDir = resolve(process.cwd(), dirName);
-                if (dirName !== "." && existsSync(targetDir)) {
-                    p.cancel(renderError(new DshpError("DIR_EXISTS", { dir: targetDir })));
-                    process.exitCode = 1;
-                    return;
-                }
-
-                p.intro(t("cli.introCase", { name: options.template }));
-                // 身份解耦:替换主词=插件 id(默认回落目录名);包名结构化写入(默认=插件 id,未显式给出时不写)
-                const pluginId = options.pluginId ?? dirName;
-                const pkgName = options.pkgName ?? pluginId;
-                const files = copyScenarioCase(options.template, targetDir, pluginId, manifest, {
-                    description: options.description,
-                    author: options.author,
-                    ...(options.pkgName ? { pkgName } : {}),
-                });
-                p.log.info(t("cli.copied", { n: files.length, dir: targetDir, name: dirName }));
-                p.outro(nextSteps(dirName));
-                return;
-            }
-
-            const preset = findScenario(options.template);
-            if (!preset) {
+        // 四条生成路径(预设 / 案例 / 自由组合 / 交互问卷)统一走 core/create 的解析与落盘,
+        // 校验规则只有一份 —— MCP 侧调的是同一套,两边不会漂。
+        try {
+            // 目标轨解析:缺省 latest;非法值报错并列出合法轨名
+            const manifest = resolveTrackTarget(options.target);
+            if (!manifest) {
                 p.log.error(
                     renderError(
-                        new DshpError("UNKNOWN_SCENARIO", {
-                            name: options.template,
-                            ids: SCENARIO_IDS,
+                        new DshpError("UNKNOWN_TARGET", {
+                            value: String(options.target),
+                            targets: "latest, next",
                         }),
                     ),
                 );
@@ -359,208 +304,262 @@ program
                 return;
             }
 
-            const dirName = name ?? preset.defaultDirName;
-            const built = buildScenarioAnswers(preset, {
-                dirName,
-                pkgName: options.pkgName,
-                pluginId: options.pluginId,
-                description: options.description,
-                author: options.author,
-                pkgPosition: options.pkgPosition,
-                config: options.config,
-                toolName: options.toolName,
-            });
-            if (!built.answers) {
+            // -s 精选案例路径:从 templates/scenarios/ 整目录拷贝并重写身份(所见即所得)
+            if (options.scenario && !options.template) {
                 p.log.error(
-                    built.error
-                        ? renderError(built.error)
-                        : t("cli.errCheckFailed"),
+                    renderError(new DshpError("SCENARIO_REQUIRES_TEMPLATE")),
                 );
                 process.exitCode = 1;
                 return;
             }
-            if (options.toolName && !preset.capabilities.atoms.includes("tool")) {
-                p.log.warn(renderError(new DshpError("TOOL_NAME_IGNORED")));
-            }
-            const answers = built.answers;
 
-            const targetDir = resolve(process.cwd(), answers.dirName);
-            if (answers.dirName !== "." && existsSync(targetDir)) {
-                p.cancel(renderError(new DshpError("DIR_EXISTS", { dir: targetDir })));
-                process.exitCode = 1;
+            // --template 场景快捷入口:非交互一行命令,能力组合由场景预设锁定,
+            // 其余字段可被命令行参数覆盖(传了用传的,没传回落预设)
+            if (options.template) {
+                if (options.scenario) {
+                    // 案例:结构随案例锁定,这几项覆盖参数不适用(提醒但不拦)
+                    const inapplicable = Object.entries(CASE_INAPPLICABLE_FLAGS)
+                        .filter(([k]) => options[k as keyof CreateOptions] !== undefined)
+                        .map(([, flag]) => flag ?? "");
+                    if (inapplicable.length > 0) {
+                        p.log.warn(
+                            renderError(
+                                new DshpError("CASE_FLAG_INAPPLICABLE", {
+                                    flags: inapplicable.join(" "),
+                                }),
+                            ),
+                        );
+                    }
+
+                    const resolved = resolveCreate({
+                        mode: "case",
+                        case: options.template,
+                        dirName: name ?? options.template,
+                        target: options.target,
+                        pluginId: options.pluginId,
+                        pkgName: options.pkgName,
+                        description: options.description,
+                        author: options.author,
+                    });
+                    p.intro(t("cli.introCase", { name: options.template }));
+                    const files = writeCreate(resolved);
+                    p.log.info(
+                        t("cli.copied", {
+                            n: files.length,
+                            dir: resolved.targetDir,
+                            name: resolved.dirName,
+                        }),
+                    );
+                    p.outro(nextSteps(resolved.dirName));
+                    return;
+                }
+
+                const preset = findScenario(options.template);
+                if (!preset) {
+                    p.log.error(
+                        renderError(
+                            new DshpError("UNKNOWN_SCENARIO", {
+                                name: options.template,
+                                ids: SCENARIO_IDS,
+                            }),
+                        ),
+                    );
+                    process.exitCode = 1;
+                    return;
+                }
+                if (options.toolName && !preset.capabilities.atoms.includes("tool")) {
+                    p.log.warn(renderError(new DshpError("TOOL_NAME_IGNORED")));
+                }
+
+                const resolved = resolveCreate({
+                    mode: "preset",
+                    preset: options.template,
+                    dirName: name ?? preset.defaultDirName,
+                    target: options.target,
+                    pkgName: options.pkgName,
+                    pluginId: options.pluginId,
+                    toolName: options.toolName,
+                    description: options.description,
+                    author: options.author,
+                    pkgPosition: options.pkgPosition,
+                    config: options.config,
+                });
+                p.intro(t("cli.introPreset", { id: preset.id, label: preset.label() }));
+                printSummary(resolved.answers!, resolved.manifest); // 汇总照打,但不阻塞确认(非交互约定)
+
+                if (options.dryRun) {
+                    printDryRun(planCreate(resolved), resolved.targetDir);
+                    return;
+                }
+                const files = writeCreate(resolved);
+                p.log.info(
+                    t("cli.generated", { n: files.length, dir: resolved.targetDir }),
+                );
+                p.outro(nextSteps(resolved.dirName));
                 return;
             }
 
-            p.intro(t("cli.introPreset", { id: preset.id, label: preset.label() }));
-            printSummary(answers, manifest); // 汇总照打,但不阻塞确认(非交互约定)
-
-            if (options.dryRun) {
-                printDryRun(answers, targetDir, manifest);
-                return;
-            }
-            const files = writeProject(answers, targetDir, manifest);
-            p.log.info(t("cli.generated", { n: files.length, dir: targetDir }));
-            p.outro(nextSteps(answers.dirName));
-            return;
-        }
-
-        // 自由组合非交互入口:给了任一能力类参数就走这条路(不经问卷)
-        // —— agent/脚本/CI 需要「我要 tool + ui + settings-card」这种精确意图,而问卷是 TTY 的
-        if (CAPABILITY_KEYS.some((k) => options[k] !== undefined)) {
-            const dirName = name ?? "my-plugin";
-            const answers = buildFreeAnswers(
-                {
+            // 自由组合非交互入口:给了任一能力类参数就走这条路(不经问卷)
+            // —— agent/脚本/CI 需要「我要 tool + ui + settings-card」这种精确意图,而问卷是 TTY 的
+            if (CAPABILITY_KEYS.some((k) => options[k] !== undefined)) {
+                const resolved = resolveCreate({
+                    mode: "free",
+                    dirName: name,
+                    target: options.target,
                     atoms: parseIdList(options.atoms),
                     eventDomains: parseIdList(options.eventDomains),
                     uiSurfaces: parseIdList(options.uiSurfaces),
                     serviceSeams: parseIdList(options.serviceSeams),
-                    serviceCreate: options.newService,
+                    newService: options.newService,
                     config: options.config,
                     toolName: options.toolName,
-                },
-                {
-                    dirName,
                     pkgName: options.pkgName,
                     pluginId: options.pluginId,
                     description: options.description,
                     author: options.author,
                     pkgPosition: options.pkgPosition,
-                },
-            );
+                });
 
-            const targetDir = resolve(process.cwd(), answers.dirName);
-            if (answers.dirName !== "." && existsSync(targetDir)) {
-                p.cancel(renderError(new DshpError("DIR_EXISTS", { dir: targetDir })));
-                process.exitCode = 1;
+                p.intro(
+                    t("cli.introFree", {
+                        atoms: resolved.answers!.atoms.join(", ") || "-",
+                    }),
+                );
+                printSummary(resolved.answers!, resolved.manifest);
+
+                if (options.dryRun) {
+                    printDryRun(planCreate(resolved), resolved.targetDir);
+                    return;
+                }
+                const files = writeCreate(resolved);
+                p.log.info(
+                    t("cli.generated", { n: files.length, dir: resolved.targetDir }),
+                );
+                p.note(files.map((f) => `  ${f}`).join("\n"), t("cli.fileList"));
+                p.outro(nextSteps(resolved.dirName));
                 return;
             }
 
-            p.intro(t("cli.introFree", { atoms: answers.atoms.join(", ") || "-" }));
-            printSummary(answers, manifest);
-
-            if (options.dryRun) {
-                printDryRun(answers, targetDir, manifest);
-                return;
+            p.intro(t("cli.intro")); // 问卷横幅
+            if (OVERRIDE_KEYS.some((k) => options[k] !== undefined)) {
+                p.log.warn(renderError(new DshpError("OVERRIDE_WITHOUT_TEMPLATE")));
             }
-            const files = writeProject(answers, targetDir, manifest);
-            p.log.info(t("cli.generated", { n: files.length, dir: targetDir }));
-            p.note(files.map((f) => `  ${f}`).join("\n"), t("cli.fileList"));
-            p.outro(nextSteps(answers.dirName));
-            return;
-        }
 
-        p.intro(t("cli.intro")); // 问卷横幅
-        if (OVERRIDE_KEYS.some((k) => options[k] !== undefined)) {
-            p.log.warn(renderError(new DshpError("OVERRIDE_WITHOUT_TEMPLATE")));
-        }
+            // 公共配置:目录名/描述/作者/包名/插件 id(与起点无关,分支前统一问完)
+            const dirName = await askDirectoryName(name ?? "my-plugin");
+            const meta = await askProjectMeta();
+            const pkgName = await askPkgName(dirName); // 包名默认与目录名联动,回车即用
+            const pluginId = await askPluginId(dirName); // 插件 id 默认与目录名联动,回车即用
 
-        // 公共配置:目录名/描述/作者/包名/插件 id(与起点无关,分支前统一问完)
-        const dirName = await askDirectoryName(name ?? "my-plugin");
-        const meta = await askProjectMeta();
-        const pkgName = await askPkgName(dirName); // 包名默认与目录名联动,回车即用
-        const pluginId = await askPluginId(dirName); // 插件 id 默认与目录名联动,回车即用
-
-        // 目标版本轴:配套哪一代 dsh 宿主(latest 保守跟随;next 积极跟随)
-        // --target 在交互路径同样生效:作为选项初值(非法值已在上面报错退出),回车即锁定该轨
-        const pickedTrack = await p.select({
-            message: t("cli.targetMessage"),
-            initialValue: options.target ?? "latest",
-            options: [
-                { value: "latest", label: `latest · dsh ${getTrackManifest("latest").version}`, hint: t("cli.targetLatestHint") },
-                { value: "next", label: `next · dsh ${getTrackManifest("next").version}`, hint: t("cli.targetNextHint") },
-            ],
-        });
-        if (typeof pickedTrack !== "string") {
-            p.cancel(t("cli.cancelledNoFiles"));
-            return;
-        }
-        const track = resolveTrackTarget(pickedTrack);
-        if (!track) {
-            p.cancel(t("cli.cancelledNoFiles"));
-            return;
-        }
-
-        // 起点:公共配置就绪后才开始选;精选案例在前引导新手走金线
-        const startPoint = await p.select({
-            message: t("cli.startMessage"),
-            initialValue: "case",
-            options: [
-                { value: "case", label: t("cli.startCase"), hint: t("cli.startCaseHint") },
-                { value: "atoms", label: t("cli.startAtoms"), hint: t("cli.startAtomsHint") },
-            ],
-        });
-        if (typeof startPoint !== "string") { // 取消时 clack resolve 一个 symbol(typeof 守卫才能收窄,isCancel 不行)
-            p.cancel(t("cli.cancelledNoFiles"));
-            return;
-        }
-
-        if (startPoint === "case") {
-            const selected = await p.select({
-                message: t("cli.caseSelect"),
-                options: listScenarioCases(track).map((c) => ({ value: c, label: c, hint: caseHint(c) })),
+            // 目标版本轴:配套哪一代 dsh 宿主(latest 保守跟随;next 积极跟随)
+            // --target 在交互路径同样生效:作为选项初值(非法值已在上面报错退出),回车即锁定该轨
+            const pickedTrack = await p.select({
+                message: t("cli.targetMessage"),
+                initialValue: options.target ?? "latest",
+                options: [
+                    { value: "latest", label: `latest · dsh ${getTrackManifest("latest").version}`, hint: t("cli.targetLatestHint") },
+                    { value: "next", label: `next · dsh ${getTrackManifest("next").version}`, hint: t("cli.targetNextHint") },
+                ],
             });
-            if (typeof selected !== "string") {
+            if (typeof pickedTrack !== "string") {
                 p.cancel(t("cli.cancelledNoFiles"));
                 return;
             }
-            const targetDir = resolve(process.cwd(), dirName);
-            if (dirName !== "." && existsSync(targetDir)) {
-                p.cancel(renderError(new DshpError("DIR_EXISTS", { dir: targetDir })));
-                process.exitCode = 1; // 目录被占用是失败态(区别于用户主动中止),与非交互路径同码
+
+            // 起点:公共配置就绪后才开始选;精选案例在前引导新手走金线
+            const startPoint = await p.select({
+                message: t("cli.startMessage"),
+                initialValue: "case",
+                options: [
+                    { value: "case", label: t("cli.startCase"), hint: t("cli.startCaseHint") },
+                    { value: "atoms", label: t("cli.startAtoms"), hint: t("cli.startAtomsHint") },
+                ],
+            });
+            if (typeof startPoint !== "string") { // 取消时 clack resolve 一个 symbol(typeof 守卫才能收窄,isCancel 不行)
+                p.cancel(t("cli.cancelledNoFiles"));
                 return;
             }
-            const files = copyScenarioCase(selected, targetDir, pluginId, track, {
-                description: meta.description || undefined,
-                author: meta.author || undefined,
-                pkgName, // 替换主词=插件 id;包名结构化写入 package.json,与身份解耦
+
+            if (startPoint === "case") {
+                const selected = await p.select({
+                    message: t("cli.caseSelect"),
+                    options: listScenarioCases(manifest).map((c) => ({ value: c, label: c, hint: caseHint(c) })),
+                });
+                if (typeof selected !== "string") {
+                    p.cancel(t("cli.cancelledNoFiles"));
+                    return;
+                }
+                const resolved = resolveCreate({
+                    mode: "case",
+                    case: selected,
+                    dirName,
+                    target: pickedTrack,
+                    pluginId,
+                    pkgName, // 替换主词=插件 id;包名结构化写入 package.json,与身份解耦
+                    description: meta.description || undefined,
+                    author: meta.author || undefined,
+                });
+                const files = writeCreate(resolved);
+                p.log.info(
+                    t("cli.copied", {
+                        n: files.length,
+                        dir: resolved.targetDir,
+                        name: dirName,
+                    }),
+                );
+                p.outro(nextSteps(dirName));
+                return;
+            }
+
+            // 原子组合分支剩余问卷:包定位 → 能力勾选 → 配置方式(其余公共配置已在分支前问完)
+            const pkgPosition = await askPkgPosition(); // 包定位(精选案例随案例锁定,故仅原子路径询问)
+            const cap = await askCapabilities(); // 能力勾选(默认 tool 黄金路径)
+            const config = await askConfig(cap.uiSurfaces); // 配置方式(设置卡片硬约束在此生效)
+
+            // 解析(校验与 CLI 非交互路径同规则):目录占用等硬约束在这里暴露
+            const resolved = resolveCreate({
+                mode: "free",
+                dirName,
+                target: pickedTrack,
+                atoms: cap.atoms,
+                eventDomains: cap.eventDomains,
+                uiSurfaces: cap.uiSurfaces,
+                serviceSeams: cap.serviceSeams,
+                newService: cap.serviceCreate,
+                config,
+                toolName: cap.toolName,
+                pkgName,
+                pluginId,
+                description: meta.description,
+                author: meta.author,
+                pkgPosition,
             });
-            p.log.info(t("cli.copied", { n: files.length, dir: targetDir, name: dirName }));
-            p.outro(nextSteps(dirName));
-            return;
+
+            // 全景汇总:人工确认页
+            printSummary(resolved.answers!, resolved.manifest);
+
+            // 确认后落盘(渲染模板 + 动态文件生成)
+            const ok = await p.confirm({ message: t("cli.confirmGenerate"), initialValue: true });
+            if (p.isCancel(ok) || !ok) {
+                p.cancel(t("cli.cancelledNoFiles"));
+                return;
+            }
+
+            const files = writeCreate(resolved);
+            p.log.info(
+                t("cli.generated", { n: files.length, dir: resolved.targetDir }),
+            );
+            p.note(files.map((f) => `  ${f}`).join("\n"), t("cli.fileList"));
+            p.outro(nextSteps(resolved.dirName));
+        } catch (err) {
+            // 领域错误带稳定 code,按 code 渲染人话;非领域错误(真 bug)原样抛栈
+            if (isDshpError(err)) {
+                p.log.error(renderError(err));
+                process.exitCode = 1;
+                return;
+            }
+            throw err;
         }
-
-        // 原子组合分支剩余问卷:包定位 → 能力勾选 → 配置方式(其余公共配置已在分支前问完)
-        const pkgPosition = await askPkgPosition(); // 包定位(精选案例随案例锁定,故仅原子路径询问)
-        const cap = await askCapabilities(); // 能力勾选(默认 tool 黄金路径)
-        const config = await askConfig(cap.uiSurfaces); // 配置方式(设置卡片硬约束在此生效)
-
-        const answers: Answers = {
-            dirName,
-            pkgName,
-            pluginId,
-            toolName: cap.toolName,
-            description: meta.description,
-            author: meta.author,
-            pkgPosition,
-            atoms: cap.atoms,
-            eventDomains: cap.eventDomains,
-            uiSurfaces: cap.uiSurfaces,
-            serviceCreate: cap.serviceCreate,
-            serviceSeams: cap.serviceSeams,
-            config,
-        };
-
-        // 全景汇总:人工确认页
-        printSummary(answers, track);
-
-        // 确认后落盘(M2:渲染模板 + 动态文件生成)
-        const ok = await p.confirm({ message: t("cli.confirmGenerate"), initialValue: true });
-        if (p.isCancel(ok) || !ok) {
-            p.cancel(t("cli.cancelledNoFiles"));
-            return;
-        }
-
-        const targetDir = resolve(process.cwd(), answers.dirName);
-        if (answers.dirName !== "." && existsSync(targetDir)) {
-            p.cancel(renderError(new DshpError("DIR_EXISTS", { dir: targetDir })));
-            process.exitCode = 1; // 同上:目录被占用是失败态,与非交互路径同码
-            return;
-        }
-
-        const files = writeProject(answers, targetDir, track);
-        p.log.info(t("cli.generated", { n: files.length, dir: targetDir }));
-        p.note(files.map((f) => `  ${f}`).join("\n"), t("cli.fileList"));
-        p.outro(nextSteps(answers.dirName));
     });
 
 program.parseAsync(process.argv).catch((err: unknown) => {

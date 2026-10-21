@@ -40,6 +40,7 @@ dshp --help              # main command overview
 dshp create --help       # full options plus the preset / curated-case list
 dshp list                # what you can pick: presets / cases / atoms / event domains / surfaces / seams / both tracks' version pairing
 dshp list --json         # the same, machine-readable (consumed directly by agents / MCP)
+dshp mcp                 # run the MCP server over stdio, handing generation to models
 ```
 
 `dshp list` is the **authoritative live catalog** — to find out which atoms exist, which host
@@ -220,6 +221,44 @@ The skill bundles a driver script that turns the interactive questionnaire into 
 node skills/dshp/scripts/drive-questionnaire.mjs --dir my-orders --target next \
   --atoms tool,ui --surfaces settings-card --tool-name query_orders
 ```
+
+## MCP server
+
+This package ships an MCP server (`dshp mcp`, stdio transport) that hands generation to models directly — an agent no longer has to reverse-engineer CLI flags or drive the interactive questionnaire.
+
+```sh
+dshp mcp --lang zh     # run the MCP server (--lang pins the language of generated projects; default: auto-detected)
+```
+
+Host configuration example:
+
+```json
+{
+  "mcpServers": {
+    "dshp": {
+      "command": "npx",
+      "args": ["-y", "create-dsh-plugin-cli", "mcp", "--lang", "zh"]
+    }
+  }
+}
+```
+
+Three tools:
+
+| tool | what it does |
+| --- | --- |
+| `dshp_list_scenarios` | what you can pick: presets / curated cases / atoms / event domains / UI surfaces / seams (with host package, slot key and required atoms) |
+| `dshp_doctor` | diagnoses this machine: node version, pnpm, the dsh CLI, both tracks' material and generation-pipeline self-checks, whether the current directory is writable |
+| `dshp_create_plugin` | generates a plugin project (preset / curated case / free combination) |
+
+Two design rules:
+
+- **Legal values are derived from the source**: the tool input schema is generated from the domain manifests (atom / event domain / surface / seam / preset / case ids are all enums), so a model sees the legal values in the schema itself and never retries with a stale id.
+- **Writing to disk needs explicit confirmation**: `dshp_create_plugin` only computes a plan by default (`dryRun` defaults to true) and returns the file list that would be produced; call it again with the same arguments and an explicit `dryRun: false` to write.
+
+MCP and the CLI share one set of generation rules (the same `src/core/create.ts`) and produce byte-identical artifacts; every failure carries a stable error code (such as `SURFACE_REQUIRES_ATOM` / `DIR_EXISTS` / `CASE_NOT_FOUND`) rather than a localized sentence.
+
+> Hosts that spawn a subprocess usually inherit only a few environment variables (`HOME` / `PATH` / `SHELL` / `TERM` / `USER`) — **`LANG` is not among them**, so the MCP side cannot detect the system locale. In a Chinese environment, start the server with `--lang zh`, or pass `lang: "zh"` when calling `dshp_create_plugin`.
 
 ## Version notes
 

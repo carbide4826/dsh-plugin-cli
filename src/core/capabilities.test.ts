@@ -74,6 +74,27 @@ describe("resolveCapabilities", () => {
         expect(caps.uiSurfaces).toEqual(["tool-view"]);
     });
 
+    it("界面位必须配 ui 原子(缺了就静默丢弃界面位选择,生成物里没有 client/)", () => {
+        // 回归:曾经 requires 表里界面位不登记 ui,自由组合路径能选界面位却不生成任何界面
+        expectCode(
+            () =>
+                resolveCapabilities({
+                    atoms: [],
+                    uiSurfaces: ["settings-card"],
+                    config: "dynamic",
+                }),
+            "SURFACE_REQUIRES_ATOM",
+        );
+        // 补上 ui 即通过
+        expect(
+            resolveCapabilities({
+                atoms: ["ui"],
+                uiSurfaces: ["settings-card"],
+                config: "dynamic",
+            }).uiSurfaces,
+        ).toEqual(["settings-card"]);
+    });
+
     it("settings-card 界面位要求 config 非 none", () => {
         expectCode(
             () => resolveCapabilities({ atoms: ["ui"], uiSurfaces: ["settings-card"] }),

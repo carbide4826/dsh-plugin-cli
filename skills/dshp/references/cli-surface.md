@@ -5,8 +5,16 @@
 
 ## 子命令与选项
 
-唯一子命令 `create`。位置参数 `[name]` = 项目目录名(缺省:预设给默认目录名,交互给
+| 子命令 | 作用 |
+| --- | --- |
+| `create [name]` | 生成插件项目(预设 / 精选案例 / 自由组合 / 交互问卷) |
+| `list [--json]` | 一览能选什么;`--json` 机器可读 |
+| `mcp [--lang <lang>]` | 起 MCP server(stdio),把生成能力交给模型 |
+
+`create` 的位置参数 `[name]` = 项目目录名(缺省:预设给默认目录名,交互给
 `my-plugin`)。目标目录已存在 → 失败退出码 1。
+
+`create` 的选项:
 
 | 选项 | 取值 | 说明 |
 | --- | --- | --- |
@@ -78,7 +86,7 @@ dshp create my-orders --atoms tool,ui --ui-surfaces settings-card \
 | 错误码 | 触发条件 |
 | --- | --- |
 | `ATOM_UNKNOWN` / `EVENT_DOMAIN_UNKNOWN` / `UI_SURFACE_UNKNOWN` / `SEAM_UNKNOWN` | id 不在清单里 |
-| `SURFACE_REQUIRES_ATOM` | 界面位依赖的原子没同勾(如 `tool-view` 缺 `tool`) |
+| `SURFACE_REQUIRES_ATOM` | 界面位依赖的原子没同勾(所有界面位都要 `ui`;`tool-view` 还要 `tool`) |
 | `CONFIG_NONE_REQUIRES_SETTINGS_CARD` | `settings-card` 配了 `config=none` |
 | `CONFIG_INVALID` / `PKG_POSITION_INVALID` | 取值非法 |
 | `DIR_EXISTS` | 目标目录已存在 |
@@ -100,8 +108,8 @@ dshp create my-orders --atoms tool,ui --ui-surfaces settings-card \
 
 | 界面位 | 必须同勾的原子 |
 | --- | --- |
-| `tool-view` | `tool` |
-| 其余五个 | 无 |
+| 全部六个 | `ui`(界面位实现文件与 client 聚合入口由 ui 原子产出;缺了界面位选择被静默丢弃) |
+| `tool-view` | 额外要 `tool`(它渲染的是工具调用) |
 
 界面位 → 宿主包 → 槽位键(槽位键会随宿主版本变,包里带的是当前值):
 
@@ -116,6 +124,44 @@ dshp create my-orders --atoms tool,ui --ui-surfaces settings-card \
 
 另外:`settings-card` 必须配配置(不能 `config: none`);`config` 非 `none` 时才会引入
 `@deepseek-ai/schemastery` 依赖。
+
+## MCP server(`dshp mcp`)
+
+宿主能挂 MCP 时,直接用 tool,比让 agent 拼 CLI 命令更稳(合法 id 由 schema 兜底)。
+
+```sh
+dshp mcp --lang zh     # stdio 协议;stdout 是 JSON-RPC 通道,别在里面写别的
+```
+
+宿主配置:
+
+```json
+{
+  "mcpServers": {
+    "dshp": {
+      "command": "npx",
+      "args": ["-y", "create-dsh-plugin-cli", "mcp", "--lang", "zh"]
+    }
+  }
+}
+```
+
+| tool | 作用 |
+| --- | --- |
+| `dshp_list_scenarios` | 一览能选什么(`scope`: all / presets / cases / capabilities;`target` 按轨收窄) |
+| `dshp_doctor` | 体检本机:node 版本、pnpm、dsh CLI、两轨素材与生成管线自检、目录可写性 |
+| `dshp_create_plugin` | 生成(`mode`: preset / case / free) |
+
+要点:
+
+- **合法取值在 schema 里**:原子 / 事件域 / 界面位 / 缝 / 预设 / 案例 id 全是 enum,
+  模型拿到的是现值,不会握着过期 id 重试。
+- **写盘要显式确认**:`dshp_create_plugin` 缺省只算计划(`dryRun` 默认 true),返回将生成
+  哪些文件;确认后同参数再调一次、传 `dryRun: false` 才落盘。
+- **语言**:宿主 spawn 子进程通常不继承 `LANG`,环境探测拿不到用户语言 —— 中文环境
+  用 `--lang zh` 起服务,或调用时传 `lang: "zh"`。
+- 失败带稳定错误码(`SURFACE_REQUIRES_ATOM` / `DIR_EXISTS` / `CASE_NOT_FOUND` …),
+  与 CLI 同码;产物与 CLI 逐字节一致。
 
 ## 生成物结构
 

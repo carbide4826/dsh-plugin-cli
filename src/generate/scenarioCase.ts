@@ -39,6 +39,49 @@ export function listScenarioCases(manifest: TrackManifest): string[] {
 }
 
 /**
+ * 案例将落盘的文件清单(不落盘)。
+ * 规则与 copyScenarioCase 逐条对齐:排除项、点文件改名、README 单语言、另写的两个文件。
+ * 计划态与落盘态的清单若对不上,dryRun 就是骗人的 —— 故两处规则必须同源演进。
+ * @param caseId - 案例 id
+ * @param manifest - 目标轨 manifest(决定素材树)
+ * @returns 将落盘的文件相对路径清单(字典序)
+ */
+export function planScenarioCase(
+    caseId: string,
+    manifest: TrackManifest,
+): string[] {
+    const sourceDir = join(casesRoot(manifest), caseId);
+    if (!existsSync(sourceDir)) {
+        throw new DshpError("CASE_MISSING", {
+            name: caseId,
+            cases: listScenarioCases(manifest).join(", "),
+        });
+    }
+
+    const sourceFiles: string[] = [];
+    walk(sourceDir, (file) => sourceFiles.push(relative(sourceDir, file)));
+
+    // 点文件素材落盘时换名:`_gitignore` → `.gitignore`
+    const renamed = sourceFiles.map((f) =>
+        f.split("/").pop()?.startsWith("_")
+            ? f.replace(/(^|\/)_([^/]+)$/, "$1.$2")
+            : f,
+    );
+
+    // README 单语言交付:两版素材都在,只落盘选中的那份;en 版落盘名恒为 README.md
+    const out = renamed.filter(
+        (f) => f !== "README.md" && f !== "README.en.md",
+    );
+    const hasZh = renamed.some((f) => f === "README.md");
+    const hasEn = renamed.some((f) => f === "README.en.md");
+    if (getLang() === "en" ? hasEn : hasZh) out.push("README.md");
+
+    // 拷贝时另写这两个(不在案例目录里)
+    out.push("pnpm-workspace.yaml", "dev.patch.yml");
+    return out.sort();
+}
+
+/**
  * 拷贝精选案例到目标目录并重写身份。
  * 重写规则:案例 id 在文件中的全部出现处(词边界)替换为 identity(=插件 id)——覆盖插件 name 导出、
  * cordis.patch.yml id、tsdown 配置里的 __ModuleLoader__ id 与 README 行文;包名不参与替换,

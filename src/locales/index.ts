@@ -30,6 +30,22 @@ export function setLang(lang: Lang): void {
     current = lang;
 }
 
+/**
+ * 在指定语言下跑一段**同步**逻辑,结束后还原原语言。
+ * 用途:MCP 侧按调用参数决定语言(宿主 spawn 子进程时通常不继承 LANG,
+ * 环境探测拿不到用户的语言,只能由调用方显式给出)。
+ * 同步是前提:语言是模块级全局量,异步期间被别的调用改掉就会串语言。
+ */
+export function withLang<T>(lang: Lang, fn: () => T): T {
+    const prev = getLang();
+    setLang(lang);
+    try {
+        return fn();
+    } finally {
+        setLang(prev);
+    }
+}
+
 function lookup(dict: unknown, key: string): string | undefined {
     let node: unknown = dict;
     for (const part of key.split(".")) {

@@ -62,12 +62,17 @@ export type UISurfaceId = (typeof UI_SURFACES)[number]["id"];
 // 导出:机器可读清单(core/describe.ts)要用它 —— 界面位与原子的依赖关系是
 // 「能选什么」的一部分,模型选界面位时必须一并知道,否则会挑出哑界面。
 export const SURFACE_REQUIRES = {
-    "settings-card": [],
-    "chat-node": [],
-    "input-dock": [],
-    sidebar: [],
-    "tool-view": ["tool"],
-    "session-header": [],
+    // 全部界面位都要 ui 原子:界面位实现文件与 client 聚合入口由 ui 原子产出,
+    // 缺 ui 原子 ⇒ 界面位选择被静默丢弃(生成物里根本没有 client/,界面位一个都不渲染)。
+    // 交互问卷里界面位多选只在勾了 ui 原子时才问,所以这条约束在交互路径上天然成立;
+    // 自由组合路径(命令行 / MCP)能绕过,故必须在表里登记。
+    "settings-card": ["ui"],
+    "chat-node": ["ui"],
+    "input-dock": ["ui"],
+    sidebar: ["ui"],
+    // tool-view 额外要 tool 原子:它渲染的是工具调用,没有工具就没有可渲染的东西
+    "tool-view": ["ui", "tool"],
+    "session-header": ["ui"],
 } as const satisfies Record<UISurfaceId, readonly AtomId[]>;
 
 /**

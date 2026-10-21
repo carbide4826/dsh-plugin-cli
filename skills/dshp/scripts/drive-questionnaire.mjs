@@ -119,7 +119,11 @@ function validate(o) {
     if (o.atoms.includes("service") && o.seams.length === 0 && !o.createService) {
         bad("勾了 service 原子,须用 --seams 给出缝或用 --create-service 新建服务");
     }
-    // 界面位依赖原子:tool-view 必须同勾 tool
+    // 界面位依赖原子:全部界面位都要 ui 原子(界面位实现与 client 聚合入口由 ui 原子产出,
+    // 缺了就静默丢弃界面位选择);tool-view 额外要 tool
+    if (o.uiSurfaces.length > 0 && !o.atoms.includes("ui")) {
+        bad("勾了界面位,须同勾 ui 原子(界面位实现由 ui 原子产出,缺了界面位一个都不渲染)");
+    }
     if (o.uiSurfaces.includes("tool-view") && !o.atoms.includes("tool")) {
         bad("界面位 tool-view 必须同勾 tool 原子");
     }
