@@ -8,7 +8,7 @@
   晋升只换内容(模板树 + manifest),不换轨名。
 - 轨与 manifest 严格配对:每轨一棵完整模板树 + 一份 manifest(version / cordisPeer /
   schemasteryVersion / settingsSlot 四字段),生成时零解析、零回落。
-- 当前两轨同钉 dsh `0.2.0-rc.2`(快照值,以生成物 `package.json` 为准)。
+- 当前两轨同钉 dsh `0.2.1-rc.2`(快照值,以生成物 `package.json` 为准)。
 - 生成物的 peer 版本必须与宿主 dsh 版本**对齐**,否则宿主门禁硬拒(见下)。
 
 ## 依赖钉版规则(最容易复发的一类事故)
@@ -25,8 +25,10 @@
 
 实测过的两个方向:
 
-- 官方全家是**精确钉**(`cordis 4.0.2` / `schemastery 3.18.2` / `loader 1.0.3` / `hmr 1.0.17` /
-  `timer 1.1.4` / `include 1.0.7`);dsh `0.2.0-rc.2` 一线改 tilde(`~4.0.4` / `~3.18.4`)。
+- 官方元包对第三方依赖是**精确钉 / tilde 对齐**(0.2.1-rc.2 实读:`cordis ~4.0.5` /
+  `schemastery ~3.18.5` / `loader ~1.0.6` / `timer ~1.1.7` / `include ~1.0.10`);早期版本线
+  (如 0.1.5-rc.2)是全精确钉(`cordis 4.0.2` / `schemastery 3.18.2` / `loader 1.0.3` /
+  `hmr 1.0.17` / `timer 1.1.4` / `include 1.0.7`)。
 - 模板的 `pnpm-workspace.yaml` 里**不要**写 overrides 去钉这些包 —— 官方元包自己已精确钉,
   加 overrides 反而制造与官方声明不一致的第二实例。
 
@@ -55,11 +57,10 @@
 - 判定用 `semver.satisfies(..., includePrerelease)`;不满足即**硬拒**:`add` 预检阶段就拒绝,
   加载时再 throw。
 - ⚠️ **上游 dist-tag 会滚,而本仓两轨的 manifest 不会自动跟**(canary 只报警不动作,规则见
-  `docs/UPSTREAM-VERSION-POLICY.md`)。实测(2026-10-20):npm 上 `latest`/`next` 已是 `0.2.1-rc.2`
-  (cordis `~4.0.5`),而两轨 manifest 仍钉 `0.2.0-rc.2`(cordis `~4.0.4`)。
-  **后果**:生成物 peer 钉 `0.2.0-rc.2`,装在 `0.2.1-rc.2` 的宿主上会被门禁硬拒
-  (`0.2.1-rc.2` 不满足 peer `0.2.0-rc.2`)。所以装宿主一律**以生成物 package.json 的钉版为准**,
-  别裸装 `latest`。
+  `docs/UPSTREAM-VERSION-POLICY.md`)。实测(2026-10-20):npm 上 `latest`/`next` 均为
+  `0.2.1-rc.2`(cordis `~4.0.5`),本仓两轨 manifest 已晋升到同一版本。**一旦上游再滚一版,
+  两轨不会自动跟**——生成物 peer 钉的仍是旧版,装新宿主会被门禁硬拒(`0.2.2-rc.x` 不满足
+  peer `0.2.1-rc.2`)。所以装宿主一律**以生成物 package.json 的钉版为准**,别裸装 `latest`。
 - 豁免:`dsh plugin allow-version` 做精确配对。
 - ⚠️ **裁决方是跑 `add` 命令的那个项目里的 dsh CLI 的版本**,不是被测项目的版本 ——
   别在被测项目目录里跑 add 来判断宿主行为。
@@ -73,6 +74,21 @@
 - pnpm 11 用 `allowBuilds`(实测其 bundle 里 `allowBuilds` 出现 75 次、`onlyBuiltDependencies`
   仅 6 次);待决项由 pnpm 写进项目的 `pnpm-workspace.yaml`,值填 `true` 才放行,填 `false`
   也放行但原生模块不会编译。
+- **放行清单分两组,别混**(2026-10-20 实测 `pnpm add -D @deepseek-ai/dsh@0.2.1-rc.2` 报
+  `Ignored build scripts: @deepseek-ai/dsh-subprocess-local@0.2.1-rc.2, @google/genai@2.21.0,
+  koffi@3.1.1, node-pty@1.2.0-beta.15, protobufjs@7.6.6`):
+  - **装宿主 CLI**(`pnpm add -D @deepseek-ai/dsh`)会带进:`dsh-subprocess-local`(postinstall 装
+    spawn helper)、`koffi` 与 `node-pty`(原生模块,经 `dsh-subprocess-local` 带入)—— 这三个
+    **要真跑,填 `true`**;另有 `@google/genai` / `protobufjs`。
+  - **装插件自身依赖**(`pnpm install`)只有**用到 llm 能力**的插件会带进 `@google/genai` 与
+    `protobufjs`(经 `dsh-llm-pi-ai → pi-ai` 带入);不用 llm 的插件实测零拦截。
+  - ⭐ **`@google/genai` / `protobufjs` 的脚本是 no-op,官方口径是「列出来填 `false` 拒绝执行」**
+    —— dsh 自己的 `pnpm-workspace.yaml` 就写 `'@google/genai': false` / `protobufjs: false`,
+    注释原文「pnpm lists them only because they ship lifecycle scripts, but those are no-ops
+    we don't need, so we deny them — install still succeeds」。**但它们必须列出来**:不列 =
+    `ERR_PNPM_IGNORED_BUILDS` 硬失败(实测 exit=1);列了填 `false` = install exit=0。
+    ⚠️ `pnpm approve-builds` 只能写 `true`(官方 GUI 的 `approveBuilds()` 同样只写 `true`),
+    要拒绝执行只能手写 `pnpm-workspace.yaml` 的 `allowBuilds` 段。
 - 默认 `auto-install-peers: true`:peer 依赖会被自动装上 —— 但本仓产物把版本精确钉死,
   lockfile 里不会浮动,**别手动改成 `^`**(会同时撞上宿主 peer 门禁)。
 

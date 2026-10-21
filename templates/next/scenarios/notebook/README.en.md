@@ -62,7 +62,12 @@ pnpm dsh web --patch ./dev.patch.yml  # launch (direct source load) (⑦⑧)
 
 　　① ~~**install hijacked by an ancestor workspace**: if a `pnpm-workspace.yaml` exists in a parent directory, `pnpm install` is hoisted to that workspace root and this project's `node_modules` is not created (typecheck fails with Cannot find module); install independently with `pnpm install --ignore-workspace`.~~ **The project root ships its own `pnpm-workspace.yaml` (for workspace bounding), so a plain `pnpm install` is fine.**
 
-　　② **Approve build scripts when installing dsh**: pnpm blocks dependency build scripts (supply-chain protection); run `pnpm approve-builds` as prompted and select `node-pty` / `koffi` / `@deepseek-ai/dsh-subprocess-local`; the `@google/genai` / `protobufjs` scripts are no-ops and need no approval.
+　　② **pnpm blocks dependency build scripts (supply-chain protection)**: pnpm 11 defaults to `strict-dep-builds`, and an unapproved build script makes `pnpm install` **fail outright** (not a warning). The two groups surface at different steps and are handled differently:
+
+　　- **Step 1 `pnpm install` (the plugin's own dependencies)**: no package in this plugin's dependency tree carries a build script, so there is nothing to handle here.
+　　- **Step 2 `pnpm add -D @deepseek-ai/dsh` (the host CLI)**: the host tree pulls in `@deepseek-ai/dsh-subprocess-local`, `koffi`, `node-pty` and `@google/genai` / `protobufjs`. The first three **genuinely need to run** (native module builds / installing the spawn helper), so approve them with `true`; the last two are no-ops, so list them with `false`.
+
+　　> `pnpm approve-builds` can only set an entry to `true` (the official plugin page's "allow these scripts and retry" writes `true` too). To follow the official stance — deny execution without failing the install — hand-write the `allowBuilds` block in this project's `pnpm-workspace.yaml`: change pnpm's `set this to true or false` placeholder to `false`. The exact list changes with host versions; trust what `pnpm approve-builds` actually prints.
 
 　　③ **UI surfaces only render via plugin add**: for client-half surfaces, `--patch` direct load only loads the host half and browser-side slot registration never happens (the host aggregates each package's client export by npm package identity; a file:// direct load has no package identity); you must `pnpm build` first, then `plugin add`.
 

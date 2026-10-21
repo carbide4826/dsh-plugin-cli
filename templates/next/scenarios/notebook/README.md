@@ -62,7 +62,12 @@ pnpm dsh web --patch ./dev.patch.yml  # 启动(直载源码)(⑦⑧)
 
 　　① ~~**install 被祖先 workspace 劫持**:上级目录存在 `pnpm-workspace.yaml` 时,`pnpm install` 会被提升到该 workspace 根执行,本项目 `node_modules` 不生成(typecheck 报 Cannot find module);用 `pnpm install --ignore-workspace` 独立安装。~~ **本项目根自带 `pnpm-workspace.yaml`(做 workspace 定界),正常 `pnpm install` 即可。**
 
-　　② **装 dsh 时放行构建脚本**:pnpm 会拦截依赖的构建脚本(供应链保护),按提示跑 `pnpm approve-builds` 勾选 `node-pty` / `koffi` / `@deepseek-ai/dsh-subprocess-local`;`@google/genai` / `protobufjs` 的脚本是 no-op,不用批。
+　　② **pnpm 会拦截依赖的构建脚本(供应链保护)**:pnpm 11 起默认 `strict-dep-builds`,未放行的构建脚本会让 `pnpm install` **直接失败**(不是警告)。两组包分属不同步骤,处理方式也不同:
+
+　　- **第 1 步 `pnpm install`(装插件自身依赖)**:本插件的依赖树里没有带构建脚本的包,这一步无需处理任何条目。
+　　- **第 2 步 `pnpm add -D @deepseek-ai/dsh`(装宿主 CLI)**:宿主树会带进 `@deepseek-ai/dsh-subprocess-local`、`koffi`、`node-pty` 与 `@google/genai` / `protobufjs`。前三个**要真跑**(原生模块编译 / 装 spawn helper),放行时选 `true`;后两个是 no-op,列出来填 `false` 即可。
+
+　　> `pnpm approve-builds` 只能把条目置 `true`(官方插件页的「允许这些脚本并重试」同样只写 `true`)。要按官方口径「拒绝执行但不让 install 失败」,直接手写本项目 `pnpm-workspace.yaml` 的 `allowBuilds` 段 —— pnpm 写入的占位值 `set this to true or false` 改成 `false` 即可。清单随宿主版本变化,以 `pnpm approve-builds` 实际列出的包为准。
 
 　　③ **UI 界面位必须走 plugin add 才能渲染**:涉及 client 半边的界面位,`--patch` 直载只加载 host 半边、浏览器侧槽位注册不会发生(宿主按 npm 包身份聚合各包的 client 出口,file:// 直载没有包身份);必须先 `pnpm build` 再 `plugin add`。
 
