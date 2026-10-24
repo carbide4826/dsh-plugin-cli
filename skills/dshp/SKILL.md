@@ -25,6 +25,7 @@ description: |
 
 - **逐项确认**:一次确认一项(或几项),但每项都要能**单独跳过**。用结构化问卷还是普通对话,
   你自己选 —— 关键是让用户知道「哪些必答、哪些能跳」,别把十几个问题平铺成一段话。
+  (三种提问姿态的样板见 [references/examples.md](references/examples.md) 的「提问形态」段)
 - **跳过 = 不填该项**,交给 CLI 的默认值(清单里写了每项跳过的后果)。用户说「你定就行」
   就整份跳过,别反复确认。
 - **选项顺序按需求排**:与用户描述相符的选项排最前,并在提示里说明**为什么推荐它**;
@@ -267,46 +268,36 @@ pnpm dsh web --patch ./dev.patch.yml --dump-config | grep -A 4 <plugin-id>
 
 ## Examples
 
+完整的访谈实录(需求 → 逐项问答 → 收集到的规格 → 编译出的命令 → 验证)在
+[references/examples.md](references/examples.md) —— 那是 **golden set**:每个案例都带一份
+可执行的规格与编译结果,守门测试会拿它跟编译器对账(对不上就红),所以那里的命令是
+「真跑得出来的」,照抄不会错。
+
+本 skill 里也放了三个精简版:
+
 Input:「帮我起一个能查订单的 dsh 插件工程」
 Output: 先问需求 → 建议「走模板,`quick-tool` 就是自定义查询工具 + 结果卡片」→ 用户确认 →
-问存储位置与命名(其余跳过)→ `dshp create my-orders -s --template quick-tool --lang zh`
+问存储位置与命名(其余跳过)→ `dshp create -s --template quick-tool my-orders --lang zh`
 → `pnpm install && pnpm typecheck && pnpm build` 三步跑通 → 报告生成的目录、跳过的项
 (包名/插件 id 默认与目录名同值)与启动命令(`pnpm dsh web --patch ./dev.patch.yml`;
 若要做设置卡片则再 `plugin add`)。
 
 Input:「用 next 轨起一个接外部 webhook 的插件」
 Output: 需求 → 建议「`webhook-bridge` 案例正是外部事件桥接进会话,next 轨配套 dsh 0.2.1-rc.2」
-→ 确认后 `dshp create my-hook -s --template webhook-bridge --target next --lang zh`,
+→ 确认后 `dshp create -s --template webhook-bridge my-hook --target next --lang zh`,
 再按第 7、8 步验证;报告时点明 next 轨当前钉的 dsh 版本(取自生成物 package.json)。
 
 Input:「我要一个能在设置页配 API Key、并在会话里显示查询结果的插件」
-Output(自配路线的访谈片段 —— 注意选项顺序、逐项确认、跳过各长什么样):
-
-1. 需求(开放式,不给选项):「设置页配 API Key + 会话里显示结果」
-   → 建议:**现成案例都不完全合**(没有「设置页配密钥」这种案例),走自配更省事 →
-   用户确认自配。
-2. 原子(与需求相符的排最前,并说明理由):
-   > 推荐勾 `ui`(设置页和结果展示都是界面位,由它产出)、`tool`(结果得有个工具去查)。
-   > 其余可选:`events`(订阅宿主事件)、`service`(扩展能力缝)、`protocol`(提供 HTTP 端点)。
-   → 用户勾 `ui` + `tool`。
-3. 界面位(勾了 `ui` 才问;相符的排最前):
-   > 推荐 `settings-card`(就是设置页)、`tool-view`(工具结果的展示位)。
-   > 其余:`chat-node` / `input-dock` / `sidebar` / `session-header`。
-   → 用户勾 `settings-card` + `tool-view`。
-4. 工具名(勾了 `tool` 才问):「工具叫什么?」→ `query_api_keys`。
-5. 配置方式(有 `settings-card` 时**不能选 `none`**,只给两个选项):
-   > `dynamic`(用户在设置页改配置,保存后热更新)/ `static`(配置写死在包里)。
-   → 用户选 `dynamic`。
-6. 细节项逐项确认(每项可单独跳过;跳过就记进 skipped):
-   目录名 `my-api-keys`(跳过 ⇒ 默认 `my-plugin`)、包名(跳过 ⇒ 与插件 id 同值)、
-   插件 id(跳过 ⇒ 与目录名同值)、描述与作者(跳过 ⇒ 空)、目标轨(跳过 ⇒ `latest`)、
-   语言(跳过 ⇒ 按环境探测)。
-7. 收齐 → 编译成参数(与 CLI 需要的那份完全一致):
-   `dshp create my-api-keys --atoms tool,ui --ui-surfaces settings-card,tool-view
-   --tool-name query_api_keys --config dynamic --lang zh`
-8. `pnpm install && pnpm typecheck && pnpm build` 三步跑通 → 报告:目录、原子与界面位组合、
-   跳过的项各自用了什么默认。⭐ 含界面位 ⇒ 启动要走 `pnpm dsh plugin --profile web add .`
-   再 `pnpm dsh web`,`--patch` 直载不注册槽位、界面位会静默不渲染。
+Output(自配路线;完整逐项问答见 golden set 的案例 3):
+先问需求 → 建议走自配(现成案例都不合)→ 原子选 `tool` + `ui`(相符的排最前并说理由)→
+界面位选 `settings-card` + `tool-view` → 工具名 `query_api_keys` →
+配置方式只给 `dynamic` / `static`(有 settings-card 时不能选 none)→
+逐项确认存储位置与命名(其余跳过)→ 编译成
+`dshp create --atoms tool,ui --ui-surfaces settings-card,tool-view --tool-name query_api_keys
+--config dynamic my-api-keys --lang zh` → `pnpm install && pnpm typecheck && pnpm build` 三步跑通
+→ 报告:目录、原子与界面位组合、跳过的项各自用了什么默认。⭐ 含界面位 ⇒ 启动要走
+`pnpm dsh plugin --profile web add .` 再 `pnpm dsh web`,`--patch` 直载不注册槽位、
+界面位会静默不渲染。
 
 ## Windows (win32) platform notes
 

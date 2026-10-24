@@ -183,6 +183,12 @@ describe("skill 的前置条件口径", () => {
         expect(SKILL_MD).not.toContain("结构化提问功能");
     });
 
+    it("SKILL.md 指向 golden set(可照抄的参考例子)", () => {
+        // 被删掉的具体形态不该凭空消失 —— 落到 examples.md 当样板,而不是当规则
+        expect(SKILL_MD).toContain("references/examples.md");
+        expect(SKILL_MD).toContain("golden set");
+    });
+
     it("interview.md 也守同一条(不规定工具)", () => {
         expect(INTERVIEW_MD).not.toContain("结构化提问功能");
     });
