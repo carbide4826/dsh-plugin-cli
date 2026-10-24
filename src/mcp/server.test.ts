@@ -1,4 +1,4 @@
-// MCP server 守门:tool 清单、schema 同源、三个 tool 的行为与错误码。
+// MCP server 守门:tool 清单、schema 同源、四个 tool 的行为与错误码。
 // 用内存传输(不 spawn 进程),跑得快且不依赖构建产物。
 import { mkdtempSync, mkdirSync, readFileSync, realpathSync, rmSync, existsSync } from "node:fs";
 import { createRequire } from "node:module";

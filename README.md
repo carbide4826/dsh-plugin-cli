@@ -263,7 +263,7 @@ dshp mcp --lang zh     # 起 MCP server(--lang 指定生成物语言,缺省按�
 }
 ```
 
-三个 tool:
+四个 tool:
 
 | tool | 作用 |
 | --- | --- |

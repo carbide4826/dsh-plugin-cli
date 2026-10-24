@@ -270,7 +270,7 @@ Host configuration example:
 }
 ```
 
-Three tools:
+Four tools:
 
 | tool | what it does |
 | --- | --- |

@@ -52,6 +52,6 @@ export async function startMcpServer(): Promise<void> {
     await server.connect(transport);
     // 提示走 stderr:stdout 是 JSON-RPC 通道,写进去会污染协议流
     console.error(
-        `[dshp] MCP server 已就绪(协议 stdio · v${pkgJson.version} · 工具 3 个)`,
+        `[dshp] MCP server 已就绪(协议 stdio · v${pkgJson.version} · 工具 4 个)`,
     );
 }
