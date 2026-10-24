@@ -29,20 +29,15 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const PKG_ROOT = resolve(HERE, "../../..");
 const BUNDLED_CLI = join(PKG_ROOT, "dist", "cli.mjs");
 
-// 清单只用于**本地前置校验**与自检推算;真正的权威在 CLI 侧(同一套 domain 清单),
-// 这里的副本只为让报错更早更清楚(不等 CLI 起来才说)。CLI 若有更新版本,这里可能偏保守
-// (拒绝 CLI 已支持的取值),不会漏放 —— 偏保守的方向是安全的。
-const ATOMS = ["tool", "events", "service", "ui", "protocol"];
-const EVENT_DOMAINS = ["tools", "agent", "session", "approval", "fs", "settings"];
-const UI_SURFACES = [
-    "settings-card",
-    "chat-node",
-    "input-dock",
-    "sidebar",
-    "tool-view",
-    "session-header",
-];
-const SEAMS = ["llm", "systemPrompt", "subagents", "web", "commands", "storage"];
+// 能力清单(原子 / 事件域 / 界面位 / 缝)与它们的硬约束**不在本脚本里抄副本** ——
+// 权威在 CLI 侧(src/core/capabilities.ts,与 MCP 同源)。抄副本必然漂:CLI 加了原子,
+// 脚本还按旧清单拦,用户拿到的是「CLI 明明支持,脚本说非法」。同理,CLI 已经校验的
+// 硬约束(界面位须同勾 ui 原子、settings-card 不能配 config=none)也不在这里重写。
+//
+// 脚本只留三样自己的东西:
+//   ① 参数政策(少数几条比 CLI 更严的规则,见 validate)
+//   ② 生成后自检(按勾选推应有的文件,缺文件即非零退出)
+//   ③ JSON 摘要(给 agent / CI 消费)
 
 /** 解析 --key value / --flag 形式的长选项 */
 function parseArgs(argv) {
@@ -109,35 +104,23 @@ function validate(o) {
     if (!["latest", "next"].includes(o.target)) bad(`--target 取值非法:${o.target}`);
     if (!["bundle", "library"].includes(o.pkgPosition)) bad(`--pkg-position 取值非法:${o.pkgPosition}`);
     if (!["none", "static", "dynamic"].includes(o.config)) bad(`--config 取值非法:${o.config}`);
-    for (const a of o.atoms) if (!ATOMS.includes(a)) bad(`--atoms 含未知原子:${a}`);
-    for (const e of o.events) if (!EVENT_DOMAINS.includes(e)) bad(`--events 含未知事件域:${e}`);
-    for (const u of o.uiSurfaces) if (!UI_SURFACES.includes(u)) bad(`--surfaces 含未知界面位:${u}`);
-    for (const s of o.seams) if (!SEAMS.includes(s)) bad(`--seams 含未知缝:${s}`);
-    // 硬约束(与 CLI 侧同一套规则):勾了原子就得给出对应清单项
+    // 以下几条是**脚本政策**(CLI 侧没有或更宽松),不是 CLI 规则的副本:
+    // 勾了原子就得给出对应清单项 —— 否则 JSON 摘要与生成后自检推不出该原子该有哪些文件。
     if (o.atoms.includes("events") && o.events.length === 0) bad("勾了 events 原子,须用 --events 给出事件域");
     if (o.atoms.includes("ui") && o.uiSurfaces.length === 0) bad("勾了 ui 原子,须用 --surfaces 给出界面位");
     if (o.atoms.includes("service") && o.seams.length === 0 && !o.createService) {
         bad("勾了 service 原子,须用 --seams 给出缝或用 --create-service 新建服务");
     }
-    // 界面位依赖原子:全部界面位都要 ui 原子(界面位实现与 client 聚合入口由 ui 原子产出,
-    // 缺了就静默丢弃界面位选择);tool-view 额外要 tool
-    if (o.uiSurfaces.length > 0 && !o.atoms.includes("ui")) {
-        bad("勾了界面位,须同勾 ui 原子(界面位实现由 ui 原子产出,缺了界面位一个都不渲染)");
-    }
-    if (o.uiSurfaces.includes("tool-view") && !o.atoms.includes("tool")) {
-        bad("界面位 tool-view 必须同勾 tool 原子");
-    }
-    // 设置卡片必须有配置
-    if (o.uiSurfaces.includes("settings-card") && o.config === "none") {
-        bad("界面位 settings-card 不能配 config=none");
-    }
+    // CLI 对 toolName 有兜底(缺省 example_tool),这里不给兜底:生成出 example_tool
+    // 这种占位名还得手改,不如在启动前问清楚。
     if (o.atoms.includes("tool") && !o.toolName) bad("勾了 tool 原子,须用 --tool-name 给出工具名");
 }
 
 /** 组装 CLI 参数(原生 flag;能力选择走 --atoms 等,不再驱动问卷) */
 function cliArgs(o) {
     const args = ["create", o.dir, "--target", o.target, "--lang", o.lang];
-    if (o.atoms.length) args.push("--atoms", o.atoms.join(","));
+    // --atoms 恒给(空值也算):不给的话 CLI 会落进交互问卷,脚本里没人能答
+    args.push("--atoms", o.atoms.join(","));
     if (o.events.length) args.push("--event-domains", o.events.join(","));
     if (o.uiSurfaces.length) args.push("--ui-surfaces", o.uiSurfaces.join(","));
     if (o.seams.length) args.push("--service-seams", o.seams.join(","));

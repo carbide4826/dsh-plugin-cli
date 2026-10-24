@@ -1,7 +1,9 @@
 # CLI 表面与生成物结构
 
-> 本文件是**快照**。清单会随版本增删,实时发现方法见文末「实时发现」。快照只用于快速定位,
-> 关键决策以实时发现的结果为准。
+> 本文件是**快照**,只在拿不到 dshp CLI 时兜底 —— 清单会随版本增删。
+> 有 CLI 时以 `dshp list --json` / `dshp spec --json` 现场取到的为准(见文末「实时发现」)。
+> 拿不到 CLI 又照快照硬编参数,生成的插件「看着像」而不是「就是」——
+> 这种情况要告诉用户需要一个带 `spec` 子命令的 dshp CLI,并让用户自己决定装不装。
 
 ## 子命令与选项
 
@@ -200,6 +202,9 @@ dshp mcp --lang zh     # stdio 协议;stdout 是 JSON-RPC 通道,别在里面写
 
 ## 实时发现(优先于本文件的快照)
 
+⚠️ 要这些命令得有**带 `spec` / `list` 子命令的 dshp CLI**(npm 包 `create-dsh-plugin-cli`);
+没有它 → 本文件的快照只是兜底,**别照快照硬编参数**。
+
 **`dshp list` 是权威的实时清单** —— 预设 / 案例 / 原子 / 事件域 / 界面位 / 缝 / 两轨版本配套,
 一次全给:
 
@@ -247,8 +252,13 @@ node scripts/drive-questionnaire.mjs --dir <项目目录> --target <latest|next>
   [--pkg-position <bundle|library>] [--config <none|static|dynamic>] [--lang <zh|en>]
 ```
 
-- `--atoms` 里含 `tool` 时必须给 `--tool-name`;含 `events`/`ui`/`service` 时必须给对应清单项
-  或 `--create-service`(脚本在启动前就拦,不等 CLI 起来才说)。
+- **能力清单不再在脚本里抄一份**:原子 / 事件域 / 界面位 / 缝的 id 与硬约束(界面位须同勾
+  `ui` 原子、`settings-card` 不能配 `config=none`)全在 CLI 侧(`src/core/capabilities.ts`,
+  与 MCP 同源)。脚本不重写这些 —— 抄副本必然漂,漂了就是「CLI 明明支持,脚本说非法」。
+  非法 id 与硬约束冲突交给 CLI 报(稳定错误码)。
+- 脚本自己只留少数几条**比 CLI 更严的政策**:含 `tool` 时必须给 `--tool-name`(CLI 会兜底成
+  `example_tool`,那是占位名,事后还得手改);含 `events`/`ui`/`service` 时必须给对应清单项
+  或 `--create-service`(否则 JSON 摘要与生成后自检推不出该原子该有哪些文件)。
 - 脚本只调 CLI 不改产物:生成的每个文件都出自生成器,手改面为零。
 - 生成后自检:按勾选推应有的文件(`src/tool.ts` / `src/events.ts` / `src/client/index.ts` …),
   缺文件即以非零退出并在 JSON 里列出 `missingFiles`。
