@@ -232,7 +232,9 @@ never has to assemble them by hand.
 
 ## Agent skill
 
-This package ships an agent skill (`skills/dshp/`) that teaches an agent how to scaffold a dsh plugin project with dshp: picking an entry point (preset / curated case / free atom combination), choosing a track, the three verification steps, host integration — and it records the pitfalls that are expensive to rediscover (approve-builds, the cordis double instance, typecheck going green on missing types, UI surfaces only rendering after `build` + `plugin add`).
+This package ships an agent skill (`skills/dshp/`) that teaches an agent how to scaffold a dsh plugin project with dshp. Its main flow is **one interview**: ask what the plugin is for in the open, recommend "template vs custom" with a reason, order the options by relevance, confirm the details item by item (each one skippable), and only compile into parameters and call the CLI once you have enough — then the three verification steps and host integration. It also records the pitfalls that are expensive to rediscover (approve-builds, the cordis double instance, typecheck going green on missing types, UI surfaces only rendering after `build` + `plugin add`).
+
+The skill's body is written in **English** — it is written for models, not humans (English costs fewer tokens and models understand it better; the frontmatter's trigger words cover both languages). What to ask isn't hard-coded in the skill: it's taken live from `dshp spec --json`, and the snapshot inside the skill is only a fallback for when the CLI is unavailable.
 
 The skill ships with the npm package. Unpack it into your agent's skill directory (the directory name differs per agent; common ones are `~/.claude/skills/` or `~/.minimax/skills/`):
 
@@ -242,7 +244,7 @@ tar -xzf create-dsh-plugin-cli-*.tgz package/skills/dshp
 cp -r package/skills/dshp ~/.minimax/skills/dshp
 ```
 
-The skill bundles a driver script that turns the interactive questionnaire into a single command — free atom combinations (any mix of atoms / event domains / UI surfaces / seams) are only expressible through the interactive questionnaire on the CLI, and this script makes them scriptable, producing a **pure generator artifact** (no hand-editing):
+The skill bundles a driver script: the scriptable entry for free atom combinations — parameters → native CLI flags → generate, producing a **pure generator artifact** (no hand-editing), plus a post-generation self-check and a JSON summary:
 
 ```sh
 node skills/dshp/scripts/drive-questionnaire.mjs --dir my-orders --target next \
@@ -318,7 +320,7 @@ Full release notes for every version live in [CHANGELOG.en.md](https://github.co
 - Keep tracking dsh version bumps — versions are managed uniformly and follow the official dsh line ✅
 - `--template` custom sources: local path / git URL / npm package
 - Localization — delivered in 0.1.1: bilingual UI via `--lang zh|en`, per-language README in generated projects ✅
-- Agent tool recognition and invocation — the skill form is delivered (ships as `skills/dshp/` with the package); the MCP form is still to be scoped (the core is already pure functions, and the plan layer / error-code layer / machine-readable catalog it needs are in place)
+- Agent tool recognition and invocation — both forms are delivered: the skill form (ships as `skills/dshp/` with the package, written for models) and the MCP form (`dshp mcp` plus four tools) ✅; the two share one checklist and one set of generation rules, and their artifacts are byte-identical
 - Dual-track templates (0.1.5): latest / next trees each pairing one host generation (choose via `--target`); dependencies pinned exactly to the official meta-package pairing; generated projects ship a plugin icon and bilingual inventory metadata ✅ (current state: both tracks pin `0.2.1-rc.2`; a generation gap only appears after promotion)
 
 ## License

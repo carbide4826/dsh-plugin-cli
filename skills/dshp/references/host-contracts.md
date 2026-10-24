@@ -1,123 +1,162 @@
-# 宿主契约与排障要点
+# Host contracts and troubleshooting notes
 
-> 面向 dsh 宿主的约束,多数是"踩过一次才记住"的。改生成物、加依赖、接宿主前先读这里。
+> The constraints imposed by the dsh host — most of them are "you learn them by hitting them".
+> Read this before changing a generated project, adding dependencies, or integrating with a host.
 
-## 版本轴语义
+## Track semantics
 
-- `--target latest|next` 里的 `latest`/`next` 是**稳定容器名**,永不随 dsh 版本改名。
-  晋升只换内容(模板树 + manifest),不换轨名。
-- 轨与 manifest 严格配对:每轨一棵完整模板树 + 一份 manifest(version / cordisPeer /
-  schemasteryVersion / settingsSlot 四字段),生成时零解析、零回落。
-- 当前两轨同钉 dsh `0.2.1-rc.2`(快照值,以生成物 `package.json` 为准)。
-- 生成物的 peer 版本必须与宿主 dsh 版本**对齐**,否则宿主门禁硬拒(见下)。
+- The `latest` / `next` in `--target latest|next` are **stable container names**; they never
+  change when the dsh version moves. A promotion only swaps the content (template tree +
+  manifest), never the track name.
+- A track and its manifest are paired strictly: each track has one complete template tree and
+  one manifest (four fields: version / cordisPeer / schemasteryVersion / settingsSlot), so
+  generation does zero parsing and zero fallback.
+- Both tracks currently pin dsh `0.2.1-rc.2` (a snapshot value — the generated
+  `package.json` is the authority).
+- The generated project's peer version must **match** the host's dsh version, or the host's
+  gate rejects it outright (see below).
 
-## 依赖钉版规则(最容易复发的一类事故)
+## Dependency pinning rules (the class of incident that keeps coming back)
 
-**规则:凡 `@deepseek-ai/*` 运行时依赖,一律与官方 dsh 元包声明对齐(精确版本或 tilde),
-不要自己写浮动 range。**
+**Rule: every `@deepseek-ai/*` runtime dependency must be aligned with the official dsh
+meta-package's declaration (exact version or tilde). Never write a floating range yourself.**
 
-机理:浮动 range 会让安装树出现**同一包的第二个实例**。例:生成物 peer 写 `^4.0.2` 而元包精确钉
-`4.0.2`,pnpm 可能给 client-ui 包绑一个游离的 `4.0.4` 实例;`declare module` 合并进的是 4.0.4 的
-`Context`,而类型检查读的是另一个 → `ctx.slots` 报 `TS2339`。
+Mechanism: a floating range lets the install tree produce a **second instance of the same
+package**. Example: the generated peer says `^4.0.2` while the meta-package pins `4.0.2`
+exactly, so pnpm may bind the client-ui packages to a stray `4.0.4` instance; the
+`declare module` merge lands in 4.0.4's `Context` while type checking reads the other one →
+`ctx.slots` reports `TS2339`.
 
-同款病灶在 schemastery 上更隐蔽:元包精确钉 `3.18.2`、案例写 `^3.18.2` 漂到 `3.18.4`,
-`Config` schema 类型劈叉 → webhook 场景的 port schema 直接 typecheck 红。
+The same disease is subtler on schemastery: the meta-package pins `3.18.2` exactly, a curated
+case writes `^3.18.2` and drifts to `3.18.4`, the `Config` schema types diverge → the port
+schema in the webhook scenario fails typecheck outright.
 
-实测过的两个方向:
+Two directions that were actually measured:
 
-- 官方元包对第三方依赖是**精确钉 / tilde 对齐**(0.2.1-rc.2 实读:`cordis ~4.0.5` /
-  `schemastery ~3.18.5` / `loader ~1.0.6` / `timer ~1.1.7` / `include ~1.0.10`);早期版本线
-  (如 0.1.5-rc.2)是全精确钉(`cordis 4.0.2` / `schemastery 3.18.2` / `loader 1.0.3` /
-  `hmr 1.0.17` / `timer 1.1.4` / `include 1.0.7`)。
-- 模板的 `pnpm-workspace.yaml` 里**不要**写 overrides 去钉这些包 —— 官方元包自己已精确钉,
-  加 overrides 反而制造与官方声明不一致的第二实例。
+- The official meta-package uses **exact pins / tilde alignment** for third-party dependencies
+  (read from 0.2.1-rc.2: `cordis ~4.0.5` / `schemastery ~3.18.5` / `loader ~1.0.6` /
+  `timer ~1.1.7` / `include ~1.0.10`); the earlier version lines (e.g. 0.1.5-rc.2) pinned
+  everything exactly (`cordis 4.0.2` / `schemastery 3.18.2` / `loader 1.0.3` /
+  `hmr 1.0.17` / `timer 1.1.4` / `include 1.0.7`).
+- **Do not** write overrides for these packages in the template's `pnpm-workspace.yaml` — the
+  official meta-package already pins them exactly, and adding overrides creates a second
+  instance that disagrees with the official declaration.
 
-改依赖后先核对安装树只有单实例,再谈 typecheck 绿不绿。
+After changing dependencies, first confirm the install tree has a single instance; only then
+talk about whether typecheck is green.
 
-## typecheck 假绿(静默失效)
+## Typecheck going green for the wrong reason (silent failure)
 
-类型来源包(`dsh-client-ui-slots` / `dsh-client-ui-chat` / `dsh-client-ui-conversation`)可能不在
-生成项目的 node_modules 里 —— 类型解析有时靠上层目录恰好装了 dsh。此时 `tsc` 的 `skipLibCheck`
-会吞掉解析失败,类型退化成 `any`,于是 **typecheck 假绿**:旧错误代码照样"通过"。
+The type-providing packages (`dsh-client-ui-slots` / `dsh-client-ui-chat` /
+`dsh-client-ui-conversation`) may not be in the generated project's node_modules — type
+resolution sometimes works only because an ancestor directory happens to have dsh installed.
+Then `tsc`'s `skipLibCheck` swallows the resolution failure, the types degrade to `any`, and
+**typecheck goes green for the wrong reason**: old broken code "passes".
 
-所以:typecheck 只在**依赖装全的干净环境**里算数。CI 里跑生成工程的 typecheck 也一样,
-干净 runner 反而是最早暴露问题的地方。
+So typecheck only counts in a **clean environment with all dependencies installed**. The same
+applies to running typecheck on a generated project in CI — a clean runner is where the
+problem surfaces earliest.
 
-## 0.1.7 起的契约变化
+## Contract changes since 0.1.7
 
-| 变化 | 影响 | 现行写法 |
+| Change | Impact | The current way to write it |
 | --- | --- | --- |
-| `settings.plugin.item` 槽键全仓删除 | 设置卡片原入口失效 | 改用 `settings.plugins.tab`(Plugins 页签槽):`ctx.slots.inject('settings.plugins.tab', () => ctx.slots.register({name, id, order, label}, Component))`;槽型声明在 `dsh-client-ui-settings` 包 |
-| `installSection` 移除 | 动态配置没有旧接线了 | 改用模块 `Config` 导出,由宿主原生投影成表单;要热更新的字段走 `.volatile()` 链(保存 → 写 profile patch → 重跑 apply) |
-| `MessageSourceMap` 共享 `'plugin'` kind 删除 | 插件产的消息没有归属 kind | 插件在自己的模块 `declare module` 声明自有 kind(官方 webhook 声明 `'webhook'` 同款),生成物用 `'plugin-notice'` |
+| The `settings.plugin.item` slot key was deleted repo-wide | The old settings-card entry point is gone | Use `settings.plugins.tab` (the Plugins tab slot) instead: `ctx.slots.inject('settings.plugins.tab', () => ctx.slots.register({name, id, order, label}, Component))`; the slot's type declaration lives in the `dsh-client-ui-settings` package |
+| `installSection` was removed | Dynamic config has no legacy wiring | Use the module's `Config` export instead, which the host projects into a form natively; fields that must hot-update go through the `.volatile()` chain (save → write a profile patch → re-run apply) |
+| The shared `'plugin'` kind was removed from `MessageSourceMap` | Messages produced by a plugin have no owning kind | The plugin declares its own kind with `declare module` in its own module (the official webhook declares `'webhook'` the same way); the generated project uses `'plugin-notice'` |
 
-## 宿主门禁(插件 add / 加载)
+## Host gate (plugin add / load)
 
-- 门禁**只查 peerDependencies 里的 `dsh` / `dsh-*` 条目**,cordis、schemastery 不参与。
-- 判定用 `semver.satisfies(..., includePrerelease)`;不满足即**硬拒**:`add` 预检阶段就拒绝,
-  加载时再 throw。
-- ⚠️ **上游 dist-tag 会滚,而本仓两轨的 manifest 不会自动跟**(canary 只报警不动作,规则见
-  `docs/UPSTREAM-VERSION-POLICY.md`)。实测(2026-10-20):npm 上 `latest`/`next` 均为
-  `0.2.1-rc.2`(cordis `~4.0.5`),本仓两轨 manifest 已晋升到同一版本。**一旦上游再滚一版,
-  两轨不会自动跟**——生成物 peer 钉的仍是旧版,装新宿主会被门禁硬拒(`0.2.2-rc.x` 不满足
-  peer `0.2.1-rc.2`)。所以装宿主一律**以生成物 package.json 的钉版为准**,别裸装 `latest`。
-- 豁免:`dsh plugin allow-version` 做精确配对。
-- ⚠️ **裁决方是跑 `add` 命令的那个项目里的 dsh CLI 的版本**,不是被测项目的版本 ——
-  别在被测项目目录里跑 add 来判断宿主行为。
-- peer 区间跨 prerelease 有坑:npm semver 同 tuple 规则下 `>=0.1.5-rc.2` **匹配不到**
-  `0.1.7-rc.2`,要覆盖多代 prerelease 得用 OR 区间。
+- The gate **only inspects the `dsh` / `dsh-*` entries in peerDependencies** — cordis and
+  schemastery don't take part.
+- The check uses `semver.satisfies(..., includePrerelease)`; not satisfying it is a **hard
+  reject**: the `add` preflight refuses, and loading throws again.
+- ⚠️ **Upstream dist-tags roll, but this repo's two manifests don't follow automatically**
+  (the canary only reports, it never acts — the rules are in
+  `docs/UPSTREAM-VERSION-POLICY.md`). Measured (2026-10-20): on npm both `latest` and `next`
+  were `0.2.1-rc.2` (cordis `~4.0.5`), and both of this repo's manifests had been promoted
+  to that same version. **Once upstream rolls again, neither track follows** — the generated
+  project's peer is still the old version, and installing a new host gets hard-rejected
+  (`0.2.2-rc.x` does not satisfy peer `0.2.1-rc.2`). So always **install the host version
+  pinned in the generated package.json**, never a bare `latest`.
+- Escape hatch: `dsh plugin allow-version` for an exact pairing.
+- ⚠️ **The version of the dsh CLI in the project you run `add` in is the judge** — not the
+  version of the project under test. Don't run `add` from inside the project under test to
+  learn about host behaviour.
+- Peer ranges across prereleases have a trap: under npm's semver rules for the same tuple,
+  `>=0.1.5-rc.2` does **not** match `0.1.7-rc.2`; covering several prerelease generations
+  needs an OR range.
 
-## 工具链行为(pnpm)
+## Toolchain behaviour (pnpm)
 
-- pnpm 11 默认 `strict-dep-builds: true`:被跳过的依赖构建脚本**直接抛 `IgnoredBuildsError`
-  让 install 失败**,不是警告。
-- pnpm 11 用 `allowBuilds`(实测其 bundle 里 `allowBuilds` 出现 75 次、`onlyBuiltDependencies`
-  仅 6 次);待决项由 pnpm 写进项目的 `pnpm-workspace.yaml`,值填 `true` 才放行,填 `false`
-  也放行但原生模块不会编译。
-- **放行清单分两组,别混**(2026-10-20 实测 `pnpm add -D @deepseek-ai/dsh@0.2.1-rc.2` 报
+- pnpm 11 defaults to `strict-dep-builds: true`: a skipped dependency build script **throws
+  `IgnoredBuildsError` and fails the install** — it is not a warning.
+- pnpm 11 uses `allowBuilds` (measured in its bundle: `allowBuilds` appears 75 times,
+  `onlyBuiltDependencies` only 6); pnpm writes the pending entries into the project's
+  `pnpm-workspace.yaml`, and `true` lets the script run, while `false` also lets the install
+  through but skips compiling the native module.
+- **The allowlist splits into two groups — don't mix them** (measured on 2026-10-20 with
+  `pnpm add -D @deepseek-ai/dsh@0.2.1-rc.2`, which reported
   `Ignored build scripts: @deepseek-ai/dsh-subprocess-local@0.2.1-rc.2, @google/genai@2.21.0,
   koffi@3.1.1, node-pty@1.2.0-beta.15, protobufjs@7.6.6`):
-  - **装宿主 CLI**(`pnpm add -D @deepseek-ai/dsh`)会带进:`dsh-subprocess-local`(postinstall 装
-    spawn helper)、`koffi` 与 `node-pty`(原生模块,经 `dsh-subprocess-local` 带入)—— 这三个
-    **要真跑,填 `true`**;另有 `@google/genai` / `protobufjs`。
-  - **装插件自身依赖**(`pnpm install`)只有**用到 llm 能力**的插件会带进 `@google/genai` 与
-    `protobufjs`(经 `dsh-llm-pi-ai → pi-ai` 带入);不用 llm 的插件实测零拦截。
-  - ⭐ **`@google/genai` / `protobufjs` 的脚本是 no-op,官方口径是「列出来填 `false` 拒绝执行」**
-    —— dsh 自己的 `pnpm-workspace.yaml` 就写 `'@google/genai': false` / `protobufjs: false`,
-    注释原文「pnpm lists them only because they ship lifecycle scripts, but those are no-ops
-    we don't need, so we deny them — install still succeeds」。**但它们必须列出来**:不列 =
-    `ERR_PNPM_IGNORED_BUILDS` 硬失败(实测 exit=1);列了填 `false` = install exit=0。
-    ⚠️ `pnpm approve-builds` 只能写 `true`(官方 GUI 的 `approveBuilds()` 同样只写 `true`),
-    要拒绝执行只能手写 `pnpm-workspace.yaml` 的 `allowBuilds` 段。
-- 默认 `auto-install-peers: true`:peer 依赖会被自动装上 —— 但本仓产物把版本精确钉死,
-  lockfile 里不会浮动,**别手动改成 `^`**(会同时撞上宿主 peer 门禁)。
+  - **Installing the host CLI** (`pnpm add -D @deepseek-ai/dsh`) brings in `dsh-subprocess-local`
+    (its postinstall installs the spawn helper), plus `koffi` and `node-pty` (native modules,
+    pulled in via `dsh-subprocess-local`) — these three **really run, so fill in `true`**; and
+    also `@google/genai` / `protobufjs`.
+  - **Installing the plugin's own dependencies** (`pnpm install`) only brings in `@google/genai`
+    and `protobufjs` for plugins that **use llm capabilities** (via `dsh-llm-pi-ai → pi-ai`);
+    plugins that don't use llm measured zero blocks.
+  - ⭐ **The `@google/genai` / `protobufjs` scripts are no-ops, and the official line is "list
+    them and fill in `false` to refuse execution"** — dsh's own `pnpm-workspace.yaml` writes
+    `'@google/genai': false` / `protobufjs: false`, with the comment "pnpm lists them only
+    because they ship lifecycle scripts, but those are no-ops we don't need, so we deny them —
+    install still succeeds". **But they must be listed**: leaving them out is a hard
+    `ERR_PNPM_IGNORED_BUILDS` failure (measured exit=1); listing them with `false` gives
+    install exit=0.
+    ⚠️ `pnpm approve-builds` can only write `true` (the official GUI's `approveBuilds()` also
+    writes only `true`), so refusing execution means hand-writing the `allowBuilds` section
+    of `pnpm-workspace.yaml`.
+- `auto-install-peers: true` by default: peer dependencies get installed automatically — but
+  this repo's artifacts pin the versions exactly, so the lockfile doesn't float. **Don't
+  change them to `^` by hand** (that collides with the host's peer gate).
 
-## 发布元信息(宿主插件管理页要读)
+## Publishing metadata (read by the host's plugin management page)
 
-宿主按 npm 包身份聚合各包的 client 出口并读包内元信息:
+The host aggregates each package's client entry by npm package identity and reads the
+metadata inside the package:
 
-- `package.json` 的 `icon`(包内相对路径,≤256KiB SVG)→ 详情页大图标。
-- `locale/<lang>.json` 的 `meta`(名称/介绍,双语)→ 详情页文案;无字典回落 package.json 原文,en 兜底强制。
-- `exports` 必须能解析 `"./package.json"` 与 `"./locale/*.json"`,否则元信息管线整体回落。
-- `files` 白名单要显式列 `dist` 等产物,否则 npm 回落到 `.gitignore` 当黑名单,产物漏发。
-- 宿主会读宿主自身语言对应的那份 locale 字典,不是 agent 的语言。
+- `package.json`'s `icon` (a path relative to the package, an SVG of at most 256KiB) → the
+  big icon on the detail page.
+- The `meta` in `locale/<lang>.json` (name / description, bilingual) → the detail page copy;
+  with no dictionary it falls back to the package.json text, and the `en` fallback is
+  mandatory.
+- `exports` must be able to resolve `"./package.json"` and `"./locale/*.json"`, or the whole
+  metadata pipeline falls back.
+- The `files` allowlist must list `dist` and the other artifacts explicitly, or npm falls
+  back to `.gitignore` as a denylist and the artifact ships incomplete.
+- The host reads the locale dictionary in **the host's own language**, not the agent's.
 
-## 真机验证口径
+## Real-machine verification criteria
 
-- dsh CLI 认 `DSH_HOME` 环境变量重定位 profile 根 —— 做隔离验证时用临时 home,
-  不要碰用户真实 profile(它可能有 bundle 与 settings.yaml 缺失之类的问题会卡住启动)。
-- 顶层裸 `dsh` 需要显式 `--profile`;`dsh web` 子命令带位置参数即可:
-  `pnpm dsh web --patch ./dev.patch.yml --dump-config`。
-- **组合树加载成功的判据**:`--dump-config` 输出里含本插件条目(grep 插件 id)。
-- UI 侧判据:浏览器里 Web UI 渲染出对应界面位 + console 无报错。
-  - 界面位必须 `pnpm build` + `pnpm dsh plugin --profile web add .`;`--patch` 直载没有包身份,
-    浏览器侧槽位不注册。
-  - 杀上一个服务后残留页面的 WebSocket/SSE 重连会在 console 里报 `ERR_CONNECTION_REFUSED`,
-    污染下一轮判定 —— 先把旧页面切走再挂监听。
+- The dsh CLI honours the `DSH_HOME` environment variable to relocate the profile root — use
+  a temporary home for isolated verification and don't touch the user's real profile (it may
+  have its own problems, e.g. a missing bundle or settings.yaml, that block startup).
+- The bare top-level `dsh` needs an explicit `--profile`; the `dsh web` subcommand takes a
+  positional argument: `pnpm dsh web --patch ./dev.patch.yml --dump-config`.
+- **The criterion for "loaded into the composition tree"**: the `--dump-config` output
+  contains this plugin's entry (grep the plugin id).
+- The criterion on the UI side: the Web UI in the browser renders the corresponding surface
+  and the console has no errors.
+  - A surface needs `pnpm build` + `pnpm dsh plugin --profile web add .`; a `--patch` load
+    has no package identity, so the browser side never registers the slot.
+  - After killing the previous service, the leftover page's WebSocket/SSE reconnect reports
+    `ERR_CONNECTION_REFUSED` in the console, which pollutes the next verdict — navigate the
+    old page away before attaching the listener.
 
-## 身份三同值
+## Three identities that must match
 
-目录名、`package.json` 的 `name`、`src/index.ts` 的 `export const name` 默认同值;
-`cordis.patch.yml` 的 `- id:`(插件 id)与 `name:`(模块名)也要同步;UI 案例另有
-`tsdown.config.ts` 内的 client id。漏一处即身份错位。经 `dshp create` 生成时已自动重写,
-但**改名要三处一起改**,别只改一处。
+The directory name, `package.json`'s `name`, and `export const name` in `src/index.ts` are
+the same value by default; the `- id:` (plugin id) and `name:` (module name) in
+`cordis.patch.yml` must be synced too, and a UI project also has the client id in
+`tsdown.config.ts`. Missing one leaves the identity misaligned. `dshp create` already
+rewrites all of them, but **when renaming, change all of them together** — never just one.

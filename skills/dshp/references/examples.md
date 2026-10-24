@@ -1,97 +1,109 @@
-# 参考例子(golden set)
+# Reference examples (golden set)
 
-> 这里放**完整的访谈实录**:需求 → 逐项问答 → 收集到的规格 → 编译出的命令 → 验证。
-> 用来当样板模仿,不是规则 —— 提问怎么措辞、一次问几项、用什么工具问,都可以按你所在应用调整。
+> This file holds **complete interview transcripts**: need → item-by-item Q&A → the collected
+> spec → the compiled command → verification. They are there to be copied, not obeyed — you can
+> adjust the wording, how many items you ask per turn, and which tool you ask with, to suit the
+> application you are running in.
 >
-> ⭐ 每个案例都带一份**可执行的规格**(JSON)与**编译出的命令**。守门测试
-> (`src/core/skillGolden.test.ts`)会拿这份规格去跑编译器(`specToCliArgs`)，
-> 再跟文中写的命令逐字比对 —— **例子与编译器对不上就会红**。
-> 所以这里的命令是「真跑得出来的」,不是示意。
+> ⭐ Every case carries an **executable spec** (JSON) and its **compiled command**. A guard test
+> (`src/core/skillGolden.test.ts`) runs that spec through the compiler (`specToCliArgs`) and
+> compares the result with the command written here, word for word — **an example that drifts
+> from the compiler turns the test red**.
+> So the commands here are ones that really run, not illustrations: copying them won't break.
 
-## 提问形态:三种可选姿态
+## Question styles: three interchangeable shapes
 
-skill 只规定语义(逐项确认、每项能单独跳过、建议要给理由、收齐才动手),**不规定工具**。
-下面是三种都成立的姿态,挑你所在应用支持的那种:
+The skill fixes the semantics only (confirm item by item, every item individually skippable, a
+recommendation needs a reason, don't act until you have enough). **How you ask is yours to
+choose.** Here are three shapes that all satisfy the rules — take the one your application
+supports:
 
-**形态 A · 普通对话,一次一项**(最通用,任何应用都能用)
+**Style A · Plain conversation, one item at a time** (works everywhere)
 
 ```
-你:这个插件要做什么?
-用户:查订单。
-你:走现成模板还是自己配能力组合?
-  推荐「走模板」—— quick-tool 就是「自定义查询工具 + 结果卡片」,和你的需求对得上。
-用户:走模板。
-你:用哪个模板?
-  1. quick-tool(推荐:查订单正是它)
+You: What should this plugin do?
+User: Look up orders.
+You: A ready-made template, or your own capability combination?
+  Recommended: the template route — quick-tool is "a custom query tool plus a result card",
+  which is exactly what you described.
+User: Template.
+You: Which template?
+  1. quick-tool (recommended: looking up orders is precisely its job)
   2. notebook     3. model-gateway
-用户:第一个。
-你:工程放在哪、叫什么?(可以跳过,默认 my-orders)
-用户:my-orders,其余你定。
+User: The first one.
+You: Where should the project go, and what is it called? (skippable, defaults to my-orders)
+User: my-orders, and you decide the rest.
 ```
 
-**形态 B · 结构化问卷**(应用有结构化提问能力时用:比如带「跳过」选项的问卷工具;
-一次列若干项,每项自带「跳过」)
+**Style B · Structured questionnaire** (when the application has a structured-question
+capability — e.g. a questionnaire tool with a "skip" option: ask several items at once, each
+carrying its own "skip")
 
 ```
-[多选] 要勾哪些能力原子?
-  □ tool    暴露工具(推荐 —— 你要对外提供查询能力)
-  □ ui      宿主界面位(推荐 —— 你要在会话里展示结果)
-  □ events  订阅宿主事件
-  □ service 扩展能力缝
-  □ protocol 提供 HTTP 端点
-  [跳过此问]
+[multi-select] Which capability atoms do you want?
+  □ tool    expose a tool (recommended — you want to expose a lookup capability)
+  □ ui      host UI surfaces (recommended — you want to show results in the session)
+  □ events  subscribe to host events
+  □ service extend capability seams
+  □ protocol serve an HTTP endpoint
+  [skip this question]
 
-[文本] 工具叫什么名字?
-  预设:query_orders
-  [跳过此问]
+[text] What is the tool called?
+  Preset: query_orders
+  [skip this question]
 ```
 
-**形态 C · 一次列一批,让用户回一句**(效率高;「逐项可跳过」的语义不变)
+**Style C · One batch of blanks, one reply** (efficient; "every item is individually skippable"
+still holds)
 
 ```
-你这几项定一下(没说的按默认来,可跳过):
-  1. 目录名(默认 my-orders):______
-  2. 包名(默认与插件 id 同值):______
-  3. 插件 id(默认与目录名同值):______
-  4. 描述(默认预设值):______
-  5. 作者(默认空):______
-  6. 目标轨(默认 latest):______
-  7. 生成物语言(默认按环境探测):______
+Fill these in (anything left blank takes the default, and every line can be skipped):
+  1. Directory name (default my-orders):______
+  2. Package name (default = plugin id):______
+  3. Plugin id (default = directory name):______
+  4. Description (default = the preset's):______
+  5. Author (default empty):______
+  6. Target track (default latest):______
+  7. Generated project language (default auto-detected):______
 ```
 
-三种姿态的共同点只有三条:**逐项确认 · 每项能单独跳过 · 跳过的项要能说出用了什么默认**。
+The three styles share only three things: **confirm item by item · every item can be skipped
+on its own · when an item is skipped, say which default was used**.
 
 ---
 
-## 案例 1 · 模板路线 · 精选案例 quick-tool
+## Case 1 · Template route · curated case quick-tool
 
-**用户**:「帮我起一个能查订单的 dsh 插件工程」
+**User**: "set up a dsh plugin project that can look up orders"
 
-**提问形态**:A(普通对话,一次一项)
+**Question style**: A (plain conversation, one item at a time)
 
-**访谈片段**:
+**Interview transcript**:
 
-> 你:这个插件要做什么?
-> 用户:查订单。
-> 你:走现成模板还是自己配能力组合?
->   推荐**走模板** —— `quick-tool` 就是「自定义查询工具 + 结果卡片」,你要的正是这个。
->   自己配也能做,但目录、界面位这些都得一项项定。
-> 用户:走模板。
-> 你:用哪个模板?(与需求相符的排最前)
->   推荐 `quick-tool` —— 自定义查询工具 + 结果卡片。
->   其余:`model-gateway`(接自有模型服务)、`webhook-bridge`(外部事件桥接进会话)、
->   `notebook`(用户数据存取)、`session-bot`(监听会话自动响应)。
-> 用户:quick-tool。
-> 你:工程放在哪、叫什么?(跳过 = 当前目录下的默认名 my-orders)
-> 用户:my-orders,其余你定。
-> 你:生成物用哪种语言?(跳过 = 按环境探测)
-> 用户:中文。
+> You: What should this plugin do?
+> User: Look up orders.
+> You: A ready-made template, or your own capability combination?
+>   Recommended: **the template route** — `quick-tool` is "a custom query tool plus a result
+>   card", which is what you described. You could build your own, but then the directory, the
+>   surfaces and the rest all have to be decided item by item.
+> User: Template.
+> You: Which template? (the ones matching your need go first)
+>   Recommended `quick-tool` — a custom query tool plus a result card.
+>   Others: `model-gateway` (bring your own model service), `webhook-bridge` (bridge external
+>   events into the session), `notebook` (per-user data storage), `session-bot` (watch sessions
+>   and auto-respond).
+> User: quick-tool.
+> You: Where should the project go, and what is it called? (skip = the default name under the
+> current directory, my-orders)
+> User: my-orders, and you decide the rest.
+> You: Which language for the generated project? (skip = auto-detected)
+> User: Chinese.
 
-**收集到的规格**:
+**Collected spec**:
 
 ```json
 {
-  "need": "查订单",
+  "need": "look up orders",
   "route": "template",
   "template": "quick-tool",
   "templateKind": "case",
@@ -101,44 +113,48 @@ skill 只规定语义(逐项确认、每项能单独跳过、建议要给理由�
 }
 ```
 
-**编译出的命令**:
+**Compiled command**:
 
 ```sh
 dshp create -s --template quick-tool my-orders --lang zh
 ```
 
-**验证**:`cd my-orders && pnpm install && pnpm typecheck && pnpm build`,
-再 `pnpm dsh web --patch ./dev.patch.yml`(冒烟看组合树里有没有本插件行)。
+**Verification**: `cd my-orders && pnpm install && pnpm typecheck && pnpm build`, then
+`pnpm dsh web --patch ./dev.patch.yml` (smoke-test that the composition tree has the plugin's
+entry).
 
-⚠️ 跳过的项 = 交给默认值:包名与插件 id 同值、插件 id 与目录名同值、描述用案例默认、
-作者空、目标轨 `latest`。汇报时要把这句说清。
+⚠️ The skipped items mean the defaults were used: the package name and plugin id default to
+the directory name, the plugin id defaults to the directory name, the description uses the
+case's default, the author is empty, and the target track is `latest`. Say exactly that in your
+report.
 
 ---
 
-## 案例 2 · 模板路线 · next 轨的 webhook-bridge
+## Case 2 · Template route · webhook-bridge on the next track
 
-**用户**:「用 next 轨起一个接外部 webhook 的插件」
+**User**: "use the next track for a plugin that accepts an external webhook"
 
-**提问形态**:A
+**Question style**: A
 
-**访谈片段**:
+**Interview transcript**:
 
-> 你:这个插件要做什么?
-> 用户:接外部 webhook,进来后能在会话里看到。
-> 你:走现成模板还是自己配?
->   推荐**走模板** —— `webhook-bridge` 案例正是「外部事件桥接进会话」。
-> 用户:走模板,next 轨。
-> 你:用哪个模板?
->   推荐 `webhook-bridge`(next 轨配套 dsh 0.2.1-rc.2)。
-> 用户:就它。
-> 你:工程放在哪、叫什么?
-> 用户:my-hook,其余你定。
+> You: What should this plugin do?
+> User: Accept an external webhook, and have it show up in the session.
+> You: A ready-made template, or your own capability combination?
+>   Recommended: **the template route** — the `webhook-bridge` case is exactly "bridging
+>   external events into the session".
+> User: Template, on the next track.
+> You: Which template?
+>   Recommended `webhook-bridge` (the next track pairs with dsh 0.2.1-rc.2).
+> User: That one.
+> You: Where should the project go, and what is it called?
+> User: my-hook, and you decide the rest.
 
-**收集到的规格**:
+**Collected spec**:
 
 ```json
 {
-  "need": "接外部 webhook,进来后能在会话里看到",
+  "need": "accept an external webhook and show it in the session",
   "route": "template",
   "template": "webhook-bridge",
   "templateKind": "case",
@@ -149,51 +165,57 @@ dshp create -s --template quick-tool my-orders --lang zh
 }
 ```
 
-**编译出的命令**:
+**Compiled command**:
 
 ```sh
 dshp create -s --template webhook-bridge my-hook --target next --lang zh
 ```
 
-**验证**:同案例 1;报告时点明 next 轨钉的 dsh 版本(**取自生成物 package.json**,别凭记忆)。
+**Verification**: same as case 1; when reporting, name the dsh version the next track pins
+(**read it from the generated package.json**, never from memory).
 
 ---
 
-## 案例 3 · 自配路线 · 工具 + 设置卡片
+## Case 3 · Custom route · tool + settings card
 
-**用户**:「我要一个能在设置页配 API Key、并在会话里显示查询结果的插件」
+**User**: "I want a plugin that takes an API key in a settings page and shows query results in
+the session"
 
-**提问形态**:B(结构化问卷)
+**Question style**: B (structured questionnaire)
 
-**访谈片段**:
+**Interview transcript**:
 
-> 你:这个插件要做什么?
-> 用户:设置页配 API Key,查到的结果显示在会话里。
-> 你:走现成模板还是自己配?
->   推荐**自己配** —— 现成案例都不合(没有「设置页配密钥」这种形态),
->   而你要的组合(设置卡片 + 工具 + 结果展示)正好能一次配齐。
-> 用户:自己配。
-> 你:[多选] 要勾哪些能力原子?
->   推荐 `tool`(结果得有个工具去查)+ `ui`(设置页与结果展示都是界面位,由它产出)。
->   其余:`events`、`service`、`protocol`。
-> 用户:tool 和 ui。
-> 你:[多选] 挂哪些宿主界面位?
->   推荐 `settings-card`(就是设置页)+ `tool-view`(工具结果的展示位)。
->   其余:`chat-node`、`input-dock`、`sidebar`、`session-header`。
-> 用户:这两个。
-> 你:[文本] 工具叫什么名字?
-> 用户:query_api_keys。
-> 你:[单选] 配置方式?(有 settings-card 时不能选 none)
->   `dynamic`(用户在设置页改配置,保存后热更新)/ `static`(配置写死在包里)。
-> 用户:dynamic。
-> 你:工程放在哪、叫什么?
-> 用户:my-api-keys,其余你定。
+> You: What should this plugin do?
+> User: Take an API key in a settings page, and show the query results in the session.
+> You: A ready-made template, or your own capability combination?
+>   Recommended: **your own combination** — none of the curated cases fit (there is no "API key
+>   in a settings page" shape), and what you want (a settings card + a tool + a result view)
+>   can be assembled in one pass.
+> User: My own.
+> You: [multi-select] Which capability atoms do you want?
+>   Recommended `tool` (something has to do the lookup) + `ui` (the settings page and the
+>   result view are both UI surfaces, produced by it).
+>   Others: `events`, `service`, `protocol`.
+> User: tool and ui.
+> You: [multi-select] Which host UI surfaces to mount?
+>   Recommended `settings-card` (that's the settings page) + `tool-view` (where tool results
+>   are shown).
+>   Others: `chat-node`, `input-dock`, `sidebar`, `session-header`.
+> User: Those two.
+> You: [text] What is the tool called?
+> User: query_api_keys.
+> You: [single-select] Config mode? (with settings-card, `none` is impossible)
+>   `dynamic` (the user edits the config in the settings page; changes apply on save) /
+>   `static` (the config is baked into the package).
+> User: dynamic.
+> You: Where should the project go, and what is it called?
+> User: my-api-keys, and you decide the rest.
 
-**收集到的规格**:
+**Collected spec**:
 
 ```json
 {
-  "need": "在设置页配 API Key,查到的结果显示在会话里",
+  "need": "take an API key in a settings page and show query results in the session",
   "route": "custom",
   "atoms": ["tool", "ui"],
   "uiSurfaces": ["settings-card", "tool-view"],
@@ -205,51 +227,53 @@ dshp create -s --template webhook-bridge my-hook --target next --lang zh
 }
 ```
 
-**编译出的命令**:
+**Compiled command**:
 
 ```sh
 dshp create --atoms tool,ui --ui-surfaces settings-card,tool-view --tool-name query_api_keys --config dynamic my-api-keys --lang zh
 ```
 
-**验证**:`cd my-api-keys && pnpm install && pnpm typecheck && pnpm build`。
+**Verification**: `cd my-api-keys && pnpm install && pnpm typecheck && pnpm build`.
 
-⭐ **含界面位 ⇒ 启动要走 `pnpm dsh plugin --profile web add .` 再 `pnpm dsh web`**;
-`--patch` 直载没有 npm 包身份,浏览器侧槽位不注册,界面位会静默不渲染。
+⭐ **With UI surfaces present, starting means `pnpm dsh plugin --profile web add .` followed by
+`pnpm dsh web`** — a `--patch` load has no npm package identity, so the browser side never
+registers the slot and the surfaces silently don't render.
 
 ---
 
-## 案例 4 · 自配路线 · 事件订阅 + HTTP 端点(零界面位)
+## Case 4 · Custom route · event subscription + HTTP endpoint (no UI)
 
-**用户**:「我要监听会话事件,并且给外部系统一个 HTTP 回调端点」
+**User**: "I want to watch session events, and give an external system an HTTP callback endpoint"
 
-**提问形态**:C(一次列一批)
+**Question style**: C (one batch of blanks)
 
-**访谈片段**:
+**Interview transcript**:
 
-> 你:这个插件要做什么?
-> 用户:监听会话事件,再给外部系统一个 HTTP 回调端点。
-> 你:走现成模板还是自己配?
->   推荐**自己配** —— `webhook-bridge` 案例偏「接外部事件进会话」,
->   你要的是「会话事件 → 主动回调外部」,方向相反,得自己配。
-> 用户:自己配。
-> 你:[多选] 要勾哪些能力原子?
->   推荐 `events`(订阅宿主事件)+ `protocol`(提供 HTTP 端点)。
-> 用户:这两个。
-> 你:[多选] 订阅哪些事件域?
->   推荐 `session`(会话生命周期)+ `tools`(工具调用)。
->   其余:`agent`、`approval`、`fs`、`settings`。
-> 用户:session 和 tools。
-> 你:你这几项定一下(没说的按默认来,可跳过):
->   1. 目录名(默认 my-plugin):my-listener
->   2. 目标轨(默认 latest):next
->   3. 生成物语言(默认按环境探测):跳过
-> 用户:就这些。
+> You: What should this plugin do?
+> User: Watch session events, and give an external system an HTTP callback endpoint.
+> You: A ready-made template, or your own capability combination?
+>   Recommended: **your own combination** — the `webhook-bridge` case is oriented the other way
+>   ("external events into the session"), while you want "session events → call out to
+>   external", so it has to be built by hand.
+> User: My own.
+> You: [multi-select] Which capability atoms do you want?
+>   Recommended `events` (subscribe to host events) + `protocol` (serve an HTTP endpoint).
+> User: Those two.
+> You: [multi-select] Which event domains to subscribe to?
+>   Recommended `session` (session lifecycle) + `tools` (tool calls).
+>   Others: `agent`, `approval`, `fs`, `settings`.
+> User: session and tools.
+> You: Fill these in (anything left blank takes the default, every line is skippable):
+>   1. Directory name (default my-plugin): my-listener
+>   2. Target track (default latest): next
+>   3. Generated project language (default auto-detected): skip
+> User: That's all.
 
-**收集到的规格**:
+**Collected spec**:
 
 ```json
 {
-  "need": "监听会话事件,并给外部系统一个 HTTP 回调端点",
+  "need": "watch session events and give an external system an HTTP callback endpoint",
   "route": "custom",
   "atoms": ["events", "protocol"],
   "eventDomains": ["session", "tools"],
@@ -271,42 +295,44 @@ dshp create --atoms tool,ui --ui-surfaces settings-card,tool-view --tool-name qu
 }
 ```
 
-**编译出的命令**:
+**Compiled command**:
 
 ```sh
 dshp create --atoms events,protocol --event-domains session,tools my-listener --target next
 ```
 
-**验证**:`cd my-listener && pnpm install && pnpm typecheck && pnpm build`。
+**Verification**: `cd my-listener && pnpm install && pnpm typecheck && pnpm build`.
 
-注意:没勾 `ui` 就**没有界面位**、生成物里没有 `client/` —— 这是对的,不是缺了。
+Note: no `ui` atom was picked, so there are **no UI surfaces and no `client/`** in the output —
+that is correct, not a gap.
 
 ---
 
-## 案例 5 · 自配路线 · 一个能力都不选(纯骨架)
+## Case 5 · Custom route · no capability at all (bare skeleton)
 
-**用户**:「先起个空骨架我看看长什么样」
+**User**: "let me see what a bare skeleton looks like"
 
-**提问形态**:A
+**Question style**: A
 
-**访谈片段**:
+**Interview transcript**:
 
-> 你:这个插件要做什么?
-> 用户:先起个空骨架看看。
-> 你:走现成模板还是自己配?
->   推荐**自己配**(不选任何能力原子)—— 模板都带能力,纯骨架只能自己配。
-> 用户:好。
-> 你:[多选] 要勾哪些能力原子?
->   都不勾也行(纯骨架)。
-> 用户:都不勾。
-> 你:工程放在哪、叫什么?
-> 用户:my-skeleton,其余你定。
+> You: What should this plugin do?
+> User: Just a bare skeleton for now.
+> You: A ready-made template, or your own capability combination?
+>   Recommended: **your own combination** (pick no capability atoms) — every template ships
+>   capabilities, so only a hand-built combination gives you a bare skeleton.
+> User: OK.
+> You: [multi-select] Which capability atoms do you want?
+>   Picking none is fine (a bare skeleton).
+> User: None.
+> You: Where should the project go, and what is it called?
+> User: my-skeleton, and you decide the rest.
 
-**收集到的规格**:
+**Collected spec**:
 
 ```json
 {
-  "need": "先起个空骨架看看",
+  "need": "just a bare skeleton for now",
   "route": "custom",
   "atoms": [],
   "dirName": "my-skeleton",
@@ -328,13 +354,15 @@ dshp create --atoms events,protocol --event-domains session,tools my-listener --
 }
 ```
 
-**编译出的命令**:
+**Compiled command**:
 
 ```sh
 dshp create --atoms "" my-skeleton
 ```
 
-**验证**:`cd my-skeleton && pnpm install && pnpm typecheck && pnpm build`。
+**Verification**: `cd my-skeleton && pnpm install && pnpm typecheck && pnpm build`.
 
-⚠️ **零原子时 `--atoms ""` 也要给** —— 空值仍是非交互路径,不给会落进 CLI 的交互问卷
-(脚本里没人能答)。这正是编译器固定产出 `--atoms` 的原因,照抄编译结果就不会错。
+⚠️ **Give `--atoms ""` even when no atom was picked** — an empty value is still the
+non-interactive path; without it you fall into the CLI's interactive questionnaire (where
+nobody is there to answer). That is exactly why the compiler always emits `--atoms` — copying
+the compiled result keeps you out of trouble.

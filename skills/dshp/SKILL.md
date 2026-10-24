@@ -3,171 +3,206 @@ name: dshp
 description: |
   Scaffold a DeepSeek Harness (dsh) plugin project with the dshp CLI, then verify it installs,
   type-checks, builds and loads into a dsh host. Use when the user asks to "create a dsh plugin",
-  "scaffold a plugin for DeepSeek Harness", "生成 dsh 插件", "写个 dsh 插件骨架", mentions dshp
-  or create-dsh-plugin-cli, or wants a new dsh plugin project started from scratch. Do NOT use
-  for editing an existing dsh plugin's source code, for developing the dsh host itself, or for
-  plugins of other frameworks.
+  "scaffold a plugin for DeepSeek Harness", "生成 dsh 插件", "写个 dsh 插件骨架", "起一个 dsh 插件",
+  mentions dshp or create-dsh-plugin-cli, or wants a new dsh plugin project started from scratch.
+  Do NOT use for editing an existing dsh plugin's source code, for developing the dsh host itself,
+  or for plugins of other frameworks.
 ---
 
-# dshp — 生成 dsh 插件工程
+# dshp — scaffold a dsh plugin project
 
-`dshp`(npm 包 `create-dsh-plugin-cli`)生成 DeepSeek Harness 插件工程骨架。产物可直接
-`pnpm install && pnpm typecheck && pnpm build`,再被 `dsh web --patch` 直载调试。
+`dshp` (npm package `create-dsh-plugin-cli`) generates a DeepSeek Harness plugin project
+skeleton. The result installs, type-checks and builds with `pnpm install && pnpm typecheck &&
+pnpm build`, then loads into a dsh host via `dsh web --patch`.
 
-本 skill 覆盖的是「从零生成一个能跑起来的 dsh 插件工程」;改已有插件的代码不走这里。
+This skill covers "generate a dsh plugin project from scratch"; editing an existing plugin's
+code does not go through it.
 
-## 核心:这是一次访谈,不是一张填空表
+> This document is written for models, not humans. Ask the user **in the language they use** —
+> the question templates below are shapes to adapt, not scripts to recite.
 
-`dshp create` 的参数表是**给已经想清楚的人**用的。把参数表直接甩给用户,用户答不了
-「原子要勾哪几个」这种问题 —— 于是要么跳过、要么瞎勾,生成的东西不对还要返工。
+## Core: this is an interview, not a fill-in-the-blank form
 
-所以本 skill 的主流程是**先访谈、再生成**。访谈的规矩只有语义,工具由你所在应用定:
+`dshp create`'s parameter table is meant for someone who already knows what they want. Hand it
+to a user as-is and they cannot answer "which atoms should I tick" — so they either skip
+everything or tick things at random, and the result is wrong and needs redoing.
 
-- **逐项确认**:一次确认一项(或几项),但每项都要能**单独跳过**。用结构化问卷还是普通对话,
-  你自己选 —— 关键是让用户知道「哪些必答、哪些能跳」,别把十几个问题平铺成一段话。
-  (三种提问姿态的样板见 [references/examples.md](references/examples.md) 的「提问形态」段)
-- **跳过 = 不填该项**,交给 CLI 的默认值(清单里写了每项跳过的后果)。用户说「你定就行」
-  就整份跳过,别反复确认。
-- **选项顺序按需求排**:与用户描述相符的选项排最前,并在提示里说明**为什么推荐它**;
-  其余列在后面。用户一眼看到的是最贴近自己需求的那个。
-- **给建议,不要替用户决定**:建议要有理由,让用户能改。用户明确说「按你说的来」才自己定。
-- **收齐了才动手**。信息不够就继续问,不要先跑一个错的骨架再返工。
+So the main flow here is **interview first, generate second**. The rules are semantic only;
+the tooling is yours to choose:
 
-## 前置条件:这套流程依赖 dshp CLI
+- **Confirm one item at a time**: one item (or a few) per turn, and every item must be
+  individually skippable. Structured questionnaire or plain conversation — your call. What
+  matters is that the user can tell which items are required and which can be skipped, so
+  don't flatten a dozen questions into one wall of text.
+- **Skip = leave that key empty** and fall back to the CLI default (the checklist states what
+  each skip means). If the user says "you decide", skip the whole thing — don't keep asking.
+- **Order options by relevance**: put the ones matching the user's description first and say
+  **why** you recommend them; list the rest after. The user should see their own need at the top.
+- **Advise, don't decide for the user**: a recommendation needs a reason and must stay
+  changeable. Only decide on your own after the user explicitly says "go with yours".
+- **Don't act until you have enough.** Keep asking rather than scaffolding something wrong.
 
-访谈清单与生成规则**都在 CLI 里**(`src/core/spec.ts`,CLI / MCP / skill 三边共用一个源)。
-所以:
+## Prerequisite: this flow depends on the dshp CLI
 
-| 需要什么 | 从哪取 | 取不到会怎样 |
+The interview checklist and the generation rules **live in the CLI** (`src/core/spec.ts`, one
+source shared by the CLI, MCP and this skill). Therefore:
+
+| What you need | Where to get it | What happens without it |
 | --- | --- | --- |
-| 访谈清单(问什么、哪些可跳过) | `dshp spec --json` | 只能退回本 skill 的快照 → 清单可能已过期 → **生成的插件不保证符合规范** |
-| 能选什么(预设/案例/原子/事件域/界面位/缝) | `dshp list --json` | 同上 |
-| 生成 | `dshp create` / MCP `dshp_create_plugin` | 没法生成 |
+| Interview checklist (what to ask, what is skippable) | `dshp spec --json` | You can only fall back to this skill's snapshot → the checklist may be stale → **the generated plugin is not guaranteed to be spec-compliant** |
+| What is selectable (presets / curated cases / atoms / event domains / UI surfaces / capability seams) | `dshp list --json` | Same |
+| Generation | `dshp create` / MCP `dshp_create_plugin` | Nothing can be generated |
 
-⚠️ **没有(或版本太老、没有 `spec` 子命令的)dshp CLI 时,不要凭本 skill 的快照硬编参数。**
-那样生成的插件,原子/界面位/依赖版本都可能对不上 —— 是「看着像」而不是「就是」。
-正确做法是**告诉用户**:需要一个带 `spec` 子命令的 dshp CLI(npm 包 `create-dsh-plugin-cli`)
-才能按规范生成,并给出安装方式(`npm i -g create-dsh-plugin-cli`,或让用户自己用
-`npx -y create-dsh-plugin-cli@latest <子命令>`)。**要不要装由用户决定,不要自动装。**
+⚠️ **Without a dshp CLI (or with one too old to have the `spec` subcommand), do not hand-write
+parameters from this skill's snapshot.** The atoms, surface dependencies and pinned dependency
+versions may all be wrong that way — the result would *look* right without *being* right.
+The correct move is to **tell the user**: generating to spec requires a dshp CLI that has the
+`spec` subcommand (npm package `create-dsh-plugin-cli`), and offer the install options
+(`npm i -g create-dsh-plugin-cli`, or letting the user run
+`npx -y create-dsh-plugin-cli@latest <subcommand>` themselves). **Whether to install is the
+user's decision — do not install it automatically.**
 
-⚠️ **不要凭记忆抄清单**。清单会随 CLI 加参数而变;要问什么、哪些可跳过,以上面两种取法
-现取的为准。`dshp list --json` 给的是「能选什么」,`dshp spec --json` 给的是「要问什么」——
-两个都要。
+⚠️ **Do not recite the checklist from memory.** It changes as the CLI gains options; take what
+to ask and what is skippable from the two sources above, live. `dshp list --json` answers "what
+can I pick", `dshp spec --json` answers "what do I have to ask" — you need both.
 
-逐步清单(问法 / 跳过后果 / 规格键 → CLI 参数对照表)见 [references/interview.md](references/interview.md)
-—— **那是快照,只在拿不到 CLI 时兜底**。
+The step-by-step checklist (how to ask / what skipping means / spec key → CLI parameter) is in
+[references/interview.md](references/interview.md) — **that is a snapshot, a fallback for when
+the CLI is unavailable**.
 
 ## Procedure
 
-### 0. 环境体检(有 MCP 就先跑,没就算了)
+### 0. Environment check (if MCP is available, run it first)
 
-宿主挂了 MCP 的话,先 `dshp_doctor` 体检一下:node 版本、pnpm、dsh CLI、两轨素材与生成管线
-自检、当前目录可写性。**环境不行就别急着访谈** —— 问完十几项才发现装不上依赖,用户白等。
-没挂 MCP 的话这步跳过,环境问题会在第 7 步 install 时暴露。
+If the host has MCP mounted, run `dshp_doctor` first: node version, pnpm, the dsh CLI, both
+tracks' materials and generation-pipeline self-checks, and whether the current directory is
+writable. **Don't start the interview if the environment is broken** — asking a dozen questions
+only to discover the dependencies won't install wastes the user's time. Without MCP, skip this
+step; environment problems surface at install time in step 7.
 
-### 1. 问需求(开放式,一句话)
+### 1. Ask what the plugin is for (open-ended, one sentence)
 
-问一句开放式的话,让用户说这个插件要干什么(用什么工具问由你决定;有结构化提问能力就用,
-没有就用普通对话):
+Ask one open-ended question so the user can say what the plugin is for (pick your own tool to
+ask it with — use a structured question capability if you have one, plain conversation if you
+don't):
 
-> 这个插件要做什么?一句话描述用途就行(比如「查订单」「接外部 webhook」「加一个设置卡片」)
+> What should this plugin do? One sentence is enough (for example: "look up orders", "accept an
+> external webhook", "add a settings card")
 
-**这一步不要给选项**。用户答完之后,后面每一步的选择都要靠它 —— 先问需求再给建议,
-反过来就是让用户在选项里找自己的需求。
+**Do not offer options at this step.** Every later choice depends on the answer — asking the
+need first and giving advice afterwards is the right order; the reverse forces the user to
+hunt through a list to find their own requirement.
 
-### 2. 给建议 + 选路线(模板 vs 自配)
+### 2. Advise and pick a route (template vs custom)
 
-拿到需求后,先给**两条路**的对比建议,再让用户选:
+Once you have the need, present **both routes** with a comparison and let the user choose:
 
-| 路线 | 适合 | 产物 |
+| Route | Fits when | What you get |
 | --- | --- | --- |
-| 走模板 | 需求贴近某个现成形态(「查订单」→ `quick-tool`;「接外部 webhook」→ `webhook-bridge`) | 真实工程整份拷贝,身份已重写,**省掉全部手改** |
-| 自己配 | 要精确的能力组合,或需求介于两者之间 | 纯生成器产物(零手改),但组合由你逐项定 |
+| Template | The need is close to an existing shape ("look up orders" → `quick-tool`; "accept an external webhook" → `webhook-bridge`) | A real project copied as-is with its identity rewritten — **zero manual edits** |
+| Custom | You need a precise capability combination, or the need falls between the two | Pure generator output (also zero manual edits), but you define the combination item by item |
 
-选「走模板」→ 第 3 步;选「自己配」→ 第 4 步。
+Template route → step 3; custom route → step 4.
 
-> 别跳过建议直接问「用哪个模板」。**建议要带理由**(「你说要查订单,`quick-tool` 就是
-> 自定义查询工具 + 结果卡片」),用户能据此改。
+> Don't skip the advice and ask straight away "which template?". **A recommendation needs a
+> reason** ("you said you want to look up orders — `quick-tool` *is* a custom query tool plus a
+> result card"), so the user can push back.
 
-### 3. 模板路线:列候选,让用户选
+### 3. Template route: list the candidates, let the user pick
 
-从 `dshp list --json` 取现成的预设组合与精选案例(两轨的案例集可能不同,按目标轨看)。
-**把与需求相符的排最前**,其余按「相关度」往下排:
+Take the ready-made presets and curated cases from `dshp list --json` (the two tracks may ship
+different case sets — read the one matching your target track). **Put the ones matching the
+need first**, then sort the rest by relevance:
 
-> 推荐 `quick-tool`:你说要查订单,这个案例就是「自定义查询工具 + 结果卡片」,工具与界面都现成。
-> 其他可选:`model-gateway`(接自有模型服务)、`webhook-bridge`(外部事件桥接进会话)、
-> `notebook`(用户数据存取)、`session-bot`(监听会话自动响应)。
+> Recommended: `quick-tool` — you want to look up orders, and this case *is* a custom query tool
+> plus a result card; tool and UI both come ready.
+> Other options: `model-gateway` (bring your own model service), `webhook-bridge` (bridge
+> external events into the session), `notebook` (per-user data storage), `session-bot` (watch
+> sessions and auto-respond).
 
-用户选定后,记下 `template` 与 `templateKind`(预设组合 / 精选案例),跳到第 5 步。
+Once the user picks, record `template` and `templateKind` (preset / curated case) and jump to
+step 5.
 
-### 4. 自配路线:先原子,再按原子追问
+### 4. Custom route: atoms first, then follow up per atom
 
-**先问原子** —— 原子决定插件的能力面(工具 / 事件 / 服务 / 界面 / 协议)。选项来自
-`dshp list --json` 的 `atoms`,**与需求相符的排最前并说明理由**,其余列后:
+**Ask for atoms first** — atoms decide the plugin's capability surface (tool / events / service /
+UI / protocol). Options come from the `atoms` list of `dshp list --json`; **put the ones
+matching the need first and say why**, list the rest after:
 
-> 推荐勾 `tool`(你要对外提供查询能力)和 `ui`(要在会话里展示结果)。
-> 其余可选:`events`(订阅宿主事件)、`service`(扩展能力缝)、`protocol`(提供 HTTP 端点)。
+> Recommended: `tool` (you want to expose a lookup capability) and `ui` (you want to show
+> results in the session).
+> Other options: `events` (subscribe to host events), `service` (extend capability seams),
+> `protocol` (serve an HTTP endpoint).
 
-⚠️ **界面位必须同勾 `ui` 原子**(`tool-view` 还要 `tool`):界面位实现由 `ui` 原子产出,
-缺了界面位选择会被**静默丢弃**,生成物里根本没有 `client/`。
+⚠️ **Every UI surface requires the `ui` atom** (`tool-view` additionally needs `tool`): the
+surface implementations are produced by the `ui` atom, so a surface picked without it is
+**silently dropped** and the generated project has no `client/` at all.
 
-勾完原子后,按原子追问对应清单(没勾的能力不问,别问无关的):
+After the atoms are settled, follow up per atom (don't ask about capabilities that weren't
+picked):
 
-| 勾了 | 接着问 | 清单键 |
+| Picked | Then ask | Spec key |
 | --- | --- | --- |
-| `events` | 订阅哪些事件域 | `eventDomains` |
-| `ui` | 挂哪些宿主界面位 | `uiSurfaces` |
-| `service` | 扩展哪些能力缝 / 要不要新建自有服务 | `serviceSeams` / `newService` |
-| `tool` | 工具叫什么名字 | `toolName` |
+| `events` | Which event domains to subscribe to | `eventDomains` |
+| `ui` | Which host UI surfaces to mount | `uiSurfaces` |
+| `service` | Which capability seams to extend / whether to create your own service | `serviceSeams` / `newService` |
+| `tool` | What the tool is called | `toolName` |
 
-### 5. 逐项问细节(每一项都可跳过)
+### 5. Ask the details one by one (every item is skippable)
 
-这几项决定工程「长什么样、叫什么、放哪」,**逐项确认**(可以几项合一次问,但每项都要能
-单独跳过),每项都告诉用户「跳过会怎样」:
+These decide what the project looks like, what it's called and where it lands. **Confirm them
+one by one** (you may bundle a few into one question, but each must stay individually
+skippable), and tell the user what skipping means for each:
 
-| 问 | 清单键 | 跳过 = |
+| Ask | Spec key | Skipping means |
 | --- | --- | --- |
-| 工程放在哪、叫什么? | `dirName` | 当前目录下的默认名(预设 `my-tool` 等 / 案例用案例 id / 自配 `my-plugin`) |
-| npm 包名用什么? | `pkgName` | 与插件 id 同值 |
-| 插件 id 用什么? | `pluginId` | 与目录名同值 |
-| 包定位(bundle / library)? | `pkgPosition` | `bundle` |
-| 配套哪一代 dsh 宿主? | `target` | `latest` |
-| 要不要带配置?怎么配? | `config` | 按所选界面位推导(无界面位则 `none`) |
-| 插件描述 / 作者 | `description` / `author` | 预设默认值 / 空 |
-| 生成物用哪种语言? | `lang` | 按环境探测 |
+| Where should the project go, and what is it called? | `dirName` | The default name under the current directory (presets use e.g. `my-tool`, curated cases use the case id, custom combinations use `my-plugin`) |
+| What npm package name? | `pkgName` | Same as the plugin id |
+| What plugin id? | `pluginId` | Same as the directory name |
+| Package position (bundle / library)? | `pkgPosition` | `bundle` |
+| Which generation of the dsh host does it target? | `target` | `latest` |
+| Any configuration, and how? | `config` | Derived from the chosen surfaces (`none` when there are none) |
+| Plugin description / author | `description` / `author` | The preset's default / empty |
+| Which language for the generated project? | `lang` | Auto-detected from the environment |
 
-⚠️ **存储位置要说清**:工程建在**当前工作目录**下,`dirName` 给相对路径(如 `apps/my-orders`)
-就建在 cwd 的那个子目录下,给绝对路径就建在那里;目录已存在会直接失败,不要先占位再生成。
+⚠️ **Be explicit about the output location**: the project is created under the **current
+working directory**. A relative `dirName` (e.g. `apps/my-orders`) lands in that subdirectory of
+the cwd; an absolute path lands exactly there. An existing directory is a hard failure — don't
+pre-create a placeholder and then generate into it.
 
-⚠️ **配置方式与界面位冲突**:选了 `settings-card` 界面位时不能配 `config: none`
-(设置卡片必须有配置可展示)。此时给 `static` / `dynamic` 两个选项。
+⚠️ **Config mode conflicts with surfaces**: with the `settings-card` surface you cannot use
+`config: none` (a settings card must have something to show). Offer only `static` / `dynamic`
+in that case.
 
-⚠️ **描述与作者在生成时就给上**:事后手改要动 `package.json` 与 `locale/*.json` 两处,
-不如一次给对。
+⚠️ **Give the description and author up front**: changing them later means editing both
+`package.json` and `locale/*.json`.
 
-### 6. 收齐 → 编译成参数 → 生成
+### 6. Complete → compile into parameters → generate
 
-问完之后,先用缺项判定确认收齐了(`dshp spec --json` 或 MCP `dshp_spec`,传入已收集的规格;
-`ready` 为 true 才够开跑)。没齐就继续问剩下那几项。
+After the interview, run the gap check to confirm you have enough (`dshp spec --json` or MCP
+`dshp_spec`, passing the collected spec; `ready` must be true before you start). If it isn't,
+keep asking the remaining items.
 
-然后把规格编译成 CLI 参数再生成 —— **参数形态与 CLI 需要的那份完全一致**:
+Then compile the spec into CLI parameters and generate — **the parameter shape is exactly what
+the CLI expects**:
 
 ```sh
-npx create-dsh-plugin-cli create <dir> [能力参数] [--target <latest|next>] [--lang <zh|en>] ...
+npx create-dsh-plugin-cli create <dir> [capability params] [--target <latest|next>] [--lang <zh|en>] ...
 ```
 
-- 模板路线:`--template <preset>` 或 `-s --template <case>`
-- 自配路线:`--atoms <list>` / `--event-domains <list>` / `--ui-surfaces <list>` /
+- Template route: `--template <preset>` or `-s --template <case>`
+- Custom route: `--atoms <list>` / `--event-domains <list>` / `--ui-surfaces <list>` /
   `--service-seams <list>` / `--new-service` / `--tool-name <name>` / `--config <mode>`
-- `-s` 必须配 `--template`,单独给会报错退出。
+- `-s` requires `--template`; giving `-s` alone errors out.
 
-⚠️ **自由组合路线一个原子都没选时也要给 `--atoms ""`**(空值仍走非交互路径,否则会落进交互
-问卷)。
+⚠️ **Give `--atoms ""` even when the custom route picks no atom at all** (an empty value still
+takes the non-interactive path — without it you fall into the interactive questionnaire).
 
-宿主挂了 MCP 时,用 `dshp_create_plugin` 代替命令行:入参与 CLI 参数同形,
-**缺省只算计划,确认后再调一次并显式传 `dryRun: false` 才落盘**。
+When the host has MCP, use `dshp_create_plugin` instead of the command line: its input mirrors
+the CLI parameters, and **it only computes a plan by default — call it again with an explicit
+`dryRun: false` to write to disk**.
 
-### 7. 验证三步(不能跳,跳了等于没验)
+### 7. Three verification steps (skipping them means verifying nothing)
 
 ```sh
 cd <dir>
@@ -176,135 +211,171 @@ pnpm typecheck
 pnpm build
 ```
 
-- `pnpm install` 可能被 pnpm 拦依赖的构建脚本(报 `ERR_PNPM_IGNORED_BUILDS`)。pnpm 11 默认
-  `strict-dep-builds: true`,被跳过的构建脚本**直接抛错让 install 失败**(不是警告)。按提示
-  `pnpm approve-builds` 放行;pnpm 会把待决项写进生成物的 `pnpm-workspace.yaml` 的
-  `allowBuilds` 段(占位值 `set this to true or false`),填 `true` 即可。**放行清单分两组**:
-  - 装插件自身依赖(`pnpm install`):**只有用到 llm 能力**的插件要处理 `@google/genai` 与
-    `protobufjs`(经 `dsh-llm-pi-ai → pi-ai` 带入)。这两个包的脚本**是 no-op** —— 官方 dsh 自己
-    的 `pnpm-workspace.yaml` 就把它们写成 `false` 并注明「no-ops we don't need, so we deny them —
-    install still succeeds」,**照官方填 `false`**(拒绝执行,install 照样成功);但**不列出来同样会
-    失败**,所以必须列出来。不用 llm 的插件这一步零拦截。
-  - 装宿主 CLI(`pnpm add -D @deepseek-ai/dsh`):`@deepseek-ai/dsh-subprocess-local` / `koffi` /
-    `node-pty` 这三个**要真跑**(原生模块编译 / 装 spawn helper),选 `true`。
-  - ⚠️ `pnpm approve-builds` 只能写 `true`(官方插件页的「允许这些脚本并重试」同样只写 `true`);
-    要「拒绝执行但不让 install 失败」只能手写 `pnpm-workspace.yaml` 的 `allowBuilds` 段。
-- ⭐ **typecheck 必须在依赖装全的项目目录里跑**。类型来源包不在 node_modules 时,`tsc` 的
-  `skipLibCheck` 会吞掉解析失败、类型退化成 `any`,于是 **typecheck 假绿** —— 旧错误代码
-  在缺依赖的环境里照样"通过"。所以:先 `install` 成功再 `typecheck`,别在没装依赖的目录里跑。
-- `pnpm build` 失败多半是 UI 项目的 CSS 管线缺 `@tsdown/css`(生成物已带,装不上就是 install 没成功)。
+- `pnpm install` may be blocked by pnpm over dependency build scripts (it reports
+  `ERR_PNPM_IGNORED_BUILDS`). pnpm 11 defaults to `strict-dep-builds: true`, so a skipped
+  build script **makes install fail outright** (it is not a warning). Follow the prompt and
+  run `pnpm approve-builds`; pnpm writes the pending entries into the generated project's
+  `pnpm-workspace.yaml` under `allowBuilds` (placeholder value `set this to true or false`) —
+  fill in `true`. **The allowlist splits into two groups**:
+  - Installing the plugin's own dependencies (`pnpm install`): **only plugins that use llm
+    capabilities** have to deal with `@google/genai` and `protobufjs` (pulled in via
+    `dsh-llm-pi-ai → pi-ai`). Those two packages' scripts **are no-ops** — the official dsh
+    `pnpm-workspace.yaml` itself lists them as `false` and notes "no-ops we don't need, so we
+    deny them — install still succeeds", so **fill in `false` like the official one does**
+    (the scripts are refused; install still succeeds). But **leaving them out fails just the
+    same**, so they must be listed. Plugins that don't use llm see zero blocks at this step.
+  - Installing the host CLI (`pnpm add -D @deepseek-ai/dsh`): `@deepseek-ai/dsh-subprocess-local`
+    / `koffi` / `node-pty` **really do run** (native module builds / the spawn helper) — pick
+    `true`.
+  - ⚠️ `pnpm approve-builds` can only write `true` (the official plugin page's "allow these
+    scripts and retry" also writes only `true`); to "refuse the script without failing
+    install" you have to hand-write the `allowBuilds` section of `pnpm-workspace.yaml`.
+- ⭐ **Run typecheck inside the project directory with all dependencies installed.** When the
+  type-providing packages aren't in node_modules, `tsc`'s `skipLibCheck` swallows the
+  resolution failure and the types degrade to `any`, so **typecheck goes green for the wrong
+  reason** — old broken code "passes" in an environment without dependencies. So: install
+  first, then typecheck; never typecheck in a directory without dependencies.
+- A `pnpm build` failure is usually a UI project whose CSS pipeline is missing
+  `@tsdown/css` (the generated project already ships it — if it won't install, install itself
+  didn't succeed).
 
-### 8. 装宿主并联调
+### 8. Install the host and integrate
 
 ```sh
-pnpm add -D @deepseek-ai/dsh@<版本>     # 版本取自生成物 package.json 里 @deepseek-ai/dsh-* 的钉版
+pnpm add -D @deepseek-ai/dsh@<version>     # take the version from the generated package.json's pinned @deepseek-ai/dsh-*
 ```
 
-⚠️ **别裸装 npm 上的 `latest`**。生成物的 peer 精确钉在某个版本上,宿主门禁用
-`semver.satisfies(..., includePrerelease)` 判定,装错版本就是「预检阶段直接拒,nothing was
-installed」。上游 dist-tag 会滚(2026-10-20 实测 latest/next 均为 `0.2.1-rc.2`,本仓两轨已同版),
-但**一旦上游再滚一版,产物 peer 仍钉旧版,新宿主会拒收**。版本以生成物 `package.json` 为准。
+⚠️ **Don't just install npm's `latest`.** The generated project pins its peer exactly, and the
+host gate checks with `semver.satisfies(..., includePrerelease)` — the wrong version means
+"rejected at preflight, nothing was installed". Upstream dist-tags roll (as of 2026-10-20 both
+latest and next were `0.2.1-rc.2`, and both of this repo's tracks are on that version), but
+**once upstream rolls again the artifact's peer stays on the old version and the new host
+rejects it**. Take the version from the generated `package.json`.
 
-冒烟(不启动,先确认组合树里有本插件行):
+Smoke test (don't start it — just confirm the composition tree has your plugin's entry):
 
 ```sh
 pnpm dsh web --patch ./dev.patch.yml --dump-config | grep -A 4 <plugin-id>
 ```
 
-看到插件行即加载成功。再选一种启动方式:
+Seeing the plugin entry means it loaded. Then pick one way to run it:
 
-- **直载源码(开发期)**:`pnpm dsh web --patch ./dev.patch.yml`。改源码即时生效。
-- **装产物(发布前)**:`pnpm dsh plugin --profile web add .` 后再 `pnpm dsh web`。
-  ⭐ **含界面位的插件必须走这条**:`--patch` 直载没有 npm 包身份,浏览器侧槽位不会注册,
-  界面位静默不渲染。
+- **Load the sources directly (during development)**: `pnpm dsh web --patch ./dev.patch.yml`.
+  Source edits take effect immediately.
+- **Install the artifact (before publishing)**: `pnpm dsh plugin --profile web add .`, then
+  `pnpm dsh web`.
+  ⭐ **Plugins with UI surfaces must use this one**: a `--patch` load has no npm package
+  identity, so the browser side never registers the slot and the surfaces silently don't
+  render.
 
-`dev.patch.yml` 是生成物,含本机绝对路径,已在 `.gitignore` 里 —— 不要提交,不要手改。
+`dev.patch.yml` is a generated artifact holding an absolute path to your machine; it is in
+`.gitignore` — don't commit it, don't hand-edit it.
 
-### 9. 报告
+### 9. Report
 
-告诉用户:生成了什么(目录 + 走了哪条路线 + 用了哪个模板/原子组合 + 哪条轨)、访谈里哪些项
-是跳过的(跳过的项意味着什么默认值)、验证跑到哪一步(装依赖/类型/构建/组合树)、接下来怎么启动。
-若某步没跑成,明确说是哪一步、为什么。
+Tell the user: what was generated (directory + which route + which template or atom
+combination + which track), which interview items were skipped (and what default each skip
+implied), how far verification got (dependencies / types / build / composition tree), and how
+to start it. If a step didn't succeed, say which one and why.
 
 ## Failure handling
 
-| 症状 | 根因 | 处置 |
+| Symptom | Root cause | Fix |
 | --- | --- | --- |
-| `ERR_PNPM_IGNORED_BUILDS` | pnpm 拦截了依赖的构建脚本 | `pnpm approve-builds` 放行提示的包 |
-| typecheck 报 `Cannot find module` | 类型包没装上或没在本目录跑 | 回到项目目录确认 `install` 成功再跑 |
-| typecheck 绿但代码明显有问题 | 缺依赖时 `skipLibCheck` 吞掉解析失败(假绿) | 在依赖装全的环境重跑;仍绿才是真绿 |
-| `ctx.slots` 类型报错 / Config 类型劈叉 | cordis 或 schemastery 出现第二实例 | 依赖版本必须与官方元包声明精确/tilde 对齐,别手改成浮动 range |
-| 界面位在 Web UI 里不渲染 | 只走了 `--patch` 直载 | `pnpm build` + `pnpm dsh plugin --profile web add .` |
-| `dsh plugin add` 被拒(rejected) | 宿主 peer 门禁:比对 peerDependencies 里的 dsh/dsh-* 条目 | 装与生成物 peer 钉版一致的宿主版本;确需跨版用 `dsh plugin allow-version` 精确配对 |
-| 生成器报目录已存在 | 目录占用是失败态 | 换目录名,不要覆盖 |
-| `SURFACE_REQUIRES_ATOM` | 选了界面位却没同勾 `ui` 原子(`tool-view` 还要 `tool`) | 补上原子,或去掉该界面位 |
-| 启动时端口占用 / 别的插件串进来 | `web` profile 是共用的 | 换自己命名的 profile 隔离 |
+| `ERR_PNPM_IGNORED_BUILDS` | pnpm blocked a dependency's build script | `pnpm approve-builds` and allow the packages it lists |
+| typecheck reports `Cannot find module` | The type packages aren't installed, or you ran it in the wrong directory | Go back to the project directory, confirm install succeeded, then re-run |
+| typecheck is green but the code is obviously wrong | Without dependencies, `skipLibCheck` swallows resolution failures (false green) | Re-run where the dependencies are installed; only then is green real |
+| `ctx.slots` type errors / diverging Config types | A second instance of cordis or schemastery | Dependency versions must match the official meta-package exactly or by tilde — never loosen them to a floating range |
+| A UI surface doesn't render in the Web UI | You only used the `--patch` load | `pnpm build` + `pnpm dsh plugin --profile web add .` |
+| `dsh plugin add` is rejected | The host's peer gate compares the dsh / dsh-* entries in peerDependencies | Install a host version matching the artifact's pinned peer; if you truly need a cross-version install, pair it exactly with `dsh plugin allow-version` |
+| The generator reports the directory already exists | An occupied directory is a failure state | Pick another directory name; never overwrite |
+| `SURFACE_REQUIRES_ATOM` | A surface was picked without the `ui` atom (`tool-view` also needs `tool`) | Add the atom, or drop the surface |
+| Port in use at startup / a foreign plugin shows up | The `web` profile is shared | Isolate it with a profile of your own |
 
-排障细节(契约变化、依赖钉版规则、门禁语义)见 references/host-contracts.md。
+For deeper troubleshooting (contract changes, dependency pinning rules, gate semantics) see
+references/host-contracts.md.
 
-## 事实核对纪律
+## Fact-checking discipline
 
-本 skill 与三份 reference 里的版本号、槽位键、包名、清单条目都是**快照**,会随上游滚动失效。
-涉及「宿主现在是什么行为」「现在能选什么」的判断,别只信快照 —— 直接读源头,成本不高:
+The version numbers, slot keys, package names and checklist entries in this skill and its
+three references are **snapshots**; they go stale as upstream rolls. For anything about "what
+does the host do now" or "what can I pick now", don't rely on the snapshot alone — read the
+source, it costs little:
 
-- **要问什么、哪些可跳过**:`dshp spec` / `dshp spec --json`(权威实时清单)——
-  访谈步骤、问法、跳过后果、选项来源,全在这儿。
-- **能选什么**:`dshp list` / `dshp list --json` —— 预设/案例/原子/事件域/界面位/缝/两轨版本配套。
-- 宿主契约与槽位定义:`dsh-fork` 仓库的 `packages/client/**/slot-contract.ts`、
-  `packages/boot/app-boot/src/plugin-compatibility.ts`(门控规则)。
-- 依赖配套:`npm view @deepseek-ai/dsh@<版本> dependencies`。
-- 工具链行为:本机 pnpm 的实现(比如 `allowBuilds` 与 `onlyBuiltDependencies` 的实际生效项)。
+- **What to ask and what is skippable**: `dshp spec` / `dshp spec --json` (the authoritative
+  live checklist) — interview steps, how to ask them, what skipping means, where the options
+  come from.
+- **What is selectable**: `dshp list` / `dshp list --json` — presets / curated cases / atoms /
+  event domains / UI surfaces / capability seams / both tracks' version pairing.
+- Host contracts and slot definitions: the `dsh-fork` repo's
+  `packages/client/**/slot-contract.ts` and
+  `packages/boot/app-boot/src/plugin-compatibility.ts` (the gating rules).
+- Dependency pairing: `npm view @deepseek-ai/dsh@<version> dependencies`.
+- Toolchain behaviour: your local pnpm implementation (e.g. which entries `allowBuilds` and
+  `onlyBuiltDependencies` actually honour).
 
-快照过期时以你当场读到的为准,并把差异写进给用户的答复里。
+When the snapshot is stale, go with what you read at that moment and mention the difference in
+your answer to the user.
 
-**拿不到 CLI 时**(环境里没装 dshp,或装的是没有 `spec` / `list` 子命令的旧版):
-只能用本 skill 与 reference 里的快照兜底。此时:
+**When the CLI is unavailable** (dshp isn't installed, or the installed one is too old to have
+`spec` / `list`): the snapshots in this skill and its references are all you have. Then:
 
-- **明确告诉用户这是快照、可能已过期** —— 别让它冒充「当前规范」。
-- 别照快照硬编参数。快照能凑出「看着像」的插件,不保证符合当前规范:原子集合、界面位
-  依赖、依赖钉版都可能已经变了。
-- 正确做法是把「需要什么、缺了会怎样、装不装由你决定」讲清楚,让用户拍板要不要装
-  带 `spec` 子命令的 dshp CLI(npm 包 `create-dsh-plugin-cli`)。**不要自动装。**
+- **Tell the user plainly that you're working from a snapshot that may be stale** — don't let
+  it pass as "the current spec".
+- Don't hand-write parameters from the snapshot. A snapshot can produce a plugin that *looks*
+  right without *being* right: the atom set, the surface dependencies and the pinned
+  dependency versions may all have changed.
+- The right move is to spell out what's needed, what breaks without it, and let the user
+  decide whether to install a dshp CLI that has the `spec` subcommand (npm package
+  `create-dsh-plugin-cli`). **Do not install it automatically.**
 
 ## Examples
 
-完整的访谈实录(需求 → 逐项问答 → 收集到的规格 → 编译出的命令 → 验证)在
-[references/examples.md](references/examples.md) —— 那是 **golden set**:每个案例都带一份
-可执行的规格与编译结果,守门测试会拿它跟编译器对账(对不上就红),所以那里的命令是
-「真跑得出来的」,照抄不会错。
+Complete interview transcripts (need → item-by-item Q&A → collected spec → compiled command →
+verification) live in [references/examples.md](references/examples.md) — that is the **golden
+set**: every case carries an executable spec and its compiled result, and a guard test checks
+them against the compiler, so the commands there are ones that really run. Copying them won't
+break.
 
-本 skill 里也放了三个精简版:
+Three abridged versions are also here:
 
-Input:「帮我起一个能查订单的 dsh 插件工程」
-Output: 先问需求 → 建议「走模板,`quick-tool` 就是自定义查询工具 + 结果卡片」→ 用户确认 →
-问存储位置与命名(其余跳过)→ `dshp create -s --template quick-tool my-orders --lang zh`
-→ `pnpm install && pnpm typecheck && pnpm build` 三步跑通 → 报告生成的目录、跳过的项
-(包名/插件 id 默认与目录名同值)与启动命令(`pnpm dsh web --patch ./dev.patch.yml`;
-若要做设置卡片则再 `plugin add`)。
+Input: "set up a dsh plugin project that can look up orders"
+Output: Ask what it's for → recommend "template route — `quick-tool` is a custom query tool
+plus a result card" → user confirms → ask where to put it and what to call it (skip the rest)
+→ `dshp create -s --template quick-tool my-orders --lang zh` → `pnpm install && pnpm typecheck
+&& pnpm build` all pass → report the generated directory, the skipped items (package name and
+plugin id default to the directory name) and the start command (`pnpm dsh web --patch
+./dev.patch.yml`; if it needs a settings card, also `plugin add`).
 
-Input:「用 next 轨起一个接外部 webhook 的插件」
-Output: 需求 → 建议「`webhook-bridge` 案例正是外部事件桥接进会话,next 轨配套 dsh 0.2.1-rc.2」
-→ 确认后 `dshp create -s --template webhook-bridge my-hook --target next --lang zh`,
-再按第 7、8 步验证;报告时点明 next 轨当前钉的 dsh 版本(取自生成物 package.json)。
+Input: "use the next track for a plugin that accepts an external webhook"
+Output: Need → recommend "`webhook-bridge` is exactly bridging external events into the
+session; the next track pairs with dsh 0.2.1-rc.2" → once confirmed,
+`dshp create -s --template webhook-bridge my-hook --target next --lang zh`, then steps 7 and 8;
+when reporting, name the dsh version the next track currently pins (read it from the generated
+package.json).
 
-Input:「我要一个能在设置页配 API Key、并在会话里显示查询结果的插件」
-Output(自配路线;完整逐项问答见 golden set 的案例 3):
-先问需求 → 建议走自配(现成案例都不合)→ 原子选 `tool` + `ui`(相符的排最前并说理由)→
-界面位选 `settings-card` + `tool-view` → 工具名 `query_api_keys` →
-配置方式只给 `dynamic` / `static`(有 settings-card 时不能选 none)→
-逐项确认存储位置与命名(其余跳过)→ 编译成
-`dshp create --atoms tool,ui --ui-surfaces settings-card,tool-view --tool-name query_api_keys
---config dynamic my-api-keys --lang zh` → `pnpm install && pnpm typecheck && pnpm build` 三步跑通
-→ 报告:目录、原子与界面位组合、跳过的项各自用了什么默认。⭐ 含界面位 ⇒ 启动要走
-`pnpm dsh plugin --profile web add .` 再 `pnpm dsh web`,`--patch` 直载不注册槽位、
-界面位会静默不渲染。
+Input: "I want a plugin that takes an API key in a settings page and shows query results in the
+session"
+Output (custom route; the full item-by-item transcript is golden set case 3):
+ask what it's for → recommend the custom route (no curated case fits) → atoms `tool` + `ui`
+(matching ones first, with reasons) → surfaces `settings-card` + `tool-view` → tool name
+`query_api_keys` → config mode offers only `dynamic` / `static` (`none` is impossible with a
+settings card) → confirm the output location and naming item by item (skip the rest) → compile
+to `dshp create --atoms tool,ui --ui-surfaces settings-card,tool-view --tool-name
+query_api_keys --config dynamic my-api-keys --lang zh` → `pnpm install && pnpm typecheck &&
+pnpm build` all pass → report: directory, atom and surface combination, and which default each
+skipped item used. ⭐ With UI surfaces present, starting means `pnpm dsh plugin --profile web
+add .` followed by `pnpm dsh web` — a `--patch` load doesn't register the slots, so the
+surfaces silently don't render.
 
 ## Windows (win32) platform notes
 
-仓库只在 macOS/Linux 上实测过,Windows 未验证。命令等价:
+Only macOS/Linux has been tested in practice; Windows is unverified. Equivalent commands:
 
-- `grep` 不可用 → 用 `findstr /C:"<plugin-id>"`,或直接看 `--dump-config` 全量输出。
-- `pnpm approve-builds` 交互在 Windows 同样可用;不能交互时改 `pnpm-workspace.yaml` 的
-  `onlyBuiltDependencies` / `allowBuilds` 白名单直接放行。
-- 路径分隔符差异不影响本 skill 的步骤(生成器自己拼路径),但 `dev.patch.yml` 里的绝对路径
-  是 Windows 风格,手工编辑时注意。
+- `grep` is unavailable → use `findstr /C:"<plugin-id>"`, or just read the full
+  `--dump-config` output.
+- `pnpm approve-builds` works interactively on Windows too; when it can't be interactive, edit
+  the `onlyBuiltDependencies` / `allowBuilds` allowlist in `pnpm-workspace.yaml` directly.
+- Path separator differences don't affect this skill's steps (the generator joins the paths
+  itself), but the absolute path inside `dev.patch.yml` uses Windows style — mind that if you
+  edit it by hand.

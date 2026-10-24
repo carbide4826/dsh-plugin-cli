@@ -1,23 +1,33 @@
 #!/usr/bin/env node
-// drive-questionnaire.mjs — 自由原子组合的非交互入口(壳):参数 → CLI 原生 flag → 生成
+// drive-questionnaire.mjs — non-interactive entry for free atom combinations (a shell):
+// parameters → native CLI flags → generate
 //
-// 演化史(别倒退):本脚本最初是**驱动交互问卷**的 —— 当时 CLI 没有自由组合的 flag,
-// 只能逆向 clack 的按键语义(select 下移别名 / 空格切换 / text 预填值退格清除),
-// 一次几十次试错,400 行固化下来。2026-10-21 起 CLI 有了原生入口:
+// Evolution (don't regress): this script originally *drove the interactive questionnaire* —
+// the CLI had no free-combination flags back then, so the only way in was to reverse-engineer
+// clack's key semantics (select's down alias / Space toggles / clearing a prefilled text with
+// Backspace). Dozens of trial-and-error rounds hardened that into 400 lines. Since
+// 2026-10-21 the CLI has had a native entry:
 //   --atoms / --event-domains / --ui-surfaces / --service-seams / --new-service / --dry-run
-// 于是本脚本退化成一层薄壳:保留「参数校验 + 生成后自检 + JSON 摘要」的便利,
-// 彻底删掉按键驱动 —— 那套东西的脆性(提示语文本即同步锚点,CLI 改文案即失配)一并消失。
+// So this script became a thin shell: it keeps the convenience of "parameter validation +
+// post-generation self-check + JSON summary" and drops the key-driving entirely — taking with
+// it the brittleness of "the prompt text is the sync anchor, so a CLI wording change breaks
+// it".
 //
-// 用法(与旧版参数面兼容,旧调用方不用改):
+// Usage (compatible with the old parameter surface; existing callers need no changes):
 //   node drive-questionnaire.mjs --dir my-orders --target next \
 //     --atoms tool,ui --surfaces settings-card --tool-name query_orders \
 //     [--events tools,agent] [--seams llm] [--create-service] \
 //     [--description "..."] [--author "..."] [--pkg-name x] [--plugin-id y] \
 //     [--pkg-position bundle|library] [--config none|static|dynamic] [--lang zh|en]
 //
-// 退出码:0 成功(并打印 JSON 摘要)· 1 参数非法或 CLI 拒绝 · 2 生成后自检缺文件
+// --lang is not passed when it isn't given: the CLI probes the environment (DSHP_LANG →
+// LANG, non-Chinese → en), which is what "skip = probed from the environment" means in the
+// checklist. The script doesn't pin the language for the user.
 //
-// 依赖:仅 Node.js 内置模块(无第三方包)。
+// Exit codes: 0 success (plus a JSON summary on stdout) · 1 illegal parameter or the CLI
+// refused · 2 the post-generation self-check found missing files
+//
+// Dependencies: Node.js built-in modules only (no third-party packages).
 
 import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
@@ -25,21 +35,26 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-// 脚本随 npm 包发布:skills/dshp/scripts → 上溯三层即包根,dist/cli.mjs 是同版本产物
+// The script ships with the npm package: skills/dshp/scripts → up three levels is the
+// package root, and dist/cli.mjs is the artifact of the same version
 const PKG_ROOT = resolve(HERE, "../../..");
 const BUNDLED_CLI = join(PKG_ROOT, "dist", "cli.mjs");
 
-// 能力清单(原子 / 事件域 / 界面位 / 缝)与它们的硬约束**不在本脚本里抄副本** ——
-// 权威在 CLI 侧(src/core/capabilities.ts,与 MCP 同源)。抄副本必然漂:CLI 加了原子,
-// 脚本还按旧清单拦,用户拿到的是「CLI 明明支持,脚本说非法」。同理,CLI 已经校验的
-// 硬约束(界面位须同勾 ui 原子、settings-card 不能配 config=none)也不在这里重写。
+// The capability catalog (atoms / event domains / UI surfaces / capability seams) and their
+// hard constraints are **not duplicated in this script** — the authority is on the CLI side
+// (src/core/capabilities.ts, shared with MCP). A copied catalog always drifts: the CLI gains
+// an atom, the script still rejects it on the old list, and the user gets "the CLI clearly
+// supports it, the script says it's illegal". For the same reason, the hard constraints the
+// CLI already validates (every surface needs the ui atom; settings-card cannot be
+// config=none) are not re-implemented here.
 //
-// 脚本只留三样自己的东西:
-//   ① 参数政策(少数几条比 CLI 更严的规则,见 validate)
-//   ② 生成后自检(按勾选推应有的文件,缺文件即非零退出)
-//   ③ JSON 摘要(给 agent / CI 消费)
+// The script keeps three things of its own:
+//   ① Parameter policies (a few rules stricter than the CLI's; see validate)
+//   ② A post-generation self-check (derive the files that should exist from what was picked;
+//      missing files exit non-zero)
+//   ③ A JSON summary (for agents / CI to consume)
 
-/** 解析 --key value / --flag 形式的长选项 */
+/** Parse long options in --key value / --flag form */
 function parseArgs(argv) {
     const o = {
         dir: undefined,
@@ -56,7 +71,7 @@ function parseArgs(argv) {
         pluginId: undefined,
         pkgPosition: "bundle",
         config: "none",
-        lang: "zh",
+        lang: undefined,
         cli: undefined,
         dryRun: false,
     };
@@ -69,7 +84,7 @@ function parseArgs(argv) {
         const a = argv[i];
         const next = () => {
             const v = argv[++i];
-            if (v === undefined) throw new Error(`${a} 缺值`);
+            if (v === undefined) throw new Error(`${a} is missing a value`);
             return v;
         };
         switch (a) {
@@ -90,7 +105,7 @@ function parseArgs(argv) {
             case "--lang": o.lang = next(); break;
             case "--cli": o.cli = next(); break;
             case "--dry-run": o.dryRun = true; break;
-            default: throw new Error(`未知参数:${a}`);
+            default: throw new Error(`unknown parameter: ${a}`);
         }
     }
     return o;
@@ -100,26 +115,36 @@ function validate(o) {
     const bad = (m) => {
         throw new Error(m);
     };
-    if (!o.dir) bad("--dir 必填");
-    if (!["latest", "next"].includes(o.target)) bad(`--target 取值非法:${o.target}`);
-    if (!["bundle", "library"].includes(o.pkgPosition)) bad(`--pkg-position 取值非法:${o.pkgPosition}`);
-    if (!["none", "static", "dynamic"].includes(o.config)) bad(`--config 取值非法:${o.config}`);
-    // 以下几条是**脚本政策**(CLI 侧没有或更宽松),不是 CLI 规则的副本:
-    // 勾了原子就得给出对应清单项 —— 否则 JSON 摘要与生成后自检推不出该原子该有哪些文件。
-    if (o.atoms.includes("events") && o.events.length === 0) bad("勾了 events 原子,须用 --events 给出事件域");
-    if (o.atoms.includes("ui") && o.uiSurfaces.length === 0) bad("勾了 ui 原子,须用 --surfaces 给出界面位");
+    if (!o.dir) bad("--dir is required");
+    if (!["latest", "next"].includes(o.target)) bad(`illegal --target value: ${o.target}`);
+    if (!["bundle", "library"].includes(o.pkgPosition)) bad(`illegal --pkg-position value: ${o.pkgPosition}`);
+    if (!["none", "static", "dynamic"].includes(o.config)) bad(`illegal --config value: ${o.config}`);
+    // The rules below are **script policies** (absent or looser on the CLI side), not copies
+    // of the CLI's rules: picking an atom means giving its matching catalog entry — otherwise
+    // the JSON summary and the post-generation self-check can't tell which files that atom
+    // should have produced.
+    if (o.atoms.includes("events") && o.events.length === 0) bad("the events atom requires --events with its event domains");
+    if (o.atoms.includes("ui") && o.uiSurfaces.length === 0) bad("the ui atom requires --surfaces with its UI surfaces");
     if (o.atoms.includes("service") && o.seams.length === 0 && !o.createService) {
-        bad("勾了 service 原子,须用 --seams 给出缝或用 --create-service 新建服务");
+        bad("the service atom requires --seams with its capability seams, or --create-service");
     }
-    // CLI 对 toolName 有兜底(缺省 example_tool),这里不给兜底:生成出 example_tool
-    // 这种占位名还得手改,不如在启动前问清楚。
-    if (o.atoms.includes("tool") && !o.toolName) bad("勾了 tool 原子,须用 --tool-name 给出工具名");
+    // The CLI falls back for toolName (default example_tool); this script doesn't: a
+    // placeholder name like example_tool still has to be hand-edited afterwards, so it's
+    // better to settle it before starting.
+    if (o.atoms.includes("tool") && !o.toolName) bad("the tool atom requires --tool-name with the tool name");
 }
 
-/** 组装 CLI 参数(原生 flag;能力选择走 --atoms 等,不再驱动问卷) */
+/** Assemble the CLI parameters (native flags; capability selection goes through --atoms etc.,
+ * no questionnaire driving any more) */
 function cliArgs(o) {
-    const args = ["create", o.dir, "--target", o.target, "--lang", o.lang];
-    // --atoms 恒给(空值也算):不给的话 CLI 会落进交互问卷,脚本里没人能答
+    const args = ["create", o.dir, "--target", o.target];
+    // --lang is only passed when the caller asked for it; otherwise the CLI probes the
+    // environment (DSHP_LANG → LANG, non-Chinese → en), which is what "skip = probed from
+    // the environment" means in the checklist. Forcing a language here would silently
+    // generate a project in the wrong language on someone else's machine.
+    if (o.lang) args.push("--lang", o.lang);
+    // --atoms is always passed (an empty value counts): without it the CLI falls into the
+    // interactive questionnaire, and nobody is there to answer it
     args.push("--atoms", o.atoms.join(","));
     if (o.events.length) args.push("--event-domains", o.events.join(","));
     if (o.uiSurfaces.length) args.push("--ui-surfaces", o.uiSurfaces.join(","));
@@ -142,21 +167,21 @@ function resolveCli(o) {
     return { cmd: "npx", args: ["-y", "create-dsh-plugin-cli"] };
 }
 
-/** 跑 CLI;透传 stdout/stderr;返回退出码 */
+/** Run the CLI; pass stdout/stderr through; return the exit code */
 function runCli(o) {
     return new Promise((resolvePromise) => {
         const cli = resolveCli(o);
         const args = [...cli.args, ...cliArgs(o)];
         const child = spawn(cli.cmd, args, { stdio: ["ignore", "inherit", "inherit"] });
         child.on("error", (err) => {
-            process.stderr.write(`无法启动 CLI(${cli.cmd} ${cli.args.join(" ")}):${err.message}\n`);
+            process.stderr.write(`failed to start the CLI (${cli.cmd} ${cli.args.join(" ")}): ${err.message}\n`);
             resolvePromise(1);
         });
         child.on("exit", (code) => resolvePromise(code ?? 1));
     });
 }
 
-/** 生成后自检:按勾选推应有文件是否落地 */
+/** Post-generation self-check: derive the files that should exist from what was picked */
 function selfCheck(dir, o) {
     const root = resolve(process.cwd(), dir);
     const expect = ["package.json", "tsconfig.json", "src/index.ts"];
@@ -175,11 +200,12 @@ async function main() {
         o = parseArgs(process.argv.slice(2));
         validate(o);
     } catch (err) {
-        process.stderr.write(`参数错误:${err.message}\n`);
+        process.stderr.write(`bad parameters: ${err.message}\n`);
         process.exit(1);
     }
 
-    // dry-run:只打印将要执行的命令(不跑 CLI)—— 便于先看清要干什么
+    // dry-run: print the command that would run (without running the CLI) — handy for
+    // seeing exactly what is about to happen
     if (o.dryRun) {
         const cli = resolveCli(o);
         process.stdout.write(
@@ -199,7 +225,7 @@ async function main() {
 
     const code = await runCli(o);
     if (code !== 0) {
-        process.stderr.write(`CLI 退出码 ${code}\n`);
+        process.stderr.write(`the CLI exited with code ${code}\n`);
         process.exit(1);
     }
 
@@ -217,6 +243,7 @@ async function main() {
                 toolName: o.toolName,
                 target: o.target,
                 config: o.config,
+                lang: o.lang ?? "auto",
                 missingFiles: check.missing,
             },
             null,

@@ -1,125 +1,138 @@
-# CLI 表面与生成物结构
+# CLI surface and generated project structure
 
-> 本文件是**快照**,只在拿不到 dshp CLI 时兜底 —— 清单会随版本增删。
-> 有 CLI 时以 `dshp list --json` / `dshp spec --json` 现场取到的为准(见文末「实时发现」)。
-> 拿不到 CLI 又照快照硬编参数,生成的插件「看着像」而不是「就是」——
-> 这种情况要告诉用户需要一个带 `spec` 子命令的 dshp CLI,并让用户自己决定装不装。
+> This file is a **snapshot**, used as a fallback only when the dshp CLI is unavailable — the
+> catalog changes as the version moves. With the CLI at hand, take the live values from
+> `dshp list --json` / `dshp spec --json` (see "Live discovery" at the end).
+> Hand-writing parameters from this snapshot without the CLI produces a plugin that *looks*
+> right without *being* right — in that case tell the user they need a dshp CLI with the
+> `spec` subcommand, and let them decide whether to install it.
+>
+> Companions: the interview flow and how to ask each step are in
+> [interview.md](interview.md); complete transcripts you can copy (need → Q&A → spec →
+> compiled command) are in [examples.md](examples.md).
 
-配套参考:访谈流程与逐项问法见 [interview.md](interview.md);可照抄的完整实录
-(需求 → 问答 → 规格 → 编译出的命令)见 [examples.md](examples.md)。
+## Subcommands and options
 
-## 子命令与选项
-
-| 子命令 | 作用 |
+| Subcommand | What it does |
 | --- | --- |
-| `create [name]` | 生成插件项目(预设 / 精选案例 / 自由组合 / 交互问卷) |
-| `list [--json]` | 一览能选什么;`--json` 机器可读 |
-| `spec [--json] [--mode <m>]` | 一次访谈要问什么(问法 / 可否跳过 / 选项);`--json` 机器可读 |
-| `mcp [--lang <lang>]` | 起 MCP server(stdio),把生成能力交给模型 |
+| `create [name]` | Generate a plugin project (preset / curated case / free combination / interactive questionnaire) |
+| `list [--json]` | Everything you can pick; `--json` is machine-readable |
+| `spec [--json] [--mode <m>]` | What one interview has to ask (how to ask / skippable / options); `--json` is machine-readable |
+| `mcp [--lang <lang>]` | Start the MCP server (stdio), handing generation to models |
 
-`create` 的位置参数 `[name]` = 项目目录名(缺省:预设给默认目录名,交互给
-`my-plugin`)。目标目录已存在 → 失败退出码 1。
+The positional `[name]` of `create` is the project directory name (default: the preset's
+default name, or `my-plugin` for the interactive path). An existing target directory → exit
+code 1.
 
-`create` 的选项:
+`create` options:
 
-| 选项 | 取值 | 说明 |
+| Option | Values | Notes |
 | --- | --- | --- |
-| `--template <source>` | 预设 id 或案例 id | 非交互入口;给了就走预设/案例路径,不进问卷 |
-| `-s, --scenario` | 布尔 | 模板取自精选案例库(整目录拷贝)而非预设管线;必须配 `--template` |
-| `--target <track>` | `latest` \| `next` | 配套哪一代 dsh 宿主;缺省 `latest` |
-| `--pkg-name <name>` | 字符串 | 覆盖 npm 包名(缺省 = 插件 id) |
-| `--plugin-id <id>` | 字符串 | 覆盖插件 id(缺省 = 目录名) |
-| `--tool-name <name>` | 字符串 | 覆盖工具名(仅 tool 预设有意义) |
-| `--description <text>` | 字符串 | 覆盖描述(精选案例下替换案例默认描述) |
-| `--author <name>` | 字符串 | 覆盖作者 |
-| `--pkg-position <position>` | `bundle` \| `library` | 包定位;`library` 不生成 `cordis.patch.yml` |
-| `--config <mode>` | `none` \| `static` \| `dynamic` | 配置方式;`none` 与 settings-card 互斥 |
-| `--atoms <list>` | 逗号分隔 | 自由组合的原子(非交互);给了任一能力类 flag 就走自由组合路径 |
-| `--event-domains <list>` | 逗号分隔 | 自由组合的事件域 |
-| `--ui-surfaces <list>` | 逗号分隔 | 自由组合的界面位 |
-| `--service-seams <list>` | 逗号分隔 | 自由组合的能力缝 |
-| `--new-service` | 布尔 | 新建自有服务(配合 `--atoms service`) |
-| `--dry-run` | 布尔 | 打印将生成的文件清单,不落盘 |
-| `--lang <lang>` | `zh` \| `en` | program 级选项,缺省按 `LANG`/`DSHP_LANG` 探测 |
+| `--template <source>` | preset id or curated case id | Non-interactive entry; when given, the preset/case path runs and the questionnaire is skipped |
+| `-s, --scenario` | boolean | The template comes from the curated case library (whole directory copied) rather than the preset pipeline; requires `--template` |
+| `--target <track>` | `latest` \| `next` | Which generation of the dsh host to pair with; default `latest` |
+| `--pkg-name <name>` | string | Override the npm package name (default = the plugin id) |
+| `--plugin-id <id>` | string | Override the plugin id (default = the directory name) |
+| `--tool-name <name>` | string | Override the tool name (meaningful for the tool preset) |
+| `--description <text>` | string | Override the description (replaces the curated case's default description) |
+| `--author <name>` | string | Override the author |
+| `--pkg-position <position>` | `bundle` \| `library` | Package position; `library` produces no `cordis.patch.yml` |
+| `--config <mode>` | `none` \| `static` \| `dynamic` | Config mode; `none` conflicts with settings-card |
+| `--atoms <list>` | comma-separated | Atoms of the free combination (non-interactive); giving any capability flag takes the free-combination path |
+| `--event-domains <list>` | comma-separated | Event domains of the free combination |
+| `--ui-surfaces <list>` | comma-separated | UI surfaces of the free combination |
+| `--service-seams <list>` | comma-separated | Capability seams of the free combination |
+| `--new-service` | boolean | Create a new own service (pairs with `--atoms service`) |
+| `--dry-run` | boolean | Print the list of files that would be generated, without writing |
+| `--lang <lang>` | `zh` \| `en` | Program-level option, defaults to probing `LANG` / `DSHP_LANG` |
 
-`--lang` 是 program 级:help 渲染也走它,非交互调用建议显式给,避免生成物语言与预期不符。
+`--lang` is program-level: the help text renders through it too. Non-interactive calls should
+pass it explicitly, so the generated project's language matches what was intended.
 
-## 预设(组合被锁死)
+## Presets (the capability set is locked)
 
-| id | 锁定能力 | 默认目录 |
+| id | Locked capabilities | Default directory |
 | --- | --- | --- |
-| `tool` | tool 原子,toolName=`example_tool` | my-tool |
-| `llm` | service 原子 + 新建服务 + llm 缝 | my-llm |
-| `ui` | ui 原子 + settings-card 界面位 + 静态配置 | my-ui |
-| `events` | events 原子 + session 域 | my-events |
-| `protocol` | protocol 原子 | my-protocol |
+| `tool` | tool atom, toolName=`example_tool` | my-tool |
+| `llm` | service atom + new service + llm seam | my-llm |
+| `ui` | ui atom + settings-card surface + static config | my-ui |
+| `events` | events atom + session domain | my-events |
+| `protocol` | protocol atom | my-protocol |
 
-预设可用 `--pkg-name/--plugin-id/--tool-name/--description/--author/--pkg-position/--config` 覆盖;
-`--tool-name` 用在非 tool 预设上会被忽略(有告警)。
+Presets accept `--pkg-name` / `--plugin-id` / `--tool-name` / `--description` / `--author` /
+`--pkg-position` / `--config` overrides. `--tool-name` on a preset without the tool atom is
+ignored (with a warning).
 
-## 精选案例(整目录拷贝,`-s`)
+## Curated cases (whole directory copied, `-s`)
 
-案例 id **必须**带 `-s`;不带 `-s` 时按预设查,查不到即报"未知预设"退出。
-反过来 `-s` 单独给(不带 `--template`)也报错退出。
+A curated case id **must** come with `-s`; without it the id is looked up among the presets
+and "unknown preset" is reported when it isn't there. Conversely, `-s` on its own (without
+`--template`) errors out.
 
-| id | 形态 |
+| id | Shape |
 | --- | --- |
-| `quick-tool` | 自定义查询工具 + 结果卡片(tool + tool-view) |
-| `model-gateway` | 接入自有模型服务(llm 缝 + 设置卡片动态配置) |
-| `session-bot` | 监听会话自动响应(events + llm 缝) |
-| `webhook-bridge` | 外部事件桥接进会话(protocol + events) |
-| `notebook` | 用户数据存取(storage 缝 + tool) |
+| `quick-tool` | A custom query tool plus a result card (tool + tool-view) |
+| `model-gateway` | Bring your own model service (llm seam + a dynamic settings card) |
+| `session-bot` | Auto-respond in sessions (events + llm seam) |
+| `webhook-bridge` | Bridge external events into the session (protocol + events) |
+| `notebook` | Per-user data storage (storage seam + tool) |
 
-案例路径下 `--tool-name/--pkg-position/--config` 不适用(结构随案例锁定),给了会有告警;
-身份与元信息类参数(`--plugin-id/--pkg-name/--description/--author`)仍然生效。
+On the curated-case path `--tool-name` / `--pkg-position` / `--config` don't apply (the
+structure is locked by the case) — passing them warns; the identity and metadata options
+(`--plugin-id` / `--pkg-name` / `--description` / `--author`) still take effect.
 
-拷贝时会把全树里出现的案例 id 按**词边界**替换成插件 id(覆盖 `export const name`、
-`cordis.patch.yml` 的 id、`tsdown.config.ts` 的 client id、README 行文),包名不参与替换,
-由 `--pkg-name` 结构化写入 `package.json`。
+While copying, every occurrence of the case id is replaced with the plugin id **on word
+boundaries** (covering `export const name`, the id in `cordis.patch.yml`, the client id in
+`tsdown.config.ts`, and the README prose). The package name is not part of the replacement —
+it is written structurally into `package.json`.
 
-## 自由组合(非交互入口)
+## Free combination (the non-interactive entry)
 
-给了任一能力类 flag(`--atoms` / `--event-domains` / `--ui-surfaces` / `--service-seams` /
-`--new-service`)就走这条路径,**不进问卷**:
+Giving any capability flag (`--atoms` / `--event-domains` / `--ui-surfaces` /
+`--service-seams` / `--new-service`) takes this path and **skips the questionnaire**:
 
 ```sh
 dshp create my-orders --atoms tool,ui --ui-surfaces settings-card \
   --config dynamic --tool-name query_orders --target next
 ```
 
-硬约束由 CLI 校验,失败即退出码 1 并给出稳定错误码(文案随语言变,code 不变):
+The hard constraints are validated by the CLI; a violation exits with code 1 and a stable
+error code (the message follows the language, the code doesn't):
 
-| 错误码 | 触发条件 |
+| Error code | Trigger |
 | --- | --- |
-| `ATOM_UNKNOWN` / `EVENT_DOMAIN_UNKNOWN` / `UI_SURFACE_UNKNOWN` / `SEAM_UNKNOWN` | id 不在清单里 |
-| `SURFACE_REQUIRES_ATOM` | 界面位依赖的原子没同勾(所有界面位都要 `ui`;`tool-view` 还要 `tool`) |
-| `CONFIG_NONE_REQUIRES_SETTINGS_CARD` | `settings-card` 配了 `config=none` |
-| `CONFIG_INVALID` / `PKG_POSITION_INVALID` | 取值非法 |
-| `DIR_EXISTS` | 目标目录已存在 |
+| `ATOM_UNKNOWN` / `EVENT_DOMAIN_UNKNOWN` / `UI_SURFACE_UNKNOWN` / `SEAM_UNKNOWN` | The id isn't in the catalog |
+| `SURFACE_REQUIRES_ATOM` | A surface's required atom wasn't picked (every surface needs `ui`; `tool-view` also needs `tool`) |
+| `CONFIG_NONE_REQUIRES_SETTINGS_CARD` | `settings-card` with `config=none` |
+| `CONFIG_INVALID` / `PKG_POSITION_INVALID` | Illegal value |
+| `DIR_EXISTS` | The target directory already exists |
 
-`--dry-run` 打印将生成的文件清单但不落盘(「先看清再写」的入口;MCP 路径的
-「显式确认后写盘」也依赖同一层)。
+`--dry-run` prints the file list without writing anything (the "look before you write" entry;
+the MCP path's "explicit confirmation before writing" rides on the same layer).
 
-## 可勾选清单(自由组合)
+## The selectable catalog (free combination)
 
-原子:`tool` / `events` / `service` / `ui` / `protocol`
+Atoms: `tool` / `events` / `service` / `ui` / `protocol`
 
-事件域:`tools` / `agent` / `session` / `approval` / `fs` / `settings`
+Event domains: `tools` / `agent` / `session` / `approval` / `fs` / `settings`
 
-界面位:`settings-card` / `chat-node` / `input-dock` / `sidebar` / `tool-view` / `session-header`
+UI surfaces: `settings-card` / `chat-node` / `input-dock` / `sidebar` / `tool-view` /
+`session-header`
 
-缝:`llm` / `systemPrompt` / `subagents` / `web` / `commands` / `storage`
+Capability seams: `llm` / `systemPrompt` / `subagents` / `web` / `commands` / `storage`
 
-界面位对原子的硬依赖(缺原子会生成静默不渲染的哑界面):
+The hard dependency from a surface to its atoms (a missing atom produces a dumb interface
+that silently never renders):
 
-| 界面位 | 必须同勾的原子 |
+| Surface | Atoms that must be picked alongside |
 | --- | --- |
-| 全部六个 | `ui`(界面位实现文件与 client 聚合入口由 ui 原子产出;缺了界面位选择被静默丢弃) |
-| `tool-view` | 额外要 `tool`(它渲染的是工具调用) |
+| All six | `ui` (the surface implementation files and the client aggregation entry are produced by the ui atom; without it the surface selection is silently dropped) |
+| `tool-view` | additionally `tool` (it renders a tool call) |
 
-界面位 → 宿主包 → 槽位键(槽位键会随宿主版本变,包里带的是当前值):
+Surface → host package → slot key (slot keys change with the host version; the package ships
+the current value):
 
-| 界面位 | 宿主包 | 槽位键 |
+| Surface | Host package | Slot key |
 | --- | --- | --- |
 | `settings-card` | `@deepseek-ai/dsh-client-ui-settings-plugins` | `settings.plugins.tab` |
 | `chat-node` | `@deepseek-ai/dsh-client-ui-chat` | `conversation.chat.node` |
@@ -128,18 +141,19 @@ dshp create my-orders --atoms tool,ui --ui-surfaces settings-card \
 | `tool-view` | `@deepseek-ai/dsh-client-ui-tool` | `tool.call.toolview` |
 | `session-header` | `@deepseek-ai/dsh-client-ui-conversation` | `conversation.session.header` |
 
-另外:`settings-card` 必须配配置(不能 `config: none`);`config` 非 `none` 时才会引入
-`@deepseek-ai/schemastery` 依赖。
+Also: `settings-card` must have a configuration (it cannot be `config: none`), and the
+`@deepseek-ai/schemastery` dependency only comes in when `config` is not `none`.
 
-## MCP server(`dshp mcp`)
+## MCP server (`dshp mcp`)
 
-宿主能挂 MCP 时,直接用 tool,比让 agent 拼 CLI 命令更稳(合法 id 由 schema 兜底)。
+When the host can mount MCP, using the tools is more robust than letting the agent assemble
+CLI commands (legal ids are enforced by the schema).
 
 ```sh
-dshp mcp --lang zh     # stdio 协议;stdout 是 JSON-RPC 通道,别在里面写别的
+dshp mcp --lang zh     # stdio protocol; stdout is the JSON-RPC channel, write nothing else there
 ```
 
-宿主配置:
+Host configuration:
 
 ```json
 {
@@ -152,118 +166,138 @@ dshp mcp --lang zh     # stdio 协议;stdout 是 JSON-RPC 通道,别在里面写
 }
 ```
 
-| tool | 作用 |
+| tool | What it does |
 | --- | --- |
-| `dshp_list_scenarios` | 一览能选什么(`scope`: all / presets / cases / capabilities;`target` 按轨收窄) |
-| `dshp_spec` | 访谈清单 + 缺项判定(问什么 / 可否跳过 / 还缺哪几步 / 够不够开跑) |
-| `dshp_doctor` | 体检本机:node 版本、pnpm、dsh CLI、两轨素材与生成管线自检、目录可写性 |
-| `dshp_create_plugin` | 生成(`mode`: preset / case / free) |
+| `dshp_list_scenarios` | Everything you can pick (`scope`: all / presets / cases / capabilities; `target` narrows by track) |
+| `dshp_spec` | Interview checklist + gap check (what to ask / skippable / which steps are missing / whether it's ready) |
+| `dshp_doctor` | Diagnose this machine: node version, pnpm, the dsh CLI, both tracks' materials and generation-pipeline self-checks, directory writability |
+| `dshp_create_plugin` | Generate (`mode`: preset / case / free) |
 
-要点:
+Key points:
 
-- **合法取值在 schema 里**:原子 / 事件域 / 界面位 / 缝 / 预设 / 案例 id 全是 enum,
-  模型拿到的是现值,不会握着过期 id 重试。
-- **`dshp_spec` 是访谈的流程源**:入参是「已收集到的规格」,返回「还缺哪几步、够不够开跑」,
-  以及齐了之后编译出的 CLI 参数与 create 参数。模型的正确用法是:空 spec 调一次拿第一问 →
-  每问完一步并进 spec 再调一次 → `ready` 为 true 才生成。详见 references/interview.md。
-- **写盘要显式确认**:`dshp_create_plugin` 缺省只算计划(`dryRun` 默认 true),返回将生成
-  哪些文件;确认后同参数再调一次、传 `dryRun: false` 才落盘。
-- **语言**:宿主 spawn 子进程通常不继承 `LANG`,环境探测拿不到用户语言 —— 中文环境
-  用 `--lang zh` 起服务,或调用时传 `lang: "zh"`。
-- 失败带稳定错误码(`SURFACE_REQUIRES_ATOM` / `DIR_EXISTS` / `CASE_NOT_FOUND` …),
-  与 CLI 同码;产物与 CLI 逐字节一致。
+- **Legal values live in the schema**: atoms / event domains / UI surfaces / capability seams /
+  preset and curated case ids are all enums, so the model gets the current values and never
+  retries with a stale id.
+- **`dshp_spec` is the flow source for the interview**: the input is "the spec collected so
+  far", the output is "which steps are still missing, whether it's ready to go", plus the
+  compiled CLI and create parameters once it is. The correct usage: call it once with an empty
+  spec to get the first question → merge each answered step into the spec and call again →
+  generate only once `ready` is true. See references/interview.md.
+- **Writing to disk needs explicit confirmation**: `dshp_create_plugin` only computes a plan by
+  default (`dryRun` defaults to true) and returns the files that would be produced; call it
+  again with the same arguments and an explicit `dryRun: false` to write.
+- **Language**: hosts that spawn a subprocess usually don't inherit `LANG`, so the environment
+  probe can't see the user's language — start the service with `--lang zh` in a Chinese
+  environment, or pass `lang: "zh"` when calling.
+- Failures carry stable error codes (`SURFACE_REQUIRES_ATOM` / `DIR_EXISTS` /
+  `CASE_NOT_FOUND` …), the same codes as the CLI; the artifacts are byte-identical to the
+  CLI's.
 
-## 生成物结构
+## Generated project structure
 
 ```
 <dir>/
-  package.json        # 依赖三桶 / exports / files 白名单 / dsh 键 / icon
-  cordis.patch.yml    # bundle 定位才有(library 不生成)
-  dev.patch.yml       # 生成物:本机绝对路径,已 gitignore
+  package.json        # three dependency buckets / exports / files allowlist / dsh keys / icon
+  cordis.patch.yml    # bundle position only (not produced for library)
+  dev.patch.yml       # generated artifact: absolute path on this machine, gitignored
   tsconfig.json  tsdown.config.ts  pnpm-workspace.yaml  .gitignore
-  README.md           # 单语言交付(按 --lang 选素材)
-  icon.svg            # 插件清单页图标
-  locale/zh.json  locale/en.json   # meta 名称/介绍(宿主详情页读)
-  src/index.ts        # 入口:name / inject / apply
+  README.md           # delivered in one language (the material is picked by --lang)
+  icon.svg            # icon for the plugin listing page
+  locale/zh.json  locale/en.json   # meta name / description (read by the host's detail page)
+  src/index.ts        # entry: name / inject / apply
   src/tool.ts  src/events.ts  src/seams/index.ts  src/client/index.ts ...
 ```
 
-生成物自带 `pnpm-workspace.yaml`(workspace 定界),防止被祖先 workspace 劫持导致
-`node_modules` 不生成 —— 所以**不要**加 `--ignore-workspace`。
+The generated project ships its own `pnpm-workspace.yaml` (the workspace boundary) so an
+ancestor workspace can't hijack it and prevent `node_modules` from being created — which is
+why you must **not** add `--ignore-workspace`.
 
-`package.json` 的 `exports` 关键项:`"."` → `./dist/index.js`;bundle 定位另有
-`"./package.json"`、`"./locale/*.json"`、`"./cordis.patch.yml"`;UI 项目另有 `"./client"`。
-`files` 白名单必须显式列 `dist`(以及 `icon.svg`/`locale`/`cordis.patch.yml`),
-否则 npm 回落到 `.gitignore` 当黑名单,产物会漏。
+The key `exports` entries in `package.json`: `"."` → `./dist/index.js`; a bundle position adds
+`"./package.json"`, `"./locale/*.json"` and `"./cordis.patch.yml"`; a UI project adds
+`"./client"`. The `files` allowlist must list `dist` explicitly (along with `icon.svg` /
+`locale` / `cordis.patch.yml`) — otherwise npm falls back to `.gitignore` as a denylist and
+the artifact loses files.
 
-## 退出码
+## Exit codes
 
-| 码 | 含义 |
+| Code | Meaning |
 | --- | --- |
-| 0 | 成功;或用户主动中止交互 |
-| 1 | 失败:目录已存在、未知预设/案例/轨、非法 `--lang`/`--config`/`--pkg-position`、护栏拦截 |
+| 0 | Success; or the user aborted the interactive flow |
+| 1 | Failure: directory exists, unknown preset/case/track, illegal `--lang` / `--config` / `--pkg-position`, a guardrail tripped |
 
-## 实时发现(优先于本文件的快照)
+## Live discovery (takes precedence over this snapshot)
 
-⚠️ 要这些命令得有**带 `spec` / `list` 子命令的 dshp CLI**(npm 包 `create-dsh-plugin-cli`);
-没有它 → 本文件的快照只是兜底,**别照快照硬编参数**。
+⚠️ These commands need a dshp CLI **with the `spec` / `list` subcommands** (npm package
+`create-dsh-plugin-cli`). Without it this file is only a fallback — **don't hand-write
+parameters from it**.
 
-**`dshp list` 是权威的实时清单** —— 预设 / 案例 / 原子 / 事件域 / 界面位 / 缝 / 两轨版本配套,
-一次全给:
+**`dshp list` is the authoritative live catalog** — presets / curated cases / atoms / event
+domains / UI surfaces / capability seams / both tracks' version pairing, all in one go:
 
 ```sh
-dshp list            # 人读
-dshp list --json     # 机器读(agent / MCP 直接消费)
+dshp list            # human-readable
+dshp list --json     # machine-readable (consumed directly by agents / MCP)
 ```
 
-已安装包的素材目录是权威清单:
+The installed package's materials directory is the authoritative catalog:
 
 ```sh
-# 案例清单(每轨各一份)
+# the curated case list (one per track)
 ls node_modules/create-dsh-plugin-cli/templates/latest/scenarios
 ls node_modules/create-dsh-plugin-cli/templates/next/scenarios
 
-# 预设/案例说明与全部 flag
+# presets / curated cases and every flag
 npx create-dsh-plugin-cli create --help
 ```
 
-版本配套(每轨钉的 dsh 版本)从**生成物**读,不用猜:
+Version pairing (the dsh version each track pins) is read from the **generated project**,
+never guessed:
 
 ```sh
-# 生成物 package.json 里 @deepseek-ai/dsh-* 与 cordis/schemastery 的钉版
+# the pinned @deepseek-ai/dsh-* plus cordis/schemastery versions in the generated package.json
 cat <dir>/package.json
 ```
 
-## 驱动脚本:自由组合的便利壳
+## Drive script: a convenience shell for the free combination
 
-`scripts/drive-questionnaire.mjs`(随本 skill 同包发布)是 CLI 原生自由组合入口的**薄壳**:
-参数 → CLI 原生 flag → 生成,另加「按勾选推应有的文件并自检,缺文件即非零退出」与
-JSON 摘要。直接调 CLI 也一样。
+`scripts/drive-questionnaire.mjs` (shipped with this skill) is a thin shell over the CLI's
+native free-combination entry: parameters → native CLI flags → generate, plus "derive the
+files that should exist from what you picked and self-check them; missing files exit
+non-zero" and a JSON summary. Calling the CLI directly works just as well.
 
-> 演化史:这脚本原本是**驱动交互问卷**的(CLI 当时没有自由组合 flag,只能逆向 clack 的
-> 按键语义,一次几十次试错)。CLI 有了原生入口后,按键驱动那套已删除 —— 顺带消掉了
-> 「提示语文本即同步锚点,CLI 改文案即失配」这个脆点。
+> Evolution: this script originally *drove the interactive questionnaire* (the CLI had no
+> free-combination flags then, so the clack key semantics had to be reverse-engineered). Once
+> the CLI had a native entry, the key-driving half was deleted — taking with it the brittle
+> "the prompt text is the sync anchor, so a CLI wording change breaks it" problem.
 
 ```sh
-node scripts/drive-questionnaire.mjs --dir <项目目录> --target <latest|next> \
+node scripts/drive-questionnaire.mjs --dir <project-dir> --target <latest|next> \
   --atoms <tool,events,service,ui,protocol> \
   [--events <tools,agent,session,approval,fs,settings>] \
   [--surfaces <settings-card,chat-node,input-dock,sidebar,tool-view,session-header>] \
   [--seams <llm,systemPrompt,subagents,web,commands,storage>] [--create-service] \
-  --tool-name <工具名> \
-  [--description <描述>] [--author <作者>] [--pkg-name <包名>] [--plugin-id <插件 id>] \
+  --tool-name <tool-name> \
+  [--description <text>] [--author <author>] [--pkg-name <name>] [--plugin-id <plugin id>] \
   [--pkg-position <bundle|library>] [--config <none|static|dynamic>] [--lang <zh|en>]
 ```
 
-- **能力清单不再在脚本里抄一份**:原子 / 事件域 / 界面位 / 缝的 id 与硬约束(界面位须同勾
-  `ui` 原子、`settings-card` 不能配 `config=none`)全在 CLI 侧(`src/core/capabilities.ts`,
-  与 MCP 同源)。脚本不重写这些 —— 抄副本必然漂,漂了就是「CLI 明明支持,脚本说非法」。
-  非法 id 与硬约束冲突交给 CLI 报(稳定错误码)。
-- 脚本自己只留少数几条**比 CLI 更严的政策**:含 `tool` 时必须给 `--tool-name`(CLI 会兜底成
-  `example_tool`,那是占位名,事后还得手改);含 `events`/`ui`/`service` 时必须给对应清单项
-  或 `--create-service`(否则 JSON 摘要与生成后自检推不出该原子该有哪些文件)。
-- 脚本只调 CLI 不改产物:生成的每个文件都出自生成器,手改面为零。
-- 生成后自检:按勾选推应有的文件(`src/tool.ts` / `src/events.ts` / `src/client/index.ts` …),
-  缺文件即以非零退出并在 JSON 里列出 `missingFiles`。
-- `--dry-run` 打印将要执行的命令,不执行。
-- 脚本默认用同包 `dist/cli.mjs`;也可用 `--cli <path>` 指定别的 CLI(便于对改过的本地构建做验证)。
+- **The capability catalog is not duplicated in the script**: the ids of atoms / event domains
+  / UI surfaces / capability seams and the hard constraints (every surface needs the `ui`
+  atom; `settings-card` cannot be `config=none`) all live on the CLI side
+  (`src/core/capabilities.ts`, shared with MCP). The script doesn't re-implement them — a
+  copied catalog drifts, and drift means "the CLI supports it but the script says it's
+  illegal". Illegal ids and constraint violations are reported by the CLI (stable error
+  codes).
+- The script keeps only a few **policies stricter than the CLI's**: `tool` requires
+  `--tool-name` (the CLI would fall back to `example_tool`, a placeholder name you'd have to
+  fix by hand afterwards); `events` / `ui` / `service` require their matching catalog entry
+  or `--create-service` (otherwise the JSON summary and the self-check can't tell which files
+  that atom should produce).
+- The script only calls the CLI and never edits the artifact: every generated file comes out
+  of the generator, so there is nothing to hand-edit.
+- After generating it self-checks: the files implied by what you picked (`src/tool.ts` /
+  `src/events.ts` / `src/client/index.ts` …) must exist, otherwise it exits non-zero and
+  lists them under `missingFiles`.
+- `--dry-run` prints the command it would run, without running it.
+- By default the script uses the bundled `dist/cli.mjs` from the same package; `--cli <path>`
+  points it at a different CLI (handy for verifying a modified local build).

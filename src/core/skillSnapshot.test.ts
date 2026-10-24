@@ -8,8 +8,12 @@
 //
 // 注:reference 是**兜底快照**(拿不到 CLI 时才用),但它仍要跟得上清单 ——
 // 快照过期是「软」问题(拿不到 CLI 才发生),清单与快照对不上是「硬」问题(每次都发生)。
+//
+// 另外:skill 是给模型读的,所以正文一律英文(英文 token 更省、模型理解更稳)——
+// 唯一允许中文的地方是 SKILL.md frontmatter 的触发词(那是**匹配面**,必须覆盖中英文提问)。
 import { describe, expect, it } from "vitest";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync, statSync } from "node:fs";
+import { join } from "node:path";
 import { specSteps, specToCliArgs } from "./spec";
 
 /** 读 skill 目录下的文件(测试只读,不写) */
@@ -37,12 +41,12 @@ function cell(cells: string[], index: number): string {
     return v;
 }
 
-/** 解析 interview.md 的步骤清单表(表头以「| # | 步骤 id |」开头) */
+/** 解析 interview.md 的步骤清单表(表头以「| # | Step id |」开头) */
 function parseStepTable(md: string): StepRow[] {
     const lines = md.split("\n");
-    const start = lines.findIndex((l) => l.trim().startsWith("| # | 步骤 id |"));
+    const start = lines.findIndex((l) => l.trim().startsWith("| # | Step id |"));
     if (start < 0) {
-        throw new Error("interview.md 里找不到步骤清单表(表头应为「| # | 步骤 id | …」)");
+        throw new Error("interview.md 里找不到步骤清单表(表头应为「| # | Step id | …」)");
     }
     const rows: StepRow[] = [];
     // 跳过表头与分隔行
@@ -94,7 +98,7 @@ describe("skill 的访谈清单快照(interview.md)", () => {
         }
     });
 
-    it("必答标记与清单一致(必答标 ✓,可跳过标「可跳」)", () => {
+    it("必答标记与清单一致(必答标 ✓,可跳过标 skippable)", () => {
         const steps = specSteps();
         for (const [i, row] of rows.entries()) {
             const step = steps[i];
@@ -102,7 +106,7 @@ describe("skill 的访谈清单快照(interview.md)", () => {
             if (step.required) {
                 expect(row.requiredCell, `${row.stepId} 应标必答`).toContain("✓");
             } else {
-                expect(row.requiredCell, `${row.stepId} 应标可跳`).toContain("可跳");
+                expect(row.requiredCell, `${row.stepId} 应标可跳`).toContain("skippable");
             }
         }
     });
@@ -150,7 +154,7 @@ describe("规格键 → CLI 参数对照表", () => {
     }
 
     it("对照表里写的每个参数都真能编译出来(不许写 CLI 不认的参数)", () => {
-        const table = section(INTERVIEW_MD, "## 规格键 → CLI 参数");
+        const table = section(INTERVIEW_MD, "## Spec key → CLI parameter");
         const mentioned = new Set(table.match(/--[a-z][a-z-]*/g) ?? []);
         for (const flag of mentioned) {
             expect(compilable.has(flag), `对照表里的 ${flag} 不在编译产物里`).toBe(true);
@@ -158,7 +162,7 @@ describe("规格键 → CLI 参数对照表", () => {
     });
 
     it("每个能编译出来的参数都在对照表里(不许漏)", () => {
-        const table = section(INTERVIEW_MD, "## 规格键 → CLI 参数");
+        const table = section(INTERVIEW_MD, "## Spec key → CLI parameter");
         for (const flag of compilable) {
             expect(table, `对照表里漏了 ${flag}`).toContain(flag);
         }
@@ -171,16 +175,20 @@ describe("skill 的前置条件口径", () => {
         expect(SKILL_MD).toContain("dshp list --json");
     });
 
-    it("SKILL.md 声明了「要不要装由用户决定,不要自动装」", () => {
-        expect(SKILL_MD).toContain("不要自动装");
+    it("SKILL.md 声明了「装不装由用户决定,不要自动装」", () => {
         expect(SKILL_MD).toContain("create-dsh-plugin-cli");
+        expect(SKILL_MD.toLowerCase()).toContain("do not install it automatically");
     });
 
     it("SKILL.md 不替 agent 规定用哪个提问工具", () => {
         // 工具由 agent 应用自选:skill 只给语义(逐项确认 / 每项可跳过),
-        // 不该出现「用 ask_user」「用宿主结构化提问功能」这类硬性工具规定
+        // 不该出现「必须用宿主的结构化提问功能」这类硬性工具规定
         expect(SKILL_MD).not.toContain("ask_user");
-        expect(SKILL_MD).not.toContain("结构化提问功能");
+        expect(SKILL_MD).not.toMatch(/use (the )?(host'?s )?structured question/i);
+    });
+
+    it("SKILL.md 把提问工具的选择明确交给应用", () => {
+        expect(SKILL_MD).toContain("tooling is yours to choose");
     });
 
     it("SKILL.md 指向 golden set(可照抄的参考例子)", () => {
@@ -190,14 +198,80 @@ describe("skill 的前置条件口径", () => {
     });
 
     it("interview.md 也守同一条(不规定工具)", () => {
-        expect(INTERVIEW_MD).not.toContain("结构化提问功能");
+        expect(INTERVIEW_MD).not.toMatch(/use (the )?(host'?s )?structured question/i);
+    });
+});
+
+describe("skill 的语言口径", () => {
+    /** 递归收集 skill 目录下的全部文件 */
+    function walk(dir: string, prefix = ""): string[] {
+        const out: string[] = [];
+        for (const entry of readdirSync(dir)) {
+            const full = join(dir, entry);
+            if (statSync(full).isDirectory()) out.push(...walk(full, join(prefix, entry)));
+            else out.push(join(prefix, entry));
+        }
+        return out;
+    }
+
+    const skillRoot = new URL("../../skills/dshp/", import.meta.url).pathname;
+    const files = walk(skillRoot);
+
+    it("skill 目录不为空(守门本身有东西可守)", () => {
+        expect(files.length).toBeGreaterThan(0);
+    });
+
+    it("除 SKILL.md 的 frontmatter 外,skill 全是英文(没有中文残留)", () => {
+        // skill 是给模型读的:英文 token 更省、模型理解更稳 ⇒ 正文一律英文。
+        // 唯一例外是 SKILL.md frontmatter 的触发词 —— 那是**匹配面**,必须覆盖中英文提问。
+        for (const rel of files) {
+            const content = readFileSync(join(skillRoot, rel), "utf8");
+            if (rel === "SKILL.md") {
+                const end = content.indexOf("\n---", 4);
+                const frontmatter = end < 0 ? content : content.slice(0, end);
+                const body = end < 0 ? "" : content.slice(end);
+                expect(body, "SKILL.md 正文出现了中文").not.toMatch(/[\u4e00-\u9fff]/);
+                expect(frontmatter, "frontmatter 的中文触发词不见了").toMatch(/[\u4e00-\u9fff]/);
+                continue;
+            }
+            expect(content, `${rel} 出现了中文残留`).not.toMatch(/[\u4e00-\u9fff]/);
+        }
+    });
+
+    it("frontmatter 的 description 同时覆盖中英文提问", () => {
+        const front = SKILL_MD.slice(0, SKILL_MD.indexOf("\n---", 4));
+        expect(front).toContain("create a dsh plugin");
+        expect(front).toMatch(/[\u4e00-\u9fff]/);
+    });
+
+    it("skill 用的领域术语与 CLI 的英文口径一致", () => {
+        // 术语单源在 CLI 侧(src/locales/en.ts);skill 必须复用同一套译名,
+        // 否则模型会看到两套词(atom / atom)。
+        const corpus = files
+            .map((rel) => readFileSync(join(skillRoot, rel), "utf8"))
+            .join("\n");
+        for (const term of [
+            "atom",
+            "UI surface",
+            "capability seam",
+            "event domain",
+            "curated case",
+            "target track",
+        ]) {
+            expect(corpus, `skill 里没有 CLI 的术语口径:${term}`).toContain(term);
+        }
     });
 });
 
 describe("驱动脚本不抄能力清单副本", () => {
     it("脚本里没有硬编码的原子/事件域/界面位/缝清单", () => {
         // 抄副本必然漂:CLI 加了原子,脚本还按旧清单拦,用户拿到「CLI 明明支持,脚本说非法」
-        for (const symbol of ["const ATOMS", "const EVENT_DOMAINS", "const UI_SURFACES", "const SEAMS"]) {
+        for (const symbol of [
+            "const ATOMS",
+            "const EVENT_DOMAINS",
+            "const UI_SURFACES",
+            "const SEAMS",
+        ]) {
             expect(DRIVE_MJS, `脚本里又出现了 ${symbol}`).not.toContain(symbol);
         }
     });
@@ -210,7 +284,7 @@ describe("驱动脚本不抄能力清单副本", () => {
     });
 
     it("脚本仍保留自己的政策与自检", () => {
-        expect(DRIVE_MJS).toContain("--tool-name 给出工具名"); // 脚本政策:比 CLI 更严
+        expect(DRIVE_MJS).toContain("--tool-name with the tool name"); // 脚本政策:比 CLI 更严
         expect(DRIVE_MJS).toContain("missingFiles"); // 生成后自检 + JSON 摘要
     });
 });

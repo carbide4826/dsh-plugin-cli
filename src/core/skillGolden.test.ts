@@ -49,9 +49,9 @@ interface GoldenCase {
     command: string;
 }
 
-/** 解析 examples.md 里的所有「## 案例 N · …」小节 */
+/** 解析 examples.md 里的所有「## Case N · …」小节 */
 function parseCases(md: string): GoldenCase[] {
-    const sections = md.split(/^## 案例 /m).slice(1);
+    const sections = md.split(/^## Case /m).slice(1);
     return sections.map((section) => {
         const title = section.split("\n")[0]?.trim() ?? "";
         const spec = JSON.parse(firstFence(section, "json")) as Spec;
@@ -116,9 +116,9 @@ describe("golden set 的取材", () => {
     });
 
     it("提问形态段列了不止一种姿态(工具由应用自选)", () => {
-        expect(EXAMPLES_MD).toContain("提问形态");
-        expect(EXAMPLES_MD).toContain("形态 A");
-        expect(EXAMPLES_MD).toContain("形态 B");
-        expect(EXAMPLES_MD).toContain("形态 C");
+        expect(EXAMPLES_MD).toContain("Question styles");
+        expect(EXAMPLES_MD).toContain("Style A");
+        expect(EXAMPLES_MD).toContain("Style B");
+        expect(EXAMPLES_MD).toContain("Style C");
     });
 });
