@@ -13,27 +13,19 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
 - **One interview, everything asked**: a new `dshp spec` subcommand prints what a generation has to ask the user — each step's question, whether it can be skipped, what the fallback is. The table is for agents: a model walks it item by item instead of dumping the CLI's parameter table on the user.
 - New `dshp list` subcommand: a catalog of what you can pick (presets / curated cases / atoms / event domains / UI surfaces / capability seams / both tracks' version pairing), human-readable by default and `--json` for machines. Surface entries carry the host package, the slot key and the required atoms.
 - Free combination now has a non-interactive entry: `--atoms` / `--event-domains` / `--ui-surfaces` / `--service-seams` / `--new-service` take the free-combination path instead of the questionnaire, and `--dry-run` prints the file list without writing anything.
-- **Agent skill**: the package now ships `skills/dshp/`, which teaches an agent how to scaffold a dsh plugin project with dshp. It records the pitfalls that are easy to hit: approve-builds, the cordis double instance, typecheck going green on missing types, UI surfaces only rendering after `build` + `plugin add`.
-- The MCP generation tool only computes a plan by default — confirm and pass an explicit `dryRun: false` to write to disk — and takes a `lang` parameter for the generated project's language.
+- **Agent skill**: the package now ships `skills/dshp/`, which teaches an agent how to scaffold a dsh plugin project with dshp. Its main flow is one interview: ask for the need in the open → recommend "template vs custom" with a reason → confirm the details item by item (each one skippable) → only then generate. The body is English — it is written for models, and English costs fewer tokens and models understand it well; the frontmatter's trigger words cover both languages. It records the pitfalls that are easy to hit: approve-builds, the cordis double instance, typecheck going green on missing types, UI surfaces only rendering after `build` + `plugin add`.
 
 ### Changed
 
-- Both tracks now follow upstream dsh `0.2.1-rc.2` (the official latest / next tags are on that version now), with the paired cordis / schemastery versions moved to match the official meta-package declarations.
-- The agent skill's main flow is now **one interview**: ask for the need in the open → recommend "template vs. compose it yourself" with a reason → confirm the details item by item (each one skippable) → only then generate. The skill declares the flow and the advice; which tool to ask with is the agent application's own choice.
-- The skill's body is now English — it is written for models, and English costs fewer tokens and models understand it well. The frontmatter's trigger words cover both languages, so a question in either one still matches.
-- Failures are now **stable codes plus text**: an error carries a branchable code (`SURFACE_REQUIRES_ATOM` / `DIR_EXISTS` …) alongside the text.
+- Both tracks now follow upstream dsh `0.2.1-rc.2` (0.1.9 paired `0.2.0-rc.2`), with the paired cordis / schemastery versions moved to match the official meta-package declarations. Once the host moves to `0.2.1-rc.2`, plugins generated with 0.1.9 no longer install into it (the host checks the peer exactly) — regenerate them with this release.
+- Failures are now **stable codes plus text**: an error carries a branchable code (`SURFACE_REQUIRES_ATOM` / `DIR_EXISTS` …) alongside the text, so callers no longer have to match a localized sentence.
 
 ### Fixed
 
-- **Picking a UI surface without its required atom was silently dropped**: without the `ui` atom the generated project has no `client/` at all and not a single surface renders. It now fails before generating.
-- **The driver script got stuck when no atom was picked**: it dropped into the interactive questionnaire and waited for an answer. It now generates the bare skeleton as expected.
-- **The driver script hard-coded `--lang zh`**: that contradicts "skip `lang` = probed from the environment", so running it on an English machine generated a Chinese project. The CLI now probes the environment.
-- The generated project's README documented the build-script approval list only in part: under pnpm 11 strict mode, leaving `@google/genai` / `protobufjs` out of `allowBuilds` fails the install just the same. The instructions are now split by group, following the official dsh line — the three packages that genuinely need to run get `true`, and the two no-op packages are listed with `false`.
-- The MCP tool count read "three tools"; it is four.
+- The generated project's README documented the build-script approval list only in part: it said `@google/genai` / `protobufjs` "are no-ops and need no approval", but under pnpm 11 strict mode leaving them out of `allowBuilds` fails the install outright. The instructions are now split by group, following the official dsh line — the three packages that genuinely need to run get `true`, and the two no-op packages are listed with `false`.
 
 ### Internal
 
-- Two stale descriptions in the repository README are corrected (the driver script has long since degraded into a thin shell, and the MCP form shipped a while ago).
 - The CI smoke test now covers the free-combination path and all four MCP tools.
 
 ## [0.1.9] - 2026-10-08
