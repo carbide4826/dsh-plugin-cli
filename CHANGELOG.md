@@ -13,16 +13,16 @@
 - **一次访谈问全**:新增 `dshp spec` 子命令,打印「一次生成要问用户哪些问题」—— 每步的问法、能不能跳过、跳过用啥默认。这张表给 agent 用,让模型照着它逐项问用户。
 - 新增 `dshp list` 子命令:一览能选什么(预设 / 案例 / 原子 / 事件域 / 界面位 / 能力缝 / 两轨版本配套),人读默认、`--json` 机器可读。界面位条目带宿主包、槽位键与依赖原子。
 - 自由组合有了非交互入口:`--atoms` / `--event-domains` / `--ui-surfaces` / `--service-seams` / `--new-service`,给了任一能力参数即不进交互问卷;另加 `--dry-run` 打印文件清单但不落盘。
-- **Agent skill**:随包发布 `skills/dshp/`,教 agent 用 dshp 生成 dsh 插件工程。主流程是一次访谈:开放式问需求 → 给「模板 vs 自配」的建议并说理由 → 逐项确认细节(每项可跳过)→ 收齐了才生成。正文是英文的 —— 它是给模型读的,英文更省 token、模型理解也稳;frontmatter 的触发词中英文都有。里面记了一批容易踩的坑:approve-builds 放行、cordis 双实例、typecheck 假绿、界面位必须 build + plugin add 才渲染。
+- **Agent skill**:随包发布 `skills/dshp/`,教 agent 用 dshp 生成 dsh 插件工程。主流程是一次访谈:开放式问需求 → 给「模板 vs 自配」的建议并说理由 → 逐项确认细节(每项可跳过)→ 收齐了才生成。正文是英文的,frontmatter 的触发词中英文都有。里面记了一批容易踩的坑:approve-builds 放行、cordis 双实例、typecheck 假绿、界面位必须 build + plugin add 才渲染。
 
 ### 变更
 
-- 双轨跟随上游 dsh `0.2.1-rc.2`(0.1.9 配套的是 `0.2.0-rc.2`),配套的 cordis / schemastery 版本按官方元包声明同步。宿主升到 `0.2.1-rc.2` 后,按 0.1.9 生成的插件装不进新宿主(宿主按 peer 精确校验),需要用本版重新生成。
-- 失败改成**稳定错误码 + 文案**两层:错误带可分支的 code(如 `SURFACE_REQUIRES_ATOM` / `DIR_EXISTS`),调用方不必去匹配本地化句子。
+- 双轨跟随上游 dsh `0.2.1-rc.2`(0.1.9 配套的是 `0.2.0-rc.2`),配套的 cordis / schemastery 版本按官方元包声明同步。宿主升到 `0.2.1-rc.2` 后,按 0.1.9 生成的插件装不进新宿主,需要用本版重新生成。
+- 失败改成**稳定错误码 + 文案**两层:错误带可分支的 code(如 `SURFACE_REQUIRES_ATOM` / `DIR_EXISTS`),文案随界面语言变化。
 
 ### 修复
 
-- 生成物 README 的构建脚本放行说明此前不完整:旧版写的是「`@google/genai` / `protobufjs` 的脚本是 no-op,不用批」,但 pnpm 11 严格模式下不把它们列进 `allowBuilds` 同样会让 install 直接失败。现在按官方 dsh 的口径分组说明 —— 要真跑的三个填 `true`,两个 no-op 包列出来填 `false`。
+- 生成物 README 的构建脚本放行说明此前不完整:旧版只让勾选三个要真跑的包,并说 `@google/genai` / `protobufjs` 的脚本是 no-op、不用批;pnpm 11 严格模式下不把这两个列进 `allowBuilds` 同样会让 install 直接失败。现在按官方 dsh 的口径分组说明 —— 要真跑的三个填 `true`,两个 no-op 包列出来填 `false`。
 
 ### 其他
 
