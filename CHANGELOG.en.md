@@ -20,13 +20,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
 
 - Both tracks now follow upstream dsh `0.2.1-rc.2` (the official latest / next tags are on that version now), with the paired cordis / schemastery versions moved to match the official meta-package declarations.
 - The agent skill's main flow is now **one interview**: ask for the need in the open → recommend "template vs. compose it yourself" with a reason → confirm the details item by item (each one skippable) → only then generate. The skill declares the flow and the advice; which tool to ask with is the agent application's own choice.
-- The skill's body is now English — it is written for models, and English costs fewer tokens and models understand it better. The frontmatter's trigger words cover both languages, so a question in either one still matches.
-- Failures are now **stable codes plus text**: an error carries a branchable code (`SURFACE_REQUIRES_ATOM` / `DIR_EXISTS` …) instead of only a localized sentence — which is what lets MCP treat it as an interface.
+- The skill's body is now English — it is written for models, and English costs fewer tokens and models understand it well. The frontmatter's trigger words cover both languages, so a question in either one still matches.
+- Failures are now **stable codes plus text**: an error carries a branchable code (`SURFACE_REQUIRES_ATOM` / `DIR_EXISTS` …) instead of only a localized sentence.
 
 ### Fixed
 
 - **Picking a UI surface without its required atom was silently dropped**: without the `ui` atom the generated project has no `client/` at all and not a single surface renders. It now fails before generating.
-- **The driver script fell into the interactive questionnaire when no atom was picked**: it would sit waiting for an answer. It now generates the bare skeleton as expected.
+- **The driver script got stuck when no atom was picked**: it dropped into the interactive questionnaire and waited for an answer. It now generates the bare skeleton as expected.
 - **The driver script hard-coded `--lang zh`**: that contradicts "skip `lang` = probed from the environment", so running it on an English machine generated a Chinese project. The CLI now probes the environment.
 - The generated project's README documented the build-script approval list only in part: under pnpm 11 strict mode, leaving `@google/genai` / `protobufjs` out of `allowBuilds` fails the install just the same. The instructions are now split by group, following the official dsh line — the three packages that genuinely need to run get `true`, and the two no-op packages are listed with `false`.
 - The MCP tool count read "three tools"; it is four.

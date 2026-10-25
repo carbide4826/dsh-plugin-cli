@@ -10,7 +10,7 @@ An interactive scaffolding CLI that sets up a [DeepSeek Harness](https://github.
 
 - npm package: `create-dsh-plugin-cli`, bin command: `dshp`
 - Dual-track pairing: both the latest and next tracks currently pair dsh `0.2.1-rc.2`; choose via `--target`, default latest
-  - Note: the official npm latest and next tags are both `0.2.1-rc.2`, and our latest track has caught up; track names are stable containers and their paired version only moves forward on promotion — both tracks sharing a version is a legitimate transient state, and divergence lives in the template tree content plus its manifest pairing
+  - Note: the official npm latest and next tags are both `0.2.1-rc.2`, and our latest track has caught up; track names are stable containers and never change with the version
 - Node requirement: `^22.19.0 || >=24.0.0`
 
 > Development and verification are based on the web host (`dsh web`); other host profiles are unverified — please open an [issue](https://github.com/carbide4826/dsh-plugin-cli/issues) if you hit problems.
@@ -45,9 +45,9 @@ dshp spec --json         # the same, machine-readable (consumed directly by agen
 dshp mcp                 # run the MCP server over stdio, handing generation to models
 ```
 
-`dshp list` is the **authoritative live catalog** — to find out which atoms exist, which host
-package and slot key a surface lands on, which atoms a surface requires, or which dsh version
-a track pins, run it instead of reading a doc snapshot.
+`dshp list` is the **authoritative live catalog**: which atoms exist, which host package and
+slot key a surface lands on, which atoms a surface requires, which dsh version a track pins —
+run it and you have them.
 
 Options supported by `dshp create` are listed under [Overridable parameters](#overridable-parameters) below.
 
@@ -180,14 +180,27 @@ required atom (`SURFACE_REQUIRES_ATOM`, e.g. `tool-view` without `tool`), and
 
 ```sh
 cd my-plugin
-pnpm install                      # ① install deps (the project root ships a pnpm-workspace.yaml for workspace bounding; a plain install works — plugins that use LLM capabilities fail here until the build scripts are approved in ②, then re-run)
-pnpm approve-builds               # ② supply-chain protection blocks build scripts: pnpm 11 strict mode makes install fail outright (not a warning) unless every entry is handled; pick true for the ones that genuinely need to run (node-pty / koffi / dsh-subprocess-local), and list the no-op ones (@google/genai / protobufjs) with false to deny execution the way the official repo does, then re-run install once so the scripts actually execute
-pnpm add -D @deepseek-ai/dsh@0.2.1-rc.2   # ③ install the dsh host (both tracks currently pair 0.2.1-rc.2, matching --target; the bare latest tag may be another line, don't install it bare; approve-builds again after)
-pnpm build                        # ④ build
-pnpm dsh web --patch ./dev.patch.yml      # ⑤ launch the dsh host (direct source load for debugging)
+pnpm install                                # ① install deps
+pnpm approve-builds                         # ② allow the deps' build scripts
+pnpm add -D @deepseek-ai/dsh@0.2.1-rc.2    # ③ install the dsh host
+pnpm build                                  # ④ build
+pnpm dsh web --patch ./dev.patch.yml        # ⑤ launch the dsh host (direct source load)
 ```
 
-Generated project layout (grows and shrinks with picked capabilities; where each questionnaire answer lands is annotated):
+Step ② splits into two groups — don't mix them:
+
+- **Installing the plugin's own dependencies**: only plugins that use LLM capabilities get
+  blocked (`@google/genai` / `protobufjs`). Both packages' scripts are no-ops, so — following
+  the official dsh line — **list them with `false`** to deny execution. Leaving them out makes
+  the install fail, so they must be listed.
+- **Installing the host CLI**: `dsh-subprocess-local` / `koffi` / `node-pty` genuinely run
+  (native module builds, the spawn helper) — pick `true`.
+
+Under pnpm 11 strict mode an unhandled build script fails the install outright (not a warning).
+`pnpm approve-builds` can only write `true`; denying execution without failing the install means
+hand-writing the `allowBuilds` block in `pnpm-workspace.yaml`.
+
+Generated project layout (grows and shrinks with the picked capabilities):
 
 ```text
 my-plugin/                  ← project dir = the directory name you entered
@@ -208,8 +221,8 @@ my-plugin/                  ← project dir = the directory name you entered
 ## One interview, everything asked
 
 `dshp spec` prints what a generation has to ask the user: each step's question, whether it can be
-skipped, what the fallback is, and where the options come from. The table exists for **agents** —
-a model walks it step by step instead of dumping the CLI's parameter table on the user.
+skipped, what the fallback is, and where the options come from. The table is for **agents** — a
+model walks it step by step instead of dumping the CLI's parameter table on the user.
 
 ```sh
 dshp spec                 # human-readable: the interview checklist
@@ -218,23 +231,19 @@ dshp spec --mode free     # only the steps of the custom-combination route
 ```
 
 On the MCP side this is the `dshp_spec` tool: pass the spec collected so far, get back which
-steps are still missing, whether it is ready to build, and — once ready — the compiled CLI
-arguments and the `dshp_create_plugin` input. The usual loop:
+steps are still missing, whether it is ready to build, and — once ready — the compiled
+parameters. The usual loop:
 
 ```
 empty spec → dshp_spec (get the first question) → ask the user → merge into the spec
            → dshp_spec (what is still missing) → … → ready=true → dshp_create_plugin
 ```
 
-The spec's keys mirror `dshp create`'s parameters (`mode` / `template` / `atoms` / `uiSurfaces` /
-`dirName` …), so the collected checklist compiles straight into command-line arguments — the agent
-never has to assemble them by hand.
-
 ## Agent skill
 
-This package ships an agent skill (`skills/dshp/`) that teaches an agent how to scaffold a dsh plugin project with dshp. Its main flow is **one interview**: ask what the plugin is for in the open, recommend "template vs custom" with a reason, order the options by relevance, confirm the details item by item (each one skippable), and only compile into parameters and call the CLI once you have enough — then the three verification steps and host integration. It also records the pitfalls that are expensive to rediscover (approve-builds, the cordis double instance, typecheck going green on missing types, UI surfaces only rendering after `build` + `plugin add`).
+This package ships an agent skill (`skills/dshp/`) that teaches an agent how to scaffold a dsh plugin project with dshp, and records the pitfalls that are expensive to rediscover (approve-builds, the cordis double instance, typecheck going green on missing types, UI surfaces only rendering after `build` + `plugin add`).
 
-The skill's body is written in **English** — it is written for models, not humans (English costs fewer tokens and models understand it better; the frontmatter's trigger words cover both languages). What to ask isn't hard-coded in the skill: it's taken live from `dshp spec --json`, and the snapshot inside the skill is only a fallback for when the CLI is unavailable.
+The skill's body is written in **English** — it is written for models, and English costs fewer tokens and models understand it better. The frontmatter's trigger words cover both languages, so a question in either one still matches. What to ask isn't hard-coded in the skill: it's taken live from `dshp spec --json`, and the snapshot inside the skill is only a fallback for when the CLI is unavailable.
 
 The skill ships with the npm package. Unpack it into your agent's skill directory (the directory name differs per agent; common ones are `~/.claude/skills/` or `~/.minimax/skills/`):
 
@@ -244,7 +253,7 @@ tar -xzf create-dsh-plugin-cli-*.tgz package/skills/dshp
 cp -r package/skills/dshp ~/.minimax/skills/dshp
 ```
 
-The skill bundles a driver script: the scriptable entry for free atom combinations — parameters → native CLI flags → generate, producing a **pure generator artifact** (no hand-editing), plus a post-generation self-check and a JSON summary:
+The skill bundles a driver script — the scriptable entry for free atom combinations. It produces a **pure generator artifact** (no hand-editing), plus a post-generation self-check and a JSON summary:
 
 ```sh
 node skills/dshp/scripts/drive-questionnaire.mjs --dir my-orders --target next \
@@ -253,7 +262,7 @@ node skills/dshp/scripts/drive-questionnaire.mjs --dir my-orders --target next \
 
 ## MCP server
 
-This package ships an MCP server (`dshp mcp`, stdio transport) that hands generation to models directly — an agent no longer has to reverse-engineer CLI flags or drive the interactive questionnaire.
+This package ships an MCP server (`dshp mcp`, stdio transport) that hands generation to models directly.
 
 ```sh
 dshp mcp --lang zh     # run the MCP server (--lang pins the language of generated projects; default: auto-detected)
@@ -281,12 +290,12 @@ Four tools:
 | `dshp_doctor` | diagnoses this machine: node version, pnpm, the dsh CLI, both tracks' material and generation-pipeline self-checks, whether the current directory is writable |
 | `dshp_create_plugin` | generates a plugin project (preset / curated case / free combination) |
 
-Two design rules:
+Two rules:
 
 - **Legal values are derived from the source**: the tool input schema is generated from the domain manifests (atom / event domain / surface / seam / preset / case ids are all enums), so a model sees the legal values in the schema itself and never retries with a stale id.
 - **Writing to disk needs explicit confirmation**: `dshp_create_plugin` only computes a plan by default (`dryRun` defaults to true) and returns the file list that would be produced; call it again with the same arguments and an explicit `dryRun: false` to write.
 
-MCP and the CLI share one set of generation rules (the same `src/core/create.ts`) and produce byte-identical artifacts; every failure carries a stable error code (such as `SURFACE_REQUIRES_ATOM` / `DIR_EXISTS` / `CASE_NOT_FOUND`) rather than a localized sentence.
+Every failure carries a stable error code (such as `SURFACE_REQUIRES_ATOM` / `DIR_EXISTS` / `CASE_NOT_FOUND`) rather than a localized sentence.
 
 > Hosts that spawn a subprocess usually inherit only a few environment variables (`HOME` / `PATH` / `SHELL` / `TERM` / `USER`) — **`LANG` is not among them**, so the MCP side cannot detect the system locale. In a Chinese environment, start the server with `--lang zh`, or pass `lang: "zh"` when calling `dshp_create_plugin`.
 
@@ -317,11 +326,10 @@ Full release notes for every version live in [CHANGELOG.en.md](https://github.co
 
 ## Roadmap
 
-- Keep tracking dsh version bumps — versions are managed uniformly and follow the official dsh line ✅
 - `--template` custom sources: local path / git URL / npm package
-- Localization — delivered in 0.1.1: bilingual UI via `--lang zh|en`, per-language README in generated projects ✅
-- Agent tool recognition and invocation — both forms are delivered: the skill form (ships as `skills/dshp/` with the package, written for models) and the MCP form (`dshp mcp` plus four tools) ✅; the two share one checklist and one set of generation rules, and their artifacts are byte-identical
-- Dual-track templates (0.1.5): latest / next trees each pairing one host generation (choose via `--target`); dependencies pinned exactly to the official meta-package pairing; generated projects ship a plugin icon and bilingual inventory metadata ✅ (current state: both tracks pin `0.2.1-rc.2`; a generation gap only appears after promotion)
+
+Shipped: bilingual UI and per-language READMEs (`--lang zh|en`), dual-track templates (choose
+via `--target`), continuous tracking of the dsh version line, and the agent skill plus MCP server.
 
 ## License
 
