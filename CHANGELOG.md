@@ -7,48 +7,49 @@
 
 ## [Unreleased]
 
-### 变更
-
-- 双轨跟随上游 dsh `0.2.1-rc.2`:官方 npm 的 latest / next 已同收编到该版本(registry 序列差值 7),latest 轨随之追平,两轨同钉 `0.2.1-rc.2`;配套版本按官方元包声明同步(cordis `~4.0.5` / schemastery `~3.18.5`)。模板零改动 —— 素材一律走版本占位符,引用到的 31 个 dsh 子包在新版全部存在,槽位键/事件名/工具调用块形状等契约复核全通。
-- 错误改成**稳定错误码 + 文案**两层:新增 `src/core/errors.ts`,`DshpError{code, params}` 的 code 是程序可分支的契约(文案随 `--lang` 变,code 不变),CLI 层按 code 渲染人话。此前失败一律表达成 `throw new Error(t(...))`,调用方只能匹配本地化句子,无法当接口用 —— MCP 尤其致命。
-- 自由组合的能力校验抽到 `src/core/capabilities.ts`(纯函数):原子/事件域/界面位/缝的取值校验、界面位依赖原子的硬约束、`settings-card` 与 `config=none` 的互斥,与交互问卷共用同一套规则,不各写一份。
-- 生成拆成 plan 与 write 两层:新增 `planProject()` 算出全部待落盘文件但**不写盘**,`writeProject()` 降级为 plan + 落盘(产物逐字节一致)。`--dry-run` 与将来的 MCP「显式确认后写盘」都基于这层。
-- Agent skill 的驱动脚本重写:391 行的交互问卷按键驱动退役,改为 242 行的薄壳(参数 → CLI 原生 flag → 生成,保留参数校验、生成后自检与 JSON 摘要,旧参数面兼容)。顺带消掉「提示语文本即同步锚点,CLI 改文案即失配」这个脆点。
-- 生成入口收敛为**一份规则**:新增 `src/core/create.ts`(解析 / 计划 / 落盘三段式),CLI 的四条路径(预设 / 精选案例 / 自由组合 / 交互问卷)与 MCP 都调它。此前 CLI 内部有四处落盘调用点,校验逻辑散在命令行分支与问卷里,两边容易漂。改造后新旧 CLI 在 8 组参数下产物逐字节一致。
+## [0.2.0] - 2026-10-25
 
 ### 新增
 
-- **一次访谈问全**:新增 `dshp spec` 子命令(人读 / `--json` 机器读 / `--mode <路线>` 只看某条路线),
-  打印「一次生成要问用户哪些问题」—— 每步的问法、能不能跳过、跳过用啥默认、选项从哪来(选项现取,
-  不抄快照)。此前 skill 与 MCP 都只是「CLI 参数的转述」,模型拿到的是一张填空表,问得太浅
-  (存储位置 / 命名 / 工具名 / 要不要配置全靠默认兜),现在这张表成了「问什么」的事实源。
-- 新增 `src/core/spec.ts`:访谈清单 + 缺项判定(`specGaps`:还缺哪几步、够不够开跑、下一问该问什么)
-  + 规格 → CLI 参数 / create 入参的编译(`specToCliArgs` / `specToCreateArgs`)。规格键与
-  `dshp create` 的参数同形,所以「问出来的清单」能直接编译成命令行参数,不靠 agent 自己拼。
-- MCP 新增 `dshp_spec` tool:传入「已收集到的规格」,返回还缺哪几步、够不够开跑,以及收齐后
-  编译出的 CLI 参数与 `dshp_create_plugin` 入参。典型循环:空规格拿第一问 → 每问完一步并进规格
-  再调一次 → `ready` 为 true 才生成。
-- Agent skill 重写为**访谈流程**:先开放式问需求(不给选项)→ 给「走模板 vs 自己配」的建议并说明
-  理由 → 模板路线列候选(相符的排最前)、自配路线先选原子(相符的排最前)再按原子追问事件域/
-  界面位/缝/服务/工具名 → 逐项问存储位置、命名、配置、描述作者、轨、语言(每项可跳过)→ 收齐了
-  才调 CLI 生成。全程用宿主的结构化提问功能,一次问一项。skill 另加 references/interview.md
-  (清单快照 + 规格键 → CLI 参数对照表)。
-- 界面位选项按 id 去重并标出该案例存在于哪几轨(此前两轨同 id 的案例在选项里会出现两次)。
-
-
-- **MCP server**(`dshp mcp`,stdio 协议):把生成能力直接交给模型,三个 tool —— `dshp_list_scenarios`(一览能选什么)、`dshp_doctor`(体检本机环境)、`dshp_create_plugin`(生成插件项目,预设 / 精选案例 / 自由组合三种模式)。随本包一起发布,不另开仓库:素材、版本单源、守门测试、发布管线四样都在本仓,拆出去等于复制一份会漂移的载荷。
+- **MCP server**(`dshp mcp`,stdio 协议):把生成能力直接交给模型,四个 tool —— `dshp_list_scenarios`(一览能选什么)、`dshp_spec`(访谈清单 + 缺项判定)、`dshp_doctor`(体检本机环境)、`dshp_create_plugin`(生成插件项目,预设 / 精选案例 / 自由组合三种模式)。随本包一起发布,不另开仓库:素材、版本单源、守门测试、发布管线四样都在本仓,拆出去等于复制一份会漂移的载荷。
 - tool 的入参 schema **从领域清单现生成**(原子 / 事件域 / 界面位 / 缝 / 预设 / 案例 id 全是 enum),模型在 schema 里就拿得到合法值,不会握着过期的 id 反复重试;手抄的清单必然随版本过期。
 - `dshp_create_plugin` 缺省只算计划不落盘(`dryRun` 默认 true),返回将生成的文件清单;确认后用同样参数再调一次、显式传 `dryRun: false` 才写盘 —— 「显式确认后写盘」在 MCP 侧的落法。
 - `dshp_create_plugin` 新增 `lang` 参数(zh / en)决定生成物语言。宿主 spawn 子进程时通常只继承 `HOME` / `PATH` / `SHELL` / `TERM` / `USER`,**不含 `LANG`**,MCP 侧因此探测不到系统语言;`dshp mcp --lang zh` 可在起服务时钉住。
+- **一次访谈问全**:新增 `dshp spec` 子命令(人读 / `--json` 机器读 / `--mode <路线>` 只看某条路线),打印「一次生成要问用户哪些问题」—— 每步的问法、能不能跳过、跳过用啥默认、选项从哪来(选项现取,不抄快照)。此前 skill 与 MCP 都只是「CLI 参数的转述」,模型拿到的是一张填空表,问得太浅(存储位置 / 命名 / 工具名 / 要不要配置全靠默认兜),现在这张表成了「问什么」的事实源。
+- 新增 `src/core/spec.ts`:访谈清单 + 缺项判定(`specGaps`:还缺哪几步、够不够开跑、下一问该问什么)+ 规格 → CLI 参数 / create 入参的编译(`specToCliArgs` / `specToCreateArgs`)。规格键与 `dshp create` 的参数同形,所以「问出来的清单」能直接编译成命令行参数,不靠 agent 自己拼。
 - `dshp list` 子命令:一览「能选什么」—— 预设 / 精选案例 / 原子 / 事件域 / 界面位 / 能力缝 / 两轨版本配套,人读默认、`--json` 机器可读。界面位条目带宿主包、槽位键与**依赖原子**(模型据此选,选不出静默不渲染的哑界面)。清单从领域清单现取(`src/core/describe.ts`),不再靠文档快照抄一份 —— 此前这些信息散在 `domain/*` 多个清单里、没有任何出口把它们拼起来。
-- Agent skill:仓内新增 `skills/dshp/`,随 npm 包一起发布。教 agent 用 dshp 生成 dsh 插件工程:选生成入口(预设 / 精选案例 / 自由组合的边界)、定轨、验证三步、宿主联调,并沉淀了一批只踩一次就会记住的坑(approve-builds 放行、cordis 双实例、typecheck 假绿、界面位必须 build + plugin add 才渲染)。
 - 自由组合有了**非交互入口**:新增 `--atoms` / `--event-domains` / `--ui-surfaces` / `--service-seams` / `--new-service`,给了任一能力类参数即走自由组合路径、不进交互问卷。此前任意能力组合只能靠 agent 驱动交互问卷(逆向 clack 按键语义,一次几十次试错),或退化成「预设 + 手改」。
 - `--dry-run`:打印将生成的文件清单但不落盘(「先看清再写」的入口)。
+- 错误改成**稳定错误码 + 文案**两层:新增 `src/core/errors.ts`,`DshpError{code, params}` 的 code 是程序可分支的契约(文案随 `--lang` 变,code 不变),CLI 层按 code 渲染人话。此前失败一律表达成 `throw new Error(t(...))`,调用方只能匹配本地化句子,无法当接口用 —— MCP 尤其致命。
+- Agent skill:仓内新增 `skills/dshp/`(6 个文件),随 npm 包一起发布。教 agent 用 dshp 生成 dsh 插件工程,并沉淀了一批只踩一次就会记住的坑(approve-builds 放行、cordis 双实例、typecheck 假绿、界面位必须 build + plugin add 才渲染)。
+- skill 的 **golden set**(`references/examples.md`):三种提问姿态的样板 + 5 个完整访谈实录,每个案例带一份**可执行的规格**与编译出的命令 —— 守门测试拿规格跑编译器、跟文中命令逐字对账,所以模型照抄的每条命令都真跑得出来。
+
+### 变更
+
+- Agent skill 重写为**访谈流程**:先开放式问需求(不给选项)→ 给「走模板 vs 自己配」的建议并说明理由 → 模板路线列候选(相符的排最前)、自配路线先选原子(相符的排最前)再按原子追问事件域 / 界面位 / 缝 / 服务 / 工具名 → 逐项问存储位置、命名、配置、描述作者、轨、语言(每项可跳过)→ 收齐了才调 CLI 生成。skill 另加 `references/interview.md`(清单快照 + 规格键 → CLI 参数对照表)。
+- **skill 的角色收敛为「声明流程与建议」**:用什么工具问、一次问几项,交由 agent 应用自选 —— 硬性规定工具等于替应用做决定(应用可能根本没有结构化提问能力,照做就卡住);skill 只保留语义:逐项确认、每项可单独跳过、选项按需求排、建议要给理由、收齐才动手。
+- **skill 声明前置条件而非自动装 CLI**:拿不到(或版本太老、没有 `spec` 子命令的)dshp CLI 时,不得凭快照硬编参数 —— 那样生成的插件「看着像」而不是「就是」(原子集合、界面位依赖、依赖钉版都可能已变);正确做法是告诉用户需要什么、**装不装由用户决定**。配套把 reference 快照的定位从「快速定位」降级为「只在拿不到 CLI 时兜底」。
+- **skill 正文改为英文**:skill 是给**模型**读的,不是给人读的 —— 英文 token 更省、模型理解更稳(实测同内容 25256 → 20875 tokens,省 17.3%);frontmatter 的 description 保留中英触发词,那是**匹配面**(用户提问语言未知)。中文版不做 —— 两份必然漂。术语复用 CLI 的英文口径(`src/locales/en.ts`),避免模型看到两套词。
+- 生成拆成 plan 与 write 两层:新增 `planProject()` 算出全部待落盘文件但**不写盘**,`writeProject()` 降级为 plan + 落盘(产物逐字节一致)。`--dry-run` 与 MCP 的「显式确认后写盘」都基于这层。
+- 自由组合的能力校验抽到 `src/core/capabilities.ts`(纯函数):原子 / 事件域 / 界面位 / 缝的取值校验、界面位依赖原子的硬约束、`settings-card` 与 `config=none` 的互斥,与交互问卷共用同一套规则,不各写一份。
+- 生成入口收敛为**一份规则**:新增 `src/core/create.ts`(解析 / 计划 / 落盘三段式),CLI 的四条路径(预设 / 精选案例 / 自由组合 / 交互问卷)与 MCP 都调它。此前 CLI 内部有四处落盘调用点,校验逻辑散在命令行分支与问卷里,两边容易漂。改造后新旧 CLI 在 8 组参数下产物逐字节一致。
+- Agent skill 的驱动脚本重写:391 行的交互问卷按键驱动退役,改为 256 行的薄壳(参数 → CLI 原生 flag → 生成,保留参数校验、生成后自检与 JSON 摘要,旧参数面兼容)。顺带消掉「提示语文本即同步锚点,CLI 改文案即失配」这个脆点。
+- 双轨跟随上游 dsh `0.2.1-rc.2`:官方 npm 的 latest / next 已同收编到该版本(registry 序列差值 7),latest 轨随之追平,两轨同钉 `0.2.1-rc.2`;配套版本按官方元包声明同步(cordis `~4.0.5` / schemastery `~3.18.5`)。模板零改动 —— 素材一律走版本占位符,引用到的 31 个 dsh 子包在新版全部存在,槽位键 / 事件名 / 工具调用块形状等契约复核全通。
+- 界面位选项按 id 去重并标出该案例存在于哪几轨(此前两轨同 id 的案例在选项里会出现两次)。
 
 ### 修复
 
 - **界面位缺依赖原子会被静默丢弃**:自由组合路径(命令行 `--ui-surfaces` / MCP 的 `dshp_create_plugin`)可以只选界面位不选 `ui` 原子 —— 界面位实现文件与 client 聚合入口由 `ui` 原子产出,缺了它,界面位选择被无声丢掉,生成物里根本没有 `client/`,界面位一个都不渲染。交互路径因为界面位多选只在勾了 `ui` 原子时才问,天然碰不到这个坑,所以一直没暴露。现把「界面位必须配 `ui` 原子」登记进依赖表(`tool-view` 额外要 `tool`),自由组合路径会在生成前报错(`SURFACE_REQUIRES_ATOM`)。
+- **drive 脚本零原子时落进交互问卷**:脚本此前只在有原子时才给 `--atoms`,一个原子都不选时 CLI 侧的能力参数判定不成立,会掉进交互问卷 —— 脚本里没人能答。改为恒给 `--atoms`(空串也是非交互路径)。
+- **drive 脚本硬写 `--lang zh`**:与清单里「lang 跳过 = 按环境探测」矛盾,且 CLI 的环境探测兜底是 `en`(非中文环境)。英文机器上跑脚本会生成中文工程。改为不给 `--lang` 就不传,让 CLI 自己探测(`DSHP_LANG` → `LANG`)。
 - 生成物 README 的构建脚本放行说明此前不完整:只说了要放行 `node-pty` / `koffi` / `@deepseek-ai/dsh-subprocess-local`,对 `@google/genai` / `protobufjs` 一句「脚本是 no-op,不用批」带过 —— 但 pnpm 11 严格模式下**不把它们列进 `allowBuilds` 同样会让 install 直接失败**(不是警告),用到 llm 能力的插件(model-gateway / session-bot)在装自身依赖的第一步就装不上。现在按**装插件自身依赖**与**装宿主 CLI** 两组分别说明,并区分两类包:要真跑的三个(`node-pty` / `koffi` / `dsh-subprocess-local`,原生模块编译与 spawn helper)填 `true`;`@google/genai` / `protobufjs` 的脚本确为 no-op,**按官方 dsh 自己的口径列出来填 `false` 拒绝执行**(dsh 仓 `pnpm-workspace.yaml` 即写 `'@google/genai': false` / `protobufjs: false`,注释为「no-ops we don't need, so we deny them — install still succeeds」)。同时点明 `pnpm approve-builds` 只能写 `true`,要「拒绝执行但不让 install 失败」需手写 `pnpm-workspace.yaml` 的 `allowBuilds` 段。仓库根 README 的同一处注释与 agent skill 的放行清单同步更正。
+- MCP 的工具计数此前写着「三个 tool」(`dshp_spec` 与 `dshp_doctor` 是后加的),启动提示与两份 README 同步更正为四个。
+
+### 其他
+
+- CI 冒烟补上自由组合路径与 MCP 四个 tool 的覆盖(此前新入口无 CI 覆盖,提交后是否还行并没人知道)。
+- 新增 skill 守门测试:`references/interview.md` 的步骤 id / 规格键 / 必答标记逐项对着 `specSteps()` 断言;golden set 的每个案例拿规格跑编译器,跟文中命令逐字对账;另加「skill 除 frontmatter 外无中文残留」的守门 —— 清单与散文一旦漂,CI 就红。
+- 仓库根 README 两处过时描述更正:驱动脚本早已退化成薄壳(不再「固化交互问卷」)、Roadmap 里的「MCP 形态待立项」早已交付。
 
 ## [0.1.9] - 2026-10-08
 
