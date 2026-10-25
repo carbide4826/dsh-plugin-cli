@@ -9,20 +9,20 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
 
 ### Added
 
-- **MCP server** (`dshp mcp`) hands generation to models directly, with four tools — a catalog of what you can pick, the interview checklist and gap check, a diagnosis of this machine, and plugin generation. It ships with this package.
-- **One interview, everything asked**: a new `dshp spec` subcommand prints what a generation has to ask the user — each step's question, whether it can be skipped, what the fallback is. The table is for agents: a model walks it item by item.
-- New `dshp list` subcommand: a catalog of what you can pick (presets / curated cases / atoms / event domains / UI surfaces / capability seams / both tracks' version pairing), human-readable by default and `--json` for machines. Surface entries carry the host package, the slot key and the required atoms.
-- Free combination now has a non-interactive entry: `--atoms` / `--event-domains` / `--ui-surfaces` / `--service-seams` / `--new-service` take the free-combination path instead of the questionnaire, and `--dry-run` prints the file list without writing anything.
-- **Agent skill**: the package now ships `skills/dshp/`, which teaches an agent how to scaffold a dsh plugin project with dshp. Its main flow is one interview: ask for the need in the open → recommend "template vs custom" with a reason → confirm the details item by item (each one skippable) → only then generate. The body is English; the frontmatter's trigger words cover both languages. It records the pitfalls that are easy to hit: approve-builds, the cordis double instance, typecheck going green on missing types, UI surfaces only rendering after `build` + `plugin add`.
+- **MCP server** (`dshp mcp`): hands generation to models, with four tools — pick capabilities / interview checklist / machine check / generate plugin. Usage: `dshp mcp` starts a stdio server; it ships with this package.
+- **One interview, everything asked** (`dshp spec`): prints what a generation has to ask the user and what can be skipped. Usage: `dshp spec`, or `dshp spec --json` for machines.
+- **`dshp list`**: a catalog of what you can pick (presets / curated cases / atoms / event domains / UI surfaces / capability seams). Usage: `dshp list` for humans, `--json` for machines.
+- **Free combination (non-interactive)**: pick capabilities without the questionnaire. Usage: `--atoms` / `--event-domains` / `--ui-surfaces` / `--service-seams` / `--new-service`; `--dry-run` prints the file list without writing anything.
+- **Agent skill**: teaches an agent to scaffold a plugin project with dshp — one interview, then generate. Usage: ships as `skills/dshp/`, an agent loads it directly (body in English, frontmatter trigger words in both languages).
 
 ### Changed
 
-- Both tracks now follow upstream dsh `0.2.1-rc.2` (0.1.9 paired `0.2.0-rc.2`), with the paired cordis / schemastery versions moved to match the official meta-package declarations. Once the host moves to `0.2.1-rc.2`, plugins generated with 0.1.9 no longer install into it — regenerate them with this release.
-- Failures are now **stable codes plus text**: an error carries a branchable code (`SURFACE_REQUIRES_ATOM` / `DIR_EXISTS` …) alongside the text, which follows the interface language.
+- Both tracks follow upstream dsh `0.2.1-rc.2` (0.1.9 paired `0.2.0-rc.2`). Once the host moves to `0.2.1-rc.2`, plugins generated with 0.1.9 no longer install into it — regenerate them with this release.
+- Failures now carry a **stable error code** (`SURFACE_REQUIRES_ATOM` / `DIR_EXISTS` …); the text still follows the interface language.
 
 ### Fixed
 
-- The generated project's README documented the build-script approval list only in part: it only asked for the three packages that genuinely need to run and said `@google/genai` / `protobufjs` are no-ops needing no approval; under pnpm 11 strict mode leaving those two out of `allowBuilds` fails the install outright. The instructions are now split by group, following the official dsh line — the three packages that genuinely need to run get `true`, and the two no-op packages are listed with `false`.
+- The generated project's README now spells out the build-script approval list by group: the three packages that need to run get `true`, the two no-op packages get `false`.
 
 ### Internal
 
