@@ -1,6 +1,5 @@
-allowBuilds:
-  '@deepseek-ai/dsh-subprocess-local': true
-  '@google/genai': true
-  koffi: true
-  node-pty: true
-  protobufjs: true
+# 本文件用于 workspace 定界(防祖先目录 workspace 劫持),勿删;
+# 本仓依赖树里没有带构建脚本的包(pnpm lock 中 requiresBuild 为 0),故不需要 allowBuilds 段;
+# 生成项目的构建脚本放行规则见生成物 README「注意事项 ②」——按官方 dsh 口径分组:
+# 要真跑的三个填 true(@deepseek-ai/dsh-subprocess-local / koffi / node-pty),
+# 两个 no-op 包列出来填 false(@google/genai / protobufjs)。
