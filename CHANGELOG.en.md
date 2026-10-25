@@ -10,10 +10,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
 ### Added
 
 - **MCP server** (`dshp mcp`) hands generation to models directly, with four tools — a catalog of what you can pick, the interview checklist and gap check, a diagnosis of this machine, and plugin generation. It ships with this package.
-- **One interview, everything asked**: a new `dshp spec` subcommand prints what a generation has to ask the user — each step's question, whether it can be skipped, what the fallback is. A model used to get a fill-in-the-blank table of CLI parameters and asked too shallowly (storage location, naming and the tool name all fell back to defaults).
+- **One interview, everything asked**: a new `dshp spec` subcommand prints what a generation has to ask the user — each step's question, whether it can be skipped, what the fallback is. The table is for agents: a model walks it item by item instead of dumping the CLI's parameter table on the user.
 - New `dshp list` subcommand: a catalog of what you can pick (presets / curated cases / atoms / event domains / UI surfaces / capability seams / both tracks' version pairing), human-readable by default and `--json` for machines. Surface entries carry the host package, the slot key and the required atoms.
-- Free combination now has a non-interactive entry: `--atoms` / `--event-domains` / `--ui-surfaces` / `--service-seams` / `--new-service` take the free-combination path instead of the questionnaire, and `--dry-run` prints the file list without writing anything. Until now, any capability combination could only be reached by having an agent drive the interactive questionnaire, or by falling back to "preset plus hand-editing".
-- **Agent skill**: the package now ships `skills/dshp/`, which teaches an agent how to scaffold a dsh plugin project with dshp, and records the pitfalls that are expensive to rediscover (approve-builds, the cordis double instance, typecheck going green on missing types, UI surfaces only rendering after `build` + `plugin add`).
+- Free combination now has a non-interactive entry: `--atoms` / `--event-domains` / `--ui-surfaces` / `--service-seams` / `--new-service` take the free-combination path instead of the questionnaire, and `--dry-run` prints the file list without writing anything.
+- **Agent skill**: the package now ships `skills/dshp/`, which teaches an agent how to scaffold a dsh plugin project with dshp. It records the pitfalls that are easy to hit: approve-builds, the cordis double instance, typecheck going green on missing types, UI surfaces only rendering after `build` + `plugin add`.
 - The MCP generation tool only computes a plan by default — confirm and pass an explicit `dryRun: false` to write to disk — and takes a `lang` parameter for the generated project's language.
 
 ### Changed
@@ -21,7 +21,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
 - Both tracks now follow upstream dsh `0.2.1-rc.2` (the official latest / next tags are on that version now), with the paired cordis / schemastery versions moved to match the official meta-package declarations.
 - The agent skill's main flow is now **one interview**: ask for the need in the open → recommend "template vs. compose it yourself" with a reason → confirm the details item by item (each one skippable) → only then generate. The skill declares the flow and the advice; which tool to ask with is the agent application's own choice.
 - The skill's body is now English — it is written for models, and English costs fewer tokens and models understand it well. The frontmatter's trigger words cover both languages, so a question in either one still matches.
-- Failures are now **stable codes plus text**: an error carries a branchable code (`SURFACE_REQUIRES_ATOM` / `DIR_EXISTS` …) instead of only a localized sentence.
+- Failures are now **stable codes plus text**: an error carries a branchable code (`SURFACE_REQUIRES_ATOM` / `DIR_EXISTS` …) alongside the text.
 
 ### Fixed
 

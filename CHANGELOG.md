@@ -10,10 +10,10 @@
 ### 新增
 
 - **MCP server**(`dshp mcp`):把生成能力直接交给模型,四个 tool —— 一览能选什么、访谈清单与缺项判定、体检本机环境、生成插件项目。随本包一起发布。
-- **一次访谈问全**:新增 `dshp spec` 子命令,打印「一次生成要问用户哪些问题」—— 每步的问法、能不能跳过、跳过用啥默认。此前模型拿到的是一张 CLI 参数填空表,问得太浅(存储位置、命名、工具名全靠默认兜)。
+- **一次访谈问全**:新增 `dshp spec` 子命令,打印「一次生成要问用户哪些问题」—— 每步的问法、能不能跳过、跳过用啥默认。这张表给 agent 用,让模型照着它逐项问用户。
 - 新增 `dshp list` 子命令:一览能选什么(预设 / 案例 / 原子 / 事件域 / 界面位 / 能力缝 / 两轨版本配套),人读默认、`--json` 机器可读。界面位条目带宿主包、槽位键与依赖原子。
-- 自由组合有了非交互入口:`--atoms` / `--event-domains` / `--ui-surfaces` / `--service-seams` / `--new-service`,给了任一能力参数即不进交互问卷;另加 `--dry-run` 打印文件清单但不落盘。此前任意能力组合只能靠 agent 驱动交互问卷,或退化成「预设 + 手改」。
-- **Agent skill**:随包发布 `skills/dshp/`,教 agent 用 dshp 生成 dsh 插件工程,并沉淀了一批只踩一次就会记住的坑(approve-builds 放行、cordis 双实例、typecheck 假绿、界面位必须 build + plugin add 才渲染)。
+- 自由组合有了非交互入口:`--atoms` / `--event-domains` / `--ui-surfaces` / `--service-seams` / `--new-service`,给了任一能力参数即不进交互问卷;另加 `--dry-run` 打印文件清单但不落盘。
+- **Agent skill**:随包发布 `skills/dshp/`,教 agent 用 dshp 生成 dsh 插件工程。里面记了一批容易踩的坑:approve-builds 放行、cordis 双实例、typecheck 假绿、界面位必须 build + plugin add 才渲染。
 - MCP 的生成 tool 缺省只算计划,确认后显式传 `dryRun: false` 才落盘;另带 `lang` 参数决定生成物语言。
 
 ### 变更
@@ -21,7 +21,7 @@
 - 双轨跟随上游 dsh `0.2.1-rc.2`(官方 latest / next 已同版),配套的 cordis / schemastery 版本按官方元包声明同步。
 - Agent skill 的主流程改为**一次访谈**:开放式问需求 → 给「模板 vs 自配」的建议并说理由 → 逐项确认细节(每项可跳过)→ 收齐了才生成。skill 只声明流程与建议,用什么工具问由 agent 应用自选。
 - skill 正文改为英文 —— 它是给模型读的,英文更省 token、模型理解也稳;frontmatter 的触发词中英文都有,中英文提问都能命中。
-- 失败改成**稳定错误码 + 文案**两层:错误带可分支的 code(如 `SURFACE_REQUIRES_ATOM` / `DIR_EXISTS`),不再只能匹配本地化句子。
+- 失败改成**稳定错误码 + 文案**两层:错误带可分支的 code(如 `SURFACE_REQUIRES_ATOM` / `DIR_EXISTS`),调用方不必去匹配本地化句子。
 
 ### 修复
 
