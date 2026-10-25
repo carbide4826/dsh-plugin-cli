@@ -1,5 +1,5 @@
 # CI:类型 + 测试 + 生成项目 E2E 冒烟(不装 dsh 宿主,只验证「生成的工程能装依赖/过类型/构建」)
-# 冒烟覆盖四条生成面:预设组合 / 精选案例 / 自由组合 / MCP server 产出的工程
+# 冒烟覆盖五条生成面:预设组合 / 精选案例(无 llm) / 精选案例(带 llm) / 自由组合 / MCP server 产出的工程
 # 直连 push 与 PR 都触发(本仓库不走 PR 流程,push 触发是主通路)
 name: CI
 
@@ -47,6 +47,8 @@ jobs:
         run: node dist/cli.mjs create preset-tool --template tool --lang en --target ${{ matrix.track }}
       - name: scaffold curated case (quick-tool)
         run: node dist/cli.mjs create case-qt --template quick-tool -s --lang en --target ${{ matrix.track }}
+      - name: scaffold curated case (model-gateway, pulls in llm deps)
+        run: node dist/cli.mjs create case-mg --template model-gateway -s --lang en --target ${{ matrix.track }}
       - name: scaffold free combination (tool + ui)
         run: >
           node dist/cli.mjs create free-combo
@@ -71,6 +73,14 @@ jobs:
       - name: case-qt install / typecheck / build
         run: |
           cd case-qt
+          pnpm install
+          pnpm typecheck
+          pnpm build
+      # model-gateway 带 llm 依赖(@google/genai / protobufjs 是 no-op,清单里填 false 显式拒绝)——
+      # 这条同时守住「生成物自带的 allowBuilds 清单」:漏了它 pnpm 11 严格模式下 install 直接失败
+      - name: case-mg install / typecheck / build
+        run: |
+          cd case-mg
           pnpm install
           pnpm typecheck
           pnpm build

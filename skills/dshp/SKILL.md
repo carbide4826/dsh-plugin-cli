@@ -211,25 +211,17 @@ pnpm typecheck
 pnpm build
 ```
 
-- `pnpm install` may be blocked by pnpm over dependency build scripts (it reports
-  `ERR_PNPM_IGNORED_BUILDS`). pnpm 11 defaults to `strict-dep-builds: true`, so a skipped
-  build script **makes install fail outright** (it is not a warning). Follow the prompt and
-  run `pnpm approve-builds`; pnpm writes the pending entries into the generated project's
-  `pnpm-workspace.yaml` under `allowBuilds` (placeholder value `set this to true or false`) —
-  fill in `true`. **The allowlist splits into two groups**:
-  - Installing the plugin's own dependencies (`pnpm install`): **only plugins that use llm
-    capabilities** have to deal with `@google/genai` and `protobufjs` (pulled in via
-    `dsh-llm-pi-ai → pi-ai`). Those two packages' scripts **are no-ops** — the official dsh
-    `pnpm-workspace.yaml` itself lists them as `false` and notes "no-ops we don't need, so we
-    deny them — install still succeeds", so **fill in `false` like the official one does**
-    (the scripts are refused; install still succeeds). But **leaving them out fails just the
-    same**, so they must be listed. Plugins that don't use llm see zero blocks at this step.
-  - Installing the host CLI (`pnpm add -D @deepseek-ai/dsh`): `@deepseek-ai/dsh-subprocess-local`
-    / `koffi` / `node-pty` **really do run** (native module builds / the spawn helper) — pick
-    `true`.
-  - ⚠️ `pnpm approve-builds` can only write `true` (the official plugin page's "allow these
-    scripts and retry" also writes only `true`); to "refuse the script without failing
-    install" you have to hand-write the `allowBuilds` section of `pnpm-workspace.yaml`.
+- The generated project **ships a pre-written `allowBuilds` list** in its
+  `pnpm-workspace.yaml`: `true` for `node-pty` / `koffi` / `@deepseek-ai/dsh-subprocess-local`
+  (their scripts really run — native module builds, the spawn helper), `false` for the two
+  no-op packages `@google/genai` / `protobufjs` — the same split the official dsh uses, since
+  their scripts are no-ops that are denied on purpose. **So `pnpm install` normally needs no
+  approval step — don't run `pnpm approve-builds` by default, it is interactive and would
+  block.**
+- If pnpm does report `ERR_PNPM_IGNORED_BUILDS`, a newly added dependency ships a build script
+  (pnpm 11 defaults to `strict-dep-builds: true`, so a skipped build script **fails the install
+  outright**, it is not a warning). Add the entry pnpm prints to the project's `allowBuilds`:
+  `true` when the script must run, `false` when it is a no-op.
 - ⭐ **Run typecheck inside the project directory with all dependencies installed.** When the
   type-providing packages aren't in node_modules, `tsc`'s `skipLibCheck` swallows the
   resolution failure and the types degrade to `any`, so **typecheck goes green for the wrong
@@ -282,7 +274,7 @@ to start it. If a step didn't succeed, say which one and why.
 
 | Symptom | Root cause | Fix |
 | --- | --- | --- |
-| `ERR_PNPM_IGNORED_BUILDS` | pnpm blocked a dependency's build script | `pnpm approve-builds` and allow the packages it lists |
+| `ERR_PNPM_IGNORED_BUILDS` | a newly added dependency ships a build script pnpm blocked | add the entry pnpm prints to the project's `allowBuilds` (`true` if it must run, `false` for a no-op) |
 | typecheck reports `Cannot find module` | The type packages aren't installed, or you ran it in the wrong directory | Go back to the project directory, confirm install succeeded, then re-run |
 | typecheck is green but the code is obviously wrong | Without dependencies, `skipLibCheck` swallows resolution failures (false green) | Re-run where the dependencies are installed; only then is green real |
 | `ctx.slots` type errors / diverging Config types | A second instance of cordis or schemastery | Dependency versions must match the official meta-package exactly or by tilde — never loosen them to a floating range |
@@ -374,8 +366,9 @@ Only macOS/Linux has been tested in practice; Windows is unverified. Equivalent 
 
 - `grep` is unavailable → use `findstr /C:"<plugin-id>"`, or just read the full
   `--dump-config` output.
-- `pnpm approve-builds` works interactively on Windows too; when it can't be interactive, edit
-  the `onlyBuiltDependencies` / `allowBuilds` allowlist in `pnpm-workspace.yaml` directly.
+- The generated project already ships an `allowBuilds` list; when an entry is missing, edit
+  that list in `pnpm-workspace.yaml` directly instead of running the interactive
+  `pnpm approve-builds`.
 - Path separator differences don't affect this skill's steps (the generator joins the paths
   itself), but the absolute path inside `dev.patch.yml` uses Windows style — mind that if you
   edit it by hand.

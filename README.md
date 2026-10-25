@@ -177,22 +177,14 @@ dshp create my-orders --atoms tool,ui --ui-surfaces settings-card --config dynam
 ```sh
 cd my-plugin
 pnpm install                                # ① 安装依赖
-pnpm approve-builds                         # ② 放行依赖的构建脚本
-pnpm add -D @deepseek-ai/dsh@0.2.1-rc.2    # ③ 安装 dsh 宿主
-pnpm build                                  # ④ 构建
-pnpm dsh web --patch ./dev.patch.yml        # ⑤ 启动 dsh 宿主(直载源码调试)
+pnpm add -D @deepseek-ai/dsh@0.2.1-rc.2    # ② 安装 dsh 宿主
+pnpm build                                  # ③ 构建
+pnpm dsh web --patch ./dev.patch.yml        # ④ 启动 dsh 宿主(直载源码调试)
 ```
 
-② 的放行清单分两组,别混:
-
-- **装插件自身依赖**:只有用到 llm 能力的插件会被拦下(`@google/genai` / `protobufjs`)。
-  这两个包的脚本是 no-op,按官方 dsh 的口径**列出来填 `false`** 拒绝执行;但不列出来 install
-  会直接失败,所以必须列。
-- **装宿主 CLI**:`dsh-subprocess-local` / `koffi` / `node-pty` 要真跑(原生模块编译、装
-  spawn helper),填 `true`。
-
-pnpm 11 严格模式下未处理的构建脚本会让 install 直接失败(不是警告)。`pnpm approve-builds`
-只能写 `true`;要拒绝执行又不失败,得手写 `pnpm-workspace.yaml` 的 `allowBuilds` 段。
+构建脚本的放行清单已随项目预置在 `pnpm-workspace.yaml` 的 `allowBuilds` 段,与官方 dsh 同一口径:
+要真跑的填 `true`、no-op 包显式拒绝填 `false`,不用手动放行。pnpm 若报 `ERR_PNPM_IGNORED_BUILDS`,
+说明新装的依赖带了构建脚本,按提示把对应条目补进去即可。
 
 生成项目结构(随能力勾选增减):
 

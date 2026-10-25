@@ -181,24 +181,15 @@ required atom (`SURFACE_REQUIRES_ATOM`, e.g. `tool-view` without `tool`), and
 ```sh
 cd my-plugin
 pnpm install                                # ① install deps
-pnpm approve-builds                         # ② allow the deps' build scripts
-pnpm add -D @deepseek-ai/dsh@0.2.1-rc.2    # ③ install the dsh host
-pnpm build                                  # ④ build
-pnpm dsh web --patch ./dev.patch.yml        # ⑤ launch the dsh host (direct source load)
+pnpm add -D @deepseek-ai/dsh@0.2.1-rc.2    # ② install the dsh host
+pnpm build                                  # ③ build
+pnpm dsh web --patch ./dev.patch.yml        # ④ launch the dsh host (direct source load)
 ```
 
-Step ② splits into two groups — don't mix them:
-
-- **Installing the plugin's own dependencies**: only plugins that use LLM capabilities get
-  blocked (`@google/genai` / `protobufjs`). Both packages' scripts are no-ops, so — following
-  the official dsh line — **list them with `false`** to deny execution. Leaving them out makes
-  the install fail, so they must be listed.
-- **Installing the host CLI**: `dsh-subprocess-local` / `koffi` / `node-pty` genuinely run
-  (native module builds, the spawn helper) — pick `true`.
-
-Under pnpm 11 strict mode an unhandled build script fails the install outright (not a warning).
-`pnpm approve-builds` can only write `true`; denying execution without failing the install means
-hand-writing the `allowBuilds` block in `pnpm-workspace.yaml`.
+The build-script approval list ships pre-written in the generated project's `pnpm-workspace.yaml`
+(`allowBuilds`), on the same split as the official dsh: `true` for the packages whose scripts
+must run, `false` for the no-op ones — nothing to approve by hand. If pnpm reports
+`ERR_PNPM_IGNORED_BUILDS`, a newly added dependency ships a build script: add the entry pnpm prints.
 
 Generated project layout (grows and shrinks with the picked capabilities):
 

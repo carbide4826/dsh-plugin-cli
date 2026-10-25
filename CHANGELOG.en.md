@@ -22,7 +22,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
 
 ### Fixed
 
-- The generated project's README now spells out the build-script approval list by group: the three packages that need to run get `true`, the two no-op packages get `false`.
+- The generated project now ships its own `allowBuilds` list — the three packages that must run get `true`, the two no-op packages get `false`, the same split as the official dsh — so build scripts no longer need manual approval.
 
 ### Internal
 

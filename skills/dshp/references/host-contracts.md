@@ -114,8 +114,9 @@ problem surfaces earliest.
     `ERR_PNPM_IGNORED_BUILDS` failure (measured exit=1); listing them with `false` gives
     install exit=0.
     ⚠️ `pnpm approve-builds` can only write `true` (the official GUI's `approveBuilds()` also
-    writes only `true`), so refusing execution means hand-writing the `allowBuilds` section
-    of `pnpm-workspace.yaml`.
+    writes only `true`), so refusing execution means writing `false` into the `allowBuilds`
+    section of `pnpm-workspace.yaml` by hand. This generator ships that section pre-written with
+    the official split, so a generated project normally needs no approval step.
 - `auto-install-peers: true` by default: peer dependencies get installed automatically — but
   this repo's artifacts pin the versions exactly, so the lockfile doesn't float. **Don't
   change them to `^` by hand** (that collides with the host's peer gate).

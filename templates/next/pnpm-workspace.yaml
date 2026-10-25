@@ -1,2 +1,11 @@
 # 本文件用于 workspace 定界(防祖先目录 workspace 劫持),勿删;
-# 首次 pnpm install 时 pnpm 会自动往此处写入 allowBuilds 段,按提示填 true/false 即可。
+# allowBuilds 按官方 dsh 的同一口径预置:要真跑的放行(true)、no-op 包显式拒绝(false);
+# 装新依赖后若 pnpm 报 ERR_PNPM_IGNORED_BUILDS,按提示把对应条目补进来。
+allowBuilds:
+  # 要真跑:原生模块编译 / 装 spawn helper
+  node-pty: true
+  koffi: true
+  '@deepseek-ai/dsh-subprocess-local': true
+  # no-op:官方 dsh 显式拒绝执行,install 照样成功
+  '@google/genai': false
+  protobufjs: false
