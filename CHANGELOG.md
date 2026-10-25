@@ -5,8 +5,6 @@
 
 中文 · [English](https://github.com/carbide4826/dsh-plugin-cli/blob/main/CHANGELOG.en.md)
 
-## [Unreleased]
-
 ## [0.2.0] - 2026-10-25
 
 ### 新增
