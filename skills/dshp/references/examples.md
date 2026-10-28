@@ -145,7 +145,7 @@ report.
 >   external events into the session".
 > User: Template, on the next track.
 > You: Which template?
->   Recommended `webhook-bridge` (the next track pairs with dsh 0.2.1-rc.2).
+>   Recommended `webhook-bridge` (the next track pairs with dsh 0.2.1-rc.4).
 > User: That one.
 > You: Where should the project go, and what is it called?
 > User: my-hook, and you decide the rest.

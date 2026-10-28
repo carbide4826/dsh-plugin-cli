@@ -11,8 +11,8 @@
 - A track and its manifest are paired strictly: each track has one complete template tree and
   one manifest (four fields: version / cordisPeer / schemasteryVersion / settingsSlot), so
   generation does zero parsing and zero fallback.
-- Both tracks currently pin dsh `0.2.1-rc.2` (a snapshot value — the generated
-  `package.json` is the authority).
+- The latest track pins dsh `0.2.1-rc.2` and the next track pins `0.2.1-rc.4` (snapshot
+  values — the generated `package.json` is the authority).
 - The generated project's peer version must **match** the host's dsh version, or the host's
   gate rejects it outright (see below).
 
@@ -34,7 +34,7 @@ schema in the webhook scenario fails typecheck outright.
 Two directions that were actually measured:
 
 - The official meta-package uses **exact pins / tilde alignment** for third-party dependencies
-  (read from 0.2.1-rc.2: `cordis ~4.0.5` / `schemastery ~3.18.5` / `loader ~1.0.6` /
+  (read from 0.2.1-rc.4, unchanged from 0.2.1-rc.2: `cordis ~4.0.5` / `schemastery ~3.18.5` / `loader ~1.0.6` /
   `timer ~1.1.7` / `include ~1.0.10`); the earlier version lines (e.g. 0.1.5-rc.2) pinned
   everything exactly (`cordis 4.0.2` / `schemastery 3.18.2` / `loader 1.0.3` /
   `hmr 1.0.17` / `timer 1.1.4` / `include 1.0.7`).
@@ -74,11 +74,12 @@ problem surfaces earliest.
 - ⚠️ **Upstream dist-tags roll, but this repo's two manifests don't follow automatically**
   (the canary only reports, it never acts — the rules are in
   `docs/UPSTREAM-VERSION-POLICY.md`). Measured (2026-10-20): on npm both `latest` and `next`
-  were `0.2.1-rc.2` (cordis `~4.0.5`), and both of this repo's manifests had been promoted
-  to that same version. **Once upstream rolls again, neither track follows** — the generated
-  project's peer is still the old version, and installing a new host gets hard-rejected
-  (`0.2.2-rc.x` does not satisfy peer `0.2.1-rc.2`). So always **install the host version
-  pinned in the generated package.json**, never a bare `latest`.
+  are `0.2.1-rc.2` (latest) and `0.2.1-rc.4` (next), and this repo's manifests match them
+  (`latest` → `0.2.1-rc.2`, `next` → `0.2.1-rc.4`). **When upstream rolls a track again, that
+  track's manifest does not follow by itself** — the generated project's peer is still the old
+  version, and installing a new host gets hard-rejected (`0.2.1-rc.4` does not satisfy peer
+  `0.2.1-rc.2`). So always **install the host version pinned in the generated package.json**,
+  never a bare `latest`.
 - Escape hatch: `dsh plugin allow-version` for an exact pairing.
 - ⚠️ **The version of the dsh CLI in the project you run `add` in is the judge** — not the
   version of the project under test. Don't run `add` from inside the project under test to

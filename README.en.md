@@ -9,8 +9,8 @@
 An interactive scaffolding CLI that sets up a [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (`dsh`) plugin project skeleton in one shot.
 
 - npm package: `create-dsh-plugin-cli`, bin command: `dshp`
-- Dual-track pairing: both the latest and next tracks currently pair dsh `0.2.1-rc.2`; choose via `--target`, default latest
-  - Note: the official npm latest and next tags are both `0.2.1-rc.2`, and our latest track has caught up; track names are stable containers and never change with the version
+- Dual-track pairing: the latest track pairs dsh `0.2.1-rc.2`, the next track pairs `0.2.1-rc.4`; choose via `--target`, default latest
+  - Note: the official npm `latest` tag is `0.2.1-rc.2` and `next` is `0.2.1-rc.4`; each of our tracks matches its own tag; track names are stable containers and never change with the version
 - Node requirement: `^22.19.0 || >=24.0.0`
 
 > Development and verification are based on the web host (`dsh web`); other host profiles are unverified — please open an [issue](https://github.com/carbide4826/dsh-plugin-cli/issues) if you hit problems.
@@ -79,7 +79,7 @@ Interactive snapshot
 │
 ◆  Which dsh host generation to pair with?
 │  ● latest · dsh 0.2.1-rc.2
-│  ○ next · dsh 0.2.1-rc.2
+│  ○ next · dsh 0.2.1-rc.4
 │
 ◆  Where do you want to start?
 │
@@ -131,7 +131,7 @@ Atom combination (assembled from picked capabilities):
 dshp create my-llm --template llm --pkg-position library --author <name> --description <text>
 ```
 
-Pair with the next-track host (`--target next`; the project pins dsh 0.2.1-rc.2 — the latest track and interactive mode work the same way):
+Pair with the next-track host (`--target next`; the project pins dsh 0.2.1-rc.4 — the latest track and interactive mode work the same way):
 
 ```sh
 dshp create my-gw --template model-gateway -s --target next
@@ -181,7 +181,7 @@ required atom (`SURFACE_REQUIRES_ATOM`, e.g. `tool-view` without `tool`), and
 ```sh
 cd my-plugin
 pnpm install                                # ① install deps
-pnpm add -D @deepseek-ai/dsh@0.2.1-rc.2    # ② install the dsh host
+pnpm add -D @deepseek-ai/dsh@0.2.1-rc.2    # ② install the dsh host (take the version from the generated package.json's peer)
 pnpm build                                  # ③ build
 pnpm dsh web --patch ./dev.patch.yml        # ④ launch the dsh host (direct source load)
 ```
@@ -292,12 +292,12 @@ Every failure carries a stable error code (such as `SURFACE_REQUIRES_ATOM` / `DI
 
 ## Version notes
 
-**Tracks and pairing** (chosen at generation time via `--target`, default latest; the official npm latest and next tags are both `0.2.1-rc.2`, and both of our tracks pair that version):
+**Tracks and pairing** (chosen at generation time via `--target`, default latest; the official npm `latest` tag is `0.2.1-rc.2` and `next` is `0.2.1-rc.4`, and each of our tracks matches its own tag):
 
 | Track | dsh host | Key pairing (cordis / schemastery) |
 | --- | --- | --- |
 | `latest` | `0.2.1-rc.2` | `~4.0.5` / `~3.18.5` |
-| `next` | `0.2.1-rc.2` | `~4.0.5` / `~3.18.5` |
+| `next` | `0.2.1-rc.4` | `~4.0.5` / `~3.18.5` |
 
 Dependencies pair exactly with the host version; mismatched mixes can spawn a second instance in the install tree, breaking declaration merging and failing typecheck.
 

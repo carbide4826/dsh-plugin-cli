@@ -9,8 +9,8 @@
 交互式脚手架 CLI,一键搭建 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)(`dsh`)插件项目骨架。
 
 - npm 包名:`create-dsh-plugin-cli`,bin 命令:`dshp`
-- 双轨配套:latest 与 next 轨现均配 dsh `0.2.1-rc.2`;`--target` 选择,默认 latest
-  - 注:官方 npm 的 latest / next 现同为 `0.2.1-rc.2`,本 CLI 的 latest 轨已追平;轨名是稳定容器,不随版本改名
+- 双轨配套:latest 轨配 dsh `0.2.1-rc.2`、next 轨配 `0.2.1-rc.4`;`--target` 选择,默认 latest
+  - 注:官方 npm 的 latest 现为 `0.2.1-rc.2`、next 现为 `0.2.1-rc.4`,本 CLI 两轨各自追平;轨名是稳定容器,不随版本改名
 - Node 要求:`^22.19.0 || >=24.0.0`
 
 > 开发与验证均基于 web(`dsh web`);其他宿主 profile 未经验证,遇到问题欢迎提 [issue](https://github.com/carbide4826/dsh-plugin-cli/issues)。
@@ -78,7 +78,7 @@ dshp create my-plugin              # 交互式问卷生成插件骨架
 │
 ◆  配套哪一代 dsh 宿主?
 │  ● latest · dsh 0.2.1-rc.2
-│  ○ next · dsh 0.2.1-rc.2
+│  ○ next · dsh 0.2.1-rc.4
 │
 ◆  从哪里开始?
 │
@@ -128,7 +128,7 @@ dshp create my-notes --template notebook -s --description <text> --author <name>
 dshp create my-llm --template llm --pkg-position library --author <name> --description <text>
 ```
 
-配套 next 轨宿主(`--target next`,生成项目按 dsh 0.2.1-rc.2 钉版;latest 轨与交互式生成同样适用):
+配套 next 轨宿主(`--target next`,生成项目按 dsh 0.2.1-rc.4 钉版;latest 轨与交互式生成同样适用):
 
 ```sh
 dshp create my-gw --template model-gateway -s --target next
@@ -177,7 +177,7 @@ dshp create my-orders --atoms tool,ui --ui-surfaces settings-card --config dynam
 ```sh
 cd my-plugin
 pnpm install                                # ① 安装依赖
-pnpm add -D @deepseek-ai/dsh@0.2.1-rc.2    # ② 安装 dsh 宿主
+pnpm add -D @deepseek-ai/dsh@0.2.1-rc.2    # ② 安装 dsh 宿主(版本以生成物 package.json 的 peer 为准)
 pnpm build                                  # ③ 构建
 pnpm dsh web --patch ./dev.patch.yml        # ④ 启动 dsh 宿主(直载源码调试)
 ```
@@ -289,12 +289,12 @@ dshp mcp --lang zh     # 起 MCP server(--lang 指定生成物语言,缺省按�
 
 ## 版本说明
 
-**轨道与配套**(生成时以 `--target` 选择,默认 latest;官方 npm 的 latest / next 现同为 `0.2.1-rc.2`,本 CLI 两轨均已配套该版本):
+**轨道与配套**(生成时以 `--target` 选择,默认 latest;官方 npm 的 latest 现为 `0.2.1-rc.2`、next 现为 `0.2.1-rc.4`,本 CLI 两轨各自追平):
 
 | 轨道 | dsh 宿主 | 关键配套(cordis / schemastery) |
 | --- | --- | --- |
 | `latest` | `0.2.1-rc.2` | `~4.0.5` / `~3.18.5` |
-| `next` | `0.2.1-rc.2` | `~4.0.5` / `~3.18.5` |
+| `next` | `0.2.1-rc.4` | `~4.0.5` / `~3.18.5` |
 
 依赖与宿主版本精确配套;混用不配套的组合可能在安装树中产生双实例,导致类型声明合并冲突、typecheck 失败。
 

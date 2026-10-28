@@ -14,6 +14,7 @@ import {
     writeCreate,
 } from "./create";
 import { DshpError } from "./errors";
+import { NEXT_MANIFEST } from "../domain/manifests";
 
 /** 断言抛出的 DshpError 带指定 code */
 function expectCode(fn: () => unknown, code: string): void {
@@ -158,7 +159,9 @@ describe("createFromSpec", () => {
         const pkg = JSON.parse(
             readFileSync(join(base, "x4", "package.json"), "utf8"),
         ) as { peerDependencies: Record<string, string> };
-        expect(Object.values(pkg.peerDependencies)).toContain("0.2.1-rc.2");
+        // 版本事实源只有 manifest 一处:这里取 manifest,不再抄一份字面量
+        // (抄字面量 = 第二个事实源,每次升版都要人肉改,且会漏改)
+        expect(Object.values(pkg.peerDependencies)).toContain(NEXT_MANIFEST.version);
     });
 });
 
