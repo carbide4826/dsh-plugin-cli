@@ -5,7 +5,8 @@ import type { Answers, AtomId } from "../domain/types";
 import { ATOMS } from "../domain/atoms";
 import { SEAMS } from "../domain/seams";
 import { EVENT_DOMAINS } from "../domain/events";
-import { UI_SURFACES, unsatisfiedSurfaces } from "../domain/uiSurfaces";
+import { UI_SURFACES, uiSurfacesFor, unsatisfiedSurfaces } from "../domain/uiSurfaces";
+import type { TrackTarget } from "../domain/manifests/track";
 import { unwrap, link } from "../utils/prompt";
 import { t } from "../locales";
 
@@ -32,9 +33,10 @@ function defaultIds<T extends { id: string; default?: boolean }>(
 
 /**
  * 能力问卷入口:首轮默认 = 最常见的 tool 插件;「逐项调整」回到能力勾选并保留旧值
+ * @param target - 目标轨(界面位清单按轨过滤:宿主版本才引入的槽位在老轨上选不到)
  * @returns Answers 的能力片段
  */
-export async function askCapabilities(): Promise<CapabilityResult> {
+export async function askCapabilities(target: TrackTarget = "latest"): Promise<CapabilityResult> {
     // 状态初始化为默认(tool 插件黄金路径);调整轮保留旧值
     let atoms = defaultIds(ATOMS) as Answers["atoms"]; // 首轮预勾 ["tool"]
     let toolName = "example_tool"; // 工具名默认
@@ -103,7 +105,7 @@ export async function askCapabilities(): Promise<CapabilityResult> {
                         message: t("prompts.capabilities.uiMessage", {
                             link: link(UI_DOC, t("prompts.capabilities.uiLink")),
                         }),
-                        options: UI_SURFACES.map((s) => ({
+                        options: uiSurfacesFor(target).map((s) => ({
                             value: s.id,
                             label: s.label(),
                             hint: s.desc(),

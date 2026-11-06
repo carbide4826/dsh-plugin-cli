@@ -329,7 +329,7 @@ program
     )
     .option(
         "--ui-surfaces <list>",
-        "comma-separated UI surfaces (settings-card, chat-node, input-dock, sidebar, tool-view, session-header)",
+        "comma-separated UI surfaces (settings-card, chat-node, input-dock, sidebar, tool-view, session-header; sidebar-actions, session-views-actions, right-guide-actions need --target next)",
     )
     .option(
         "--service-seams <list>",
@@ -579,7 +579,7 @@ program
 
             // 原子组合分支剩余问卷:包定位 → 能力勾选 → 配置方式(其余公共配置已在分支前问完)
             const pkgPosition = await askPkgPosition(); // 包定位(精选案例随案例锁定,故仅原子路径询问)
-            const cap = await askCapabilities(); // 能力勾选(默认 tool 黄金路径)
+            const cap = await askCapabilities(pickedTrack as TrackTarget); // 能力勾选(默认 tool 黄金路径;界面位按轨)
             const config = await askConfig(cap.uiSurfaces); // 配置方式(设置卡片硬约束在此生效)
 
             // 解析(校验与 CLI 非交互路径同规则):目录占用等硬约束在这里暴露

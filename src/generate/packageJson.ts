@@ -1,7 +1,7 @@
 // package.json 生成器:四名称 + 三桶依赖 + bundle 声明 + UI 的 client 出口
 import type { Answers } from "../domain/types";
 import type { TrackManifest } from "../domain/manifests";
-import { UI_SURFACES } from "../domain/uiSurfaces";
+import { uiSurfacesFor } from "../domain/uiSurfaces";
 import { DshpError } from "../core/errors";
 import type { DepBuckets } from "../domain/deps";
 
@@ -56,9 +56,9 @@ export function generatePackageJson(
         dsh.bundle = { patch: "./cordis.patch.yml" };
     }
     if (ui) {
-        const owners = UI_SURFACES.filter((s) =>
-            answers.uiSurfaces.includes(s.id),
-        ).map((s) => s.pkg);
+        const owners = uiSurfacesFor(manifest.target)
+            .filter((s) => answers.uiSurfaces.includes(s.id))
+            .map((s) => s.pkg);
         // ui-slots 必须注入:client/index.ts 的 inject = ['slots'] 依赖宿主提供 slots 服务,
         // 缺了它 ctx.slots 为 undefined,全部界面位注册静默失效(对照社区插件 dsh-project-memory)
         const inject = [

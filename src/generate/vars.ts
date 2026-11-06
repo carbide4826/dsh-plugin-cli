@@ -1,6 +1,7 @@
 // 占位符变量表:问卷答案 + 轨 manifest → 渲染引擎的 Vars
 import type { Answers } from "../domain/types";
 import type { TrackManifest } from "../domain/manifests";
+import { surfaceExternalPkgs } from "../domain/uiSurfaces";
 import type { Vars } from "../render/render";
 
 /**
@@ -47,8 +48,10 @@ function inlineCssPlugin(pkgName: string): string {
  * 聚合加载器在非 ESM 上下文执行各包 client.js,纯 ESM 的 export 语句会让整个聚合炸掉;
  * react 系必须 external(宿主经 factory 的 require 供应,打进 bundle 会双实例)。
  * 实现 = CJS 格式 + banner/footer 套官方同款外壳;id 用包名(宿主按包名聚合)。
+ * @param pkgName - 插件包名(client.js 的注册 id)
+ * @param externalPkgs - 额外必须 external 的宿主包(宿主冻结 module table 提供的那批)
  */
-function clientSegment(pkgName: string): string {
+function clientSegment(pkgName: string, externalPkgs: readonly string[] = []): string {
     const banner = [
         "window.__ModuleLoader__.load({",
         `  id: "${pkgName}",`,
@@ -68,7 +71,9 @@ function clientSegment(pkgName: string): string {
         "        format: 'cjs',",
         "        dts: false,",
         "        outExtensions: () => ({ js: '.js' }),",
-        "        external: ['react', 'react-dom', 'react/jsx-runtime'],",
+        `        external: [${["react", "react-dom", "react/jsx-runtime", ...externalPkgs]
+            .map((p) => JSON.stringify(p))
+            .join(", ")}],`,
         `        banner: ${JSON.stringify(banner)},`,
         `        footer: ${JSON.stringify(footer)},`,
         "        clean: false,",
@@ -90,6 +95,10 @@ export function buildVars(
     manifest: TrackManifest,
 ): Vars {
     const ui = answers.atoms.includes("ui");
+    // 宿主冻结 module table 提供的那批包必须 external(内联 ⇒ 与宿主那份不是同一模块身份)
+    const external = ui
+        ? surfaceExternalPkgs(manifest.target, answers.uiSurfaces)
+        : [];
     return {
         PKG_NAME: answers.pkgName,
         PLUGIN_ID: answers.pluginId,
@@ -101,6 +110,6 @@ export function buildVars(
         // host 出口 UI 时用对象形式:key 即输出文件名(index → dist/index.js 平铺,
         // 数组形式会保持目录结构,与 exports 声明错位)
         ENTRIES: ui ? "{ index: 'src/index.ts' }" : "['src/index.ts']",
-        CLIENT_SEGMENT: ui ? clientSegment(answers.pkgName) : "",
+        CLIENT_SEGMENT: ui ? clientSegment(answers.pkgName, external) : "",
     };
 }

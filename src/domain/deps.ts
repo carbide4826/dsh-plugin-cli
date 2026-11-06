@@ -2,7 +2,7 @@
 import type { Answers } from "./types";
 import type { TrackManifest } from "./manifests";
 import { EVENT_DOMAINS } from "./events";
-import { UI_SURFACES } from "./uiSurfaces";
+import { uiSurfacesFor } from "./uiSurfaces";
 import { SEAMS } from "./seams";
 
 export interface DepBuckets {
@@ -65,8 +65,13 @@ export function collectDeps(answers: Answers, manifest: TrackManifest): DepBucke
         peer.add("@deepseek-ai/dsh-client-ui-slots");
         peer.add("@deepseek-ai/dsh-client-ui-renderer");
         for (const surfaceId of answers.uiSurfaces) {
-            const surface = UI_SURFACES.find((x) => x.id === surfaceId);
-            if (surface) peer.add(surface.pkg);
+            const surface = uiSurfacesFor(manifest.target).find((x) => x.id === surfaceId);
+            if (!surface) continue;
+            peer.add(surface.pkg);
+            // 界面位额外的宿主包(如菜单行组件来自 ui-primitives)
+            for (const extra of "extraPkgs" in surface ? surface.extraPkgs : []) {
+                peer.add(extra);
+            }
         }
         // settings-card 走 Plugins 页签槽(0.1.7 起两轨同形):槽型声明在 ui-settings 包,
         // 素材的 type-only import 依赖它可解析(类型来源,与官方 inventory 同款 import)

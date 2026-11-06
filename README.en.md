@@ -166,15 +166,16 @@ dshp create my-orders --atoms tool,ui --ui-surfaces settings-card --config dynam
 | -------------------------- | ----------------------------------------------------------------- |
 | `--atoms <list>`           | `tool` / `events` / `service` / `ui` / `protocol` (comma-separated) |
 | `--event-domains <list>`   | `tools` / `agent` / `session` / `approval` / `fs` / `settings`    |
-| `--ui-surfaces <list>`     | `settings-card` / `chat-node` / `input-dock` / `sidebar` / `tool-view` / `session-header` |
+| `--ui-surfaces <list>`     | `settings-card` / `chat-node` / `input-dock` / `sidebar` / `tool-view` / `session-header`;`sidebar-actions` / `session-views-actions` / `right-guide-actions` need `--target next` |
 | `--service-seams <list>`   | `llm` / `systemPrompt` / `subagents` / `web` / `commands` / `storage` |
 | `--new-service`            | boolean (create a new own service; pairs with `--atoms service`)   |
 
 Hard constraints are validated by the CLI and reported with **stable error codes** (the text
 follows the language, the code does not): unknown id (`ATOM_UNKNOWN` /
 `EVENT_DOMAIN_UNKNOWN` / `UI_SURFACE_UNKNOWN` / `SEAM_UNKNOWN`), a surface missing its
-required atom (`SURFACE_REQUIRES_ATOM`, e.g. `tool-view` without `tool`), and
-`settings-card` with `config=none` (`CONFIG_NONE_REQUIRES_SETTINGS_CARD`).
+required atom (`SURFACE_REQUIRES_ATOM`, e.g. `tool-view` without `tool`),
+`settings-card` with `config=none` (`CONFIG_NONE_REQUIRES_SETTINGS_CARD`), and a surface the
+current track does not have (`UI_SURFACE_TRACK_UNAVAILABLE`, e.g. `sidebar-actions` on latest).
 
 ## After generation
 

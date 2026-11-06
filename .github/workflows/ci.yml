@@ -59,6 +59,25 @@ jobs:
           --lang en
           --target ${{ matrix.track }}
 
+      # next 轨专属:三个「更多菜单」界面位(宿主 0.2.1-rc.4 起才有那三个槽位键,
+      # latest 轨选到会被 CLI 拒 —— 见下一条反向用例)
+      - name: scaffold free combination (next-only surfaces)
+        if: matrix.track == 'next'
+        run: >
+          node dist/cli.mjs create free-actions
+          --atoms ui
+          --ui-surfaces sidebar-actions,session-views-actions,right-guide-actions
+          --lang en
+          --target next
+      # 反向:latest 轨没有那三个槽位键,选到必须报错而不是生成哑界面
+      - name: latest track rejects next-only surfaces
+        if: matrix.track == 'latest'
+        run: |
+          if node dist/cli.mjs create bad-surfaces --atoms ui --ui-surfaces sidebar-actions --lang en --target latest; then
+            echo "expected the CLI to reject a next-only surface on the latest track"
+            exit 1
+          fi
+
       # MCP 路径:真起 stdio server,逐个调三个 tool(新表面不测 = 不知道提交后还行不行)
       - name: MCP smoke (stdio server + four tools)
         run: node scripts/mcp-smoke.mjs mcp-smoke ${{ matrix.track }}
@@ -87,6 +106,13 @@ jobs:
       - name: free-combo install / typecheck / build
         run: |
           cd free-combo
+          pnpm install
+          pnpm typecheck
+          pnpm build
+      - name: free-actions install / typecheck / build
+        if: matrix.track == 'next'
+        run: |
+          cd free-actions
           pnpm install
           pnpm typecheck
           pnpm build

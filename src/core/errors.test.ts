@@ -54,6 +54,7 @@ describe("错误码全集", () => {
             ATOM_UNKNOWN: ["name", "ids"],
             EVENT_DOMAIN_UNKNOWN: ["name", "ids"],
             UI_SURFACE_UNKNOWN: ["name", "ids"],
+            UI_SURFACE_TRACK_UNAVAILABLE: ["name", "tracks"],
             SEAM_UNKNOWN: ["name", "ids"],
             SURFACE_REQUIRES_ATOM: ["surfaces", "atoms"],
             INTERNAL_ERROR: ["message"],

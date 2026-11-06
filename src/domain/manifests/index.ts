@@ -34,6 +34,8 @@ const declared = new Set<string>([
     ...EVENT_DOMAINS.flatMap((d) => d.pkgs),
     ...SEAMS.flatMap((s) => s.pkgs),
     ...UI_SURFACES.map((s) => s.pkg),
+    // 界面位声明的额外宿主包(如「更多菜单」界面位要的菜单行组件包)
+    ...UI_SURFACES.flatMap((s) => ("extraPkgs" in s ? s.extraPkgs : [])),
     // tool / protocol 原子在 collectDeps 里的内联贡献(与 deps.ts 保持同步)
     "@deepseek-ai/dsh-tools",
     "@deepseek-ai/dsh-agent",
@@ -47,7 +49,11 @@ const declared = new Set<string>([
     "@deepseek-ai/dsh-client-ui-settings",
 ]);
 
-/** 我们引用的全部 @deepseek-ai/dsh-* 子包(排序输出,便于 diff;两轨引用面相同) */
+/**
+ * 我们引用的全部 @deepseek-ai/dsh-* 子包(排序输出,便于升版 diff 报告对照)。
+ * 两轨引用面已分叉:next 轨多出「更多菜单」那三个界面位要的
+ * ui-sidebar-right / ui-primitives;此清单取并集,分轨差异见 uiSurfaces 的 tracks 字段。
+ */
 export const knownDshPackages: readonly string[] = [...declared]
     .filter((p) => p.startsWith(DSH_PKG_PREFIX))
     .sort();

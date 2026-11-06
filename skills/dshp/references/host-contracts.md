@@ -64,6 +64,7 @@ problem surfaces earliest.
 | The `settings.plugin.item` slot key was deleted repo-wide | The old settings-card entry point is gone | Use `settings.plugins.tab` (the Plugins tab slot) instead: `ctx.slots.inject('settings.plugins.tab', () => ctx.slots.register({name, id, order, label}, Component))`; the slot's type declaration lives in the `dsh-client-ui-settings` package |
 | `installSection` was removed | Dynamic config has no legacy wiring | Use the module's `Config` export instead, which the host projects into a form natively; fields that must hot-update go through the `.volatile()` chain (save → write a profile patch → re-run apply) |
 | The shared `'plugin'` kind was removed from `MessageSourceMap` | Messages produced by a plugin have no owning kind | The plugin declares its own kind with `declare module` in its own module (the official webhook declares `'webhook'` the same way); the generated project uses `'plugin-notice'` |
+| The three "More menu" slot keys appeared (`sidebar.panellist.actions`, `conversation.session.header.views.actions`, `sidebar.right.tab.guide.actions`) | They only exist on hosts from 0.2.1-rc.4 on | Pick them only with `--target next`; on an older host the key is unknown, so the registration silently never renders. The owner props carry `entries` / `onOpen` / `onPinnedChange` / `onDismiss` |
 
 ## Host gate (plugin add / load)
 

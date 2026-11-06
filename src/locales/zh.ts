@@ -232,6 +232,18 @@ export const zh = {
                 desc: "自定义工具调用的展示样式(配合 Tool)",
             },
             "session-header": { label: "会话头", desc: "会话头部动作/角标扩展" },
+            "sidebar-actions": {
+                label: "侧边栏更多菜单",
+                desc: "左侧栏「更多」菜单里的一项",
+            },
+            "session-views-actions": {
+                label: "会话视图更多菜单",
+                desc: "会话 View 页签「更多」菜单里的一项",
+            },
+            "right-guide-actions": {
+                label: "右侧栏更多菜单",
+                desc: "右侧栏 guide 卡片「更多」菜单里的一项",
+            },
         },
         scenarios: {
             tool: { label: "工具示例" },
@@ -262,6 +274,7 @@ export const zh = {
         required: "必答",
         skippable: "可跳过",
         needs: "需原子",
+        surfaceTrackOnly: "仅 {tracks} 轨可用(该宿主的槽位键是后来才引入的)",
         need: {
             ask: "这个插件要做什么?一句话描述用途就行(比如「查订单」「接外部 webhook」「加一个设置卡片」)",
             note: "先问需求再给建议 —— 后面每一步的选择都要靠它,别跳过直接问参数",
@@ -364,6 +377,8 @@ export const zh = {
         errAtomUnknown: "未知原子:{name}(可用:{ids})",
         errEventDomainUnknown: "未知事件域:{name}(可用:{ids})",
         errUiSurfaceUnknown: "未知界面位:{name}(可用:{ids})",
+        errUiSurfaceTrackUnavailable:
+            "界面位 {name} 只在 {tracks} 轨可用(该宿主的槽位键是后来才引入的)",
         errSeamUnknown: "未知能力缝:{name}(可用:{ids})",
         errSurfaceRequiresAtom:
             "界面位 {surfaces} 要配原子 {atoms} 才有注册名(补上 --atoms {atoms},或去掉该界面位)",

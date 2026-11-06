@@ -163,14 +163,15 @@ dshp create my-orders --atoms tool,ui --ui-surfaces settings-card --config dynam
 | --------------------------- | ----------------------------------------------------------- |
 | `--atoms <list>`            | `tool` / `events` / `service` / `ui` / `protocol`(逗号分隔) |
 | `--event-domains <list>`    | `tools` / `agent` / `session` / `approval` / `fs` / `settings` |
-| `--ui-surfaces <list>`      | `settings-card` / `chat-node` / `input-dock` / `sidebar` / `tool-view` / `session-header` |
+| `--ui-surfaces <list>`      | `settings-card` / `chat-node` / `input-dock` / `sidebar` / `tool-view` / `session-header`;`sidebar-actions` / `session-views-actions` / `right-guide-actions` 仅 `--target next` |
 | `--service-seams <list>`    | `llm` / `systemPrompt` / `subagents` / `web` / `commands` / `storage` |
 | `--new-service`             | 布尔(新建自有服务,配合 `--atoms service`)                   |
 
 硬约束由 CLI 校验并以**稳定错误码**报错(文案随语言变,code 不变):未知 id
 (`ATOM_UNKNOWN` / `EVENT_DOMAIN_UNKNOWN` / `UI_SURFACE_UNKNOWN` / `SEAM_UNKNOWN`)、
 界面位缺依赖原子(`SURFACE_REQUIRES_ATOM`,如 `tool-view` 缺 `tool`)、
-`settings-card` 配 `config=none`(`CONFIG_NONE_REQUIRES_SETTINGS_CARD`)。
+`settings-card` 配 `config=none`(`CONFIG_NONE_REQUIRES_SETTINGS_CARD`)、
+界面位在当前轨不可用(`UI_SURFACE_TRACK_UNAVAILABLE`,如 latest 轨选 `sidebar-actions`)。
 
 ## 生成之后
 

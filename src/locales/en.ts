@@ -235,6 +235,18 @@ Language:
                 desc: "Custom rendering for tool calls (pairs with Tool)",
             },
             "session-header": { label: "Session header", desc: "Session header actions / badges" },
+            "sidebar-actions": {
+                label: "Sidebar More menu",
+                desc: "One row in the left sidebar's More menu",
+            },
+            "session-views-actions": {
+                label: "Session views More menu",
+                desc: "One row in the conversation View tabs' More menu",
+            },
+            "right-guide-actions": {
+                label: "Right sidebar More menu",
+                desc: "One row in the right sidebar guide cards' More menu",
+            },
         },
         scenarios: {
             tool: { label: "Tool example" },
@@ -265,6 +277,7 @@ Language:
         required: "required",
         skippable: "skippable",
         needs: "requires",
+        surfaceTrackOnly: "only available on the {tracks} track (that host introduced the slot key later)",
         need: {
             ask: "What should this plugin do? One sentence is enough (e.g. \"look up orders\", \"bridge an external webhook\", \"add a settings card\")",
             note: "Ask for the need first and give suggestions from it — every later choice depends on it; do not jump straight to parameters",
@@ -367,6 +380,8 @@ Language:
         errAtomUnknown: "unknown atom: {name} (available: {ids})",
         errEventDomainUnknown: "unknown event domain: {name} (available: {ids})",
         errUiSurfaceUnknown: "unknown UI surface: {name} (available: {ids})",
+        errUiSurfaceTrackUnavailable:
+            "UI surface {name} is only available on the {tracks} track (that host introduced the slot key later)",
         errSeamUnknown: "unknown capability seam: {name} (available: {ids})",
         errSurfaceRequiresAtom:
             "surface {surfaces} needs atom {atoms} to have a registration key (add --atoms {atoms}, or drop that surface)",

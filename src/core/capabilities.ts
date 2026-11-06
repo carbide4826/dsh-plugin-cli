@@ -12,7 +12,8 @@
 import type { Answers, AtomId, ConfigMode } from "../domain/types";
 import { ATOMS } from "../domain/atoms";
 import { EVENT_DOMAINS } from "../domain/events";
-import { UI_SURFACES, unsatisfiedSurfaces } from "../domain/uiSurfaces";
+import { UI_SURFACES, uiSurfacesFor, unsatisfiedSurfaces } from "../domain/uiSurfaces";
+import type { TrackTarget } from "../domain/manifests/track";
 import { SEAMS } from "../domain/seams";
 import { DshpError } from "./errors";
 
@@ -52,7 +53,10 @@ export function parseIdList(raw: string | undefined): string[] | undefined {
  * @returns 归一化后的能力片段(全部字段都有值)
  * @throws DshpError 非法 id / 界面位依赖未满足 / config 冲突
  */
-export function resolveCapabilities(sel: CapabilitySelection): {
+export function resolveCapabilities(
+    sel: CapabilitySelection,
+    target: TrackTarget = "latest",
+): {
     atoms: AtomId[];
     eventDomains: string[];
     uiSurfaces: string[];
@@ -85,13 +89,20 @@ export function resolveCapabilities(sel: CapabilitySelection): {
         if (!eventDomains.includes(id)) eventDomains.push(id);
     }
 
-    // 界面位:逐个查清单
+    // 界面位:逐个查清单(按轨 —— 宿主版本才引入的槽位键在老轨上选到就是哑界面)
     const uiSurfaces: string[] = [];
+    const surfacesOfTrack = uiSurfacesFor(target);
     for (const id of sel.uiSurfaces ?? []) {
         if (!UI_SURFACES.some((s) => s.id === id)) {
             throw new DshpError("UI_SURFACE_UNKNOWN", {
                 name: id,
                 ids: UI_SURFACES.map((s) => s.id).join(", "),
+            });
+        }
+        if (!surfacesOfTrack.some((s) => s.id === id)) {
+            throw new DshpError("UI_SURFACE_TRACK_UNAVAILABLE", {
+                name: id,
+                tracks: (UI_SURFACES.find((s) => s.id === id)?.tracks ?? []).join(" / "),
             });
         }
         if (!uiSurfaces.includes(id)) uiSurfaces.push(id);
@@ -162,8 +173,9 @@ export function buildFreeAnswers(
         author?: string;
         pkgPosition?: string;
     },
+    target: TrackTarget = "latest",
 ): Answers {
-    const caps = resolveCapabilities(sel);
+    const caps = resolveCapabilities(sel, target);
     const pkgPosition = identity.pkgPosition ?? "bundle";
     if (pkgPosition !== "bundle" && pkgPosition !== "library") {
         throw new DshpError("PKG_POSITION_INVALID", { values: "bundle | library" });

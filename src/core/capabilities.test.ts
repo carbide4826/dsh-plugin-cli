@@ -115,6 +115,25 @@ describe("resolveCapabilities", () => {
             "CONFIG_INVALID",
         );
     });
+
+    it("某轨不可用的界面位被选中时报 UI_SURFACE_TRACK_UNAVAILABLE", () => {
+        // 槽位键是宿主契约:老宿主没有的键选到就注册不上(静默不渲染)
+        expectCode(
+            () =>
+                resolveCapabilities(
+                    { atoms: ["ui"], uiSurfaces: ["sidebar-actions"] },
+                    "latest",
+                ),
+            "UI_SURFACE_TRACK_UNAVAILABLE",
+        );
+        // 换到 next 轨(宿主有那个槽位)即通过
+        expect(
+            resolveCapabilities(
+                { atoms: ["ui"], uiSurfaces: ["sidebar-actions"] },
+                "next",
+            ).uiSurfaces,
+        ).toEqual(["sidebar-actions"]);
+    });
 });
 
 describe("buildFreeAnswers", () => {

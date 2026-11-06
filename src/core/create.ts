@@ -22,6 +22,7 @@ import type { Answers } from "../domain/types";
 import { buildScenarioAnswers, findScenario } from "../domain/scenarios";
 import { buildFreeAnswers } from "./capabilities";
 import { resolveTrackTarget, type TrackManifest } from "../domain/manifests";
+import type { TrackTarget } from "../domain/manifests/track";
 import { planProject, writeProject } from "../generate/project";
 import {
     copyScenarioCase,
@@ -163,7 +164,7 @@ export function resolveCreate(
     }
 
     const answers =
-        spec.mode === "preset" ? presetAnswers(spec) : freeAnswers(spec);
+        spec.mode === "preset" ? presetAnswers(spec) : freeAnswers(spec, manifest.target);
     const dirName = spec.dirName || answers.dirName;
     // 目录名可能被覆盖(预设默认名 vs 传入名),答案里的 dirName 要同步
     answers.dirName = dirName;
@@ -271,7 +272,7 @@ function presetAnswers(spec: CreateSpec): Answers {
 }
 
 /** 自由组合模式 → Answers(校验在 resolveCapabilities/buildFreeAnswers) */
-function freeAnswers(spec: CreateSpec): Answers {
+function freeAnswers(spec: CreateSpec, target: TrackTarget): Answers {
     return buildFreeAnswers(
         {
             atoms: spec.atoms,
@@ -290,5 +291,6 @@ function freeAnswers(spec: CreateSpec): Answers {
             author: spec.author,
             pkgPosition: spec.pkgPosition,
         },
+        target,
     );
 }

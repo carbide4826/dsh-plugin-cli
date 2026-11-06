@@ -72,6 +72,23 @@ const SURFACE_WIRING: Record<
         fn: "registerSettingsCard",
         component: "surfaces/SettingsCard.tsx",
     },
+    // ── 以下三个界面位只在 next 轨可选(0.2.1-rc.4 起宿主才有那三个 actions 槽位);
+    //    实现文件只存在于 templates/next 树,latest 轨选不到它们 ⇒ 不会拷到不存在的文件 ──
+    "sidebar-actions": {
+        file: "surfaces/sidebar-actions",
+        fn: "registerSidebarActions",
+        component: "surfaces/SidebarActions.tsx",
+    },
+    "session-views-actions": {
+        file: "surfaces/session-views-actions",
+        fn: "registerSessionViewsActions",
+        component: "surfaces/SessionViewsActions.tsx",
+    },
+    "right-guide-actions": {
+        file: "surfaces/right-guide-actions",
+        fn: "registerRightGuideActions",
+        component: "surfaces/RightGuideActions.tsx",
+    },
     "chat-node": {
         file: "surfaces/chat-node",
         fn: "registerChatNode",

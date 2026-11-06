@@ -13,6 +13,7 @@ import { UI_SURFACES, SURFACE_REQUIRES } from "../domain/uiSurfaces";
 import { SEAMS } from "../domain/seams";
 import { SCENARIOS } from "../domain/scenarios";
 import { TRACK_TARGETS } from "../domain/manifests";
+import { t } from "../locales";
 import { listScenarioCases } from "../generate/scenarioCase";
 import { getTrackManifest } from "../domain/manifests";
 import type { ConfigMode, PkgPosition } from "../domain/types";
@@ -43,8 +44,17 @@ function describeItems(
 export const ATOM_IDS = ATOMS.map((a) => a.id) as string[];
 /** 事件域 id */
 export const EVENT_DOMAIN_IDS = EVENT_DOMAINS.map((d) => d.id) as string[];
-/** 界面位 id */
+/** 界面位 id(两轨并集:模型可能先选界面位再选轨) */
 export const UI_SURFACE_IDS = UI_SURFACES.map((s) => s.id) as string[];
+/** 界面位选项(仅某轨可用的项在文案里标出来) */
+const UI_SURFACE_ITEMS = UI_SURFACES.map((s) => ({
+    id: s.id,
+    label: s.label,
+    desc: () =>
+        s.tracks.length < TRACK_TARGETS.length
+            ? t("spec.surfaceTrackOnly", { tracks: s.tracks.join(" / ") })
+            : s.desc(),
+}));
 /** 能力缝 id */
 export const SEAM_IDS = SEAMS.map((s) => s.id) as string[];
 /** 预设 id */
@@ -104,10 +114,10 @@ export function createPluginInputShape() {
                 `free 模式:要订阅的事件域。可选:${describeItems(EVENT_DOMAINS)}`,
             ),
         uiSurfaces: z
-            .array(idEnum(UI_SURFACE_IDS, describeItems(UI_SURFACES)))
+            .array(idEnum(UI_SURFACE_IDS, describeItems(UI_SURFACE_ITEMS)))
             .optional()
             .describe(
-                `free 模式:要挂的宿主界面位。可选:${describeItems(UI_SURFACES)}。` +
+                `free 模式:要挂的宿主界面位。可选:${describeItems(UI_SURFACE_ITEMS)}。` +
                     `依赖原子:${Object.entries(SURFACE_REQUIRES)
                         .filter(([, req]) => req.length > 0)
                         .map(([id, req]) => `${id} 需 ${req.join(",")}`)

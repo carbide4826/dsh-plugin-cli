@@ -117,7 +117,9 @@ Atoms: `tool` / `events` / `service` / `ui` / `protocol`
 Event domains: `tools` / `agent` / `session` / `approval` / `fs` / `settings`
 
 UI surfaces: `settings-card` / `chat-node` / `input-dock` / `sidebar` / `tool-view` /
-`session-header`
+`session-header`;plus `sidebar-actions` / `session-views-actions` / `right-guide-actions`,
+which only exist on `--target next` (picking one on another track fails with
+`UI_SURFACE_TRACK_UNAVAILABLE`).
 
 Capability seams: `llm` / `systemPrompt` / `subagents` / `web` / `commands` / `storage`
 
@@ -126,20 +128,23 @@ that silently never renders):
 
 | Surface | Atoms that must be picked alongside |
 | --- | --- |
-| All six | `ui` (the surface implementation files and the client aggregation entry are produced by the ui atom; without it the surface selection is silently dropped) |
+| All nine | `ui` (the surface implementation files and the client aggregation entry are produced by the ui atom; without it the surface selection is silently dropped) |
 | `tool-view` | additionally `tool` (it renders a tool call) |
 
 Surface → host package → slot key (slot keys change with the host version; the package ships
 the current value):
 
-| Surface | Host package | Slot key |
-| --- | --- | --- |
-| `settings-card` | `@deepseek-ai/dsh-client-ui-settings-plugins` | `settings.plugins.tab` |
-| `chat-node` | `@deepseek-ai/dsh-client-ui-chat` | `conversation.chat.node` |
-| `input-dock` | `@deepseek-ai/dsh-client-ui-conversation` | `conversation.input.dock` / `conversation.composer.bar` |
-| `sidebar` | `@deepseek-ai/dsh-client-ui-sidebar` | `sidebar.panellist` |
-| `tool-view` | `@deepseek-ai/dsh-client-ui-tool` | `tool.call.toolview` |
-| `session-header` | `@deepseek-ai/dsh-client-ui-conversation` | `conversation.session.header` |
+| Surface | Host package | Slot key | Track |
+| --- | --- | --- | --- |
+| `settings-card` | `@deepseek-ai/dsh-client-ui-settings-plugins` | `settings.plugins.tab` | both |
+| `chat-node` | `@deepseek-ai/dsh-client-ui-chat` | `conversation.chat.node` | both |
+| `input-dock` | `@deepseek-ai/dsh-client-ui-conversation` | `conversation.input.dock` / `conversation.composer.bar` | both |
+| `sidebar` | `@deepseek-ai/dsh-client-ui-sidebar` | `sidebar.panellist` | both |
+| `tool-view` | `@deepseek-ai/dsh-client-ui-tool` | `tool.call.toolview` | both |
+| `session-header` | `@deepseek-ai/dsh-client-ui-conversation` | `conversation.session.header` | both |
+| `sidebar-actions` | `@deepseek-ai/dsh-client-ui-sidebar` | `sidebar.panellist.actions` | next only |
+| `session-views-actions` | `@deepseek-ai/dsh-client-ui-conversation` | `conversation.session.header.views.actions` | next only |
+| `right-guide-actions` | `@deepseek-ai/dsh-client-ui-sidebar-right` | `sidebar.right.tab.guide.actions` | next only |
 
 Also: `settings-card` must have a configuration (it cannot be `config: none`), and the
 `@deepseek-ai/schemastery` dependency only comes in when `config` is not `none`.
@@ -274,7 +279,7 @@ non-zero" and a JSON summary. Calling the CLI directly works just as well.
 node scripts/drive-questionnaire.mjs --dir <project-dir> --target <latest|next> \
   --atoms <tool,events,service,ui,protocol> \
   [--events <tools,agent,session,approval,fs,settings>] \
-  [--surfaces <settings-card,chat-node,input-dock,sidebar,tool-view,session-header>] \
+  [--surfaces <settings-card,chat-node,input-dock,sidebar,tool-view,session-header,sidebar-actions,session-views-actions,right-guide-actions>] \
   [--seams <llm,systemPrompt,subagents,web,commands,storage>] [--create-service] \
   --tool-name <tool-name> \
   [--description <text>] [--author <author>] [--pkg-name <name>] [--plugin-id <plugin id>] \

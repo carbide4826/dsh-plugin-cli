@@ -325,10 +325,14 @@ export function specOptions(kind: SpecOptionKind): SpecOption[] {
                 hint: d.desc(),
             }));
         case "surfaces":
+            // 目标轨这一步在界面位之后才问,所以这里给两轨并集,仅某轨可用的项在 hint 里标出来
             return UI_SURFACES.map((s) => ({
                 value: s.id,
                 label: s.label(),
-                hint: s.desc(),
+                hint:
+                    s.tracks.length < TRACK_TARGETS.length
+                        ? t("spec.surfaceTrackOnly", { tracks: s.tracks.join(" / ") })
+                        : s.desc(),
                 requires: SURFACE_REQUIRES[s.id],
             }));
         case "seams":

@@ -10,7 +10,7 @@
 
 import { ATOMS } from "../domain/atoms";
 import { EVENT_DOMAINS } from "../domain/events";
-import { UI_SURFACES, SURFACE_REQUIRES } from "../domain/uiSurfaces";
+import { UI_SURFACES, SURFACE_REQUIRES, uiSurfacesFor } from "../domain/uiSurfaces";
 import { SEAMS } from "../domain/seams";
 import { SCENARIOS } from "../domain/scenarios";
 import { listScenarioCases } from "../generate/scenarioCase";
@@ -60,6 +60,8 @@ export interface Catalog {
         slots: readonly string[];
         /** 必须同勾的原子(缺了就生成不出注册名) */
         requires: readonly AtomId[];
+        /** 可用轨:宿主版本才引入的槽位只在该轨可选 */
+        tracks: readonly TrackTarget[];
     }[];
     /** 能力缝 */
     seams: { id: string; label: string; desc: string; pkgs: readonly string[] }[];
@@ -67,6 +69,20 @@ export interface Catalog {
     configModes: ConfigMode[];
     /** 包定位 */
     pkgPositions: PkgPosition[];
+}
+
+/**
+ * 界面位清单(按轨过滤:给了 targets 就只列这些轨可用的;缺省列全部)
+ * @param targets - 要列出的轨(缺省两轨都列)
+ * @returns 界面位条目
+ */
+function surfaceCatalog(
+    targets?: readonly TrackTarget[],
+): readonly (typeof UI_SURFACES)[number][] {
+    if (!targets) return UI_SURFACES;
+    return UI_SURFACES.filter((s) =>
+        (s.tracks as readonly TrackTarget[]).some((tr) => targets.includes(tr)),
+    );
 }
 
 /**
@@ -120,13 +136,14 @@ export function describeCatalog(targets?: readonly TrackTarget[]): Catalog {
             eventCount: d.events.length,
         })),
 
-        uiSurfaces: UI_SURFACES.map((s) => ({
+        uiSurfaces: surfaceCatalog(targets).map((s) => ({
             id: s.id,
             label: s.label(),
             desc: s.desc(),
             pkg: s.pkg,
             slots: s.slots,
             requires: SURFACE_REQUIRES[s.id],
+            tracks: s.tracks as readonly TrackTarget[],
         })),
 
         seams: SEAMS.map((s) => ({
