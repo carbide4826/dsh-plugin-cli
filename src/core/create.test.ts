@@ -163,6 +163,24 @@ describe("createFromSpec", () => {
         // (抄字面量 = 第二个事实源,每次升版都要人肉改,且会漏改)
         expect(Object.values(pkg.peerDependencies)).toContain(NEXT_MANIFEST.version);
     });
+
+    it("生成物里的 Node 版本要求与 engines 同源(README 与 package.json 不各说各话)", () => {
+        const base = freshDir();
+        createFromSpec(
+            { mode: "free", dirName: "x5", atoms: ["tool"], target: "next" },
+            true,
+            base,
+        );
+        const pkg = JSON.parse(
+            readFileSync(join(base, "x5", "package.json"), "utf8"),
+        ) as { engines: { node: string } };
+        expect(pkg.engines.node).toBe(NEXT_MANIFEST.engines);
+
+        // README 的「Node 要求」行由 vars 表注入同一个值(模板里写死过旧区间,两处会打架)
+        const readme = readFileSync(join(base, "x5", "README.md"), "utf8");
+        expect(readme).toContain(NEXT_MANIFEST.engines);
+        expect(readme).not.toContain("{{NODE_ENGINES}}");
+    });
 });
 
 describe("nextSteps", () => {

@@ -21,7 +21,7 @@
     }
   },
   "engines": {
-    "node": "^22.19.0 || >=24.0.0"
+    "node": "__ENGINES__"
   },
   "scripts": {
     "build": "tsdown",

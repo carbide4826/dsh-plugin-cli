@@ -6,7 +6,7 @@
 
 　　**版本跟随 dsh**:所有 `@deepseek-ai/dsh-*` 跟随 DSH 版本线,当前固定在 {{DSH_VERSION}};后续随官方迭代跟踪更新。
 
-　　**Node 要求**:`^22.19.0 || >=24.0.0`。
+　　**Node 要求**:`{{NODE_ENGINES}}`。
 
 ## 快速开始
 

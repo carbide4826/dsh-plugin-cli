@@ -6,7 +6,7 @@ Curated case: custom query tool with a result card (tool + tool-view)
 
 　　**Versions follow dsh**: all `@deepseek-ai/dsh-*` packages follow the DSH version line, currently pinned at __DSH_VERSION__; they will be updated as the official line moves.
 
-　　**Node requirement**: `^22.19.0 || >=24.0.0`.
+　　**Node requirement**: `__ENGINES__`.
 
 ## Quick start
 

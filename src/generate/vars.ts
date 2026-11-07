@@ -105,6 +105,7 @@ export function buildVars(
         TOOL_NAME: answers.toolName,
         DESCRIPTION: answers.description,
         DSH_VERSION: manifest.version,
+        NODE_ENGINES: manifest.engines,
         EXTRA_STRUCTURE: extraStructure,
         // 项目自带 tsdown 配置(就近优先),避免被祖先目录的 tsdown.config.ts 劫持 entry。
         // host 出口 UI 时用对象形式:key 即输出文件名(index → dist/index.js 平铺,

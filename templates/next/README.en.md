@@ -6,7 +6,7 @@
 
 　　**Versions follow dsh**: all `@deepseek-ai/dsh-*` packages follow the DSH version line, currently pinned at {{DSH_VERSION}}; they will be updated as the official line moves.
 
-　　**Node requirement**: `^22.19.0 || >=24.0.0`.
+　　**Node requirement**: `{{NODE_ENGINES}}`.
 
 ## Quick start
 

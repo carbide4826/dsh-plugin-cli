@@ -152,6 +152,7 @@ export function copyScenarioCase(
         out = out.replaceAll("__DSH_VERSION__", manifest.version);
         out = out.replaceAll("__CORDIS_VERSION__", manifest.cordisPeer);
         out = out.replaceAll("__SCHEMASTERY_VERSION__", manifest.schemasteryVersion);
+        out = out.replaceAll("__ENGINES__", manifest.engines);
         if (out !== text) writeFileSync(file, out);
     });
 

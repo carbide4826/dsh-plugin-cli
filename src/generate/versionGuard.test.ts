@@ -109,6 +109,38 @@ describe.each(TRACKS.map((m) => [m] as const))("模板守门:版本只用占位�
         }
     });
 
+    it("Node 版本要求必须走占位符(engines 单一来源)", () => {
+        // Node 版本区间一旦写死,就会与 package.json 的 engines 各说各话
+        // (engines 来自轨 manifest,README 行曾长期写死旧区间 ⇒ 同一产物内自相矛盾)
+        const RANGE_LITERAL = /\^?\d+\.\d+\.\d+\s*\|\|\s*>=\d+\.\d+\.\d+/;
+
+        // 案例素材:package.json 的 engines + README 的「Node 要求」行
+        for (const file of walkFiles(casesRoot(manifest.target)).filter((f) =>
+            f.endsWith("package.json") && f.includes("/"))) {
+            const pkg = JSON.parse(
+                readFileSync(join(casesRoot(manifest.target), file), "utf8"),
+            ) as { engines?: { node?: string } };
+            expect(pkg.engines?.node, `${file} 的 engines.node 必须是占位符`).toBe(
+                "__ENGINES__",
+            );
+        }
+        for (const file of walkFiles(casesRoot(manifest.target)).filter((f) =>
+            f.includes("/") && /^README(\.en)?\.md$/.test(f.split("/").pop() ?? ""))) {
+            const text = readFileSync(join(casesRoot(manifest.target), file), "utf8");
+            expect(text, `${file} 应含 __ENGINES__ 占位符`).toContain("__ENGINES__");
+            expect(text, `${file} 含写死的 Node 版本区间`).not.toMatch(RANGE_LITERAL);
+        }
+
+        // base 模板 README(双语言):渲染期由 vars 表注入
+        for (const file of ["README.md", "README.en.md"]) {
+            const text = readFileSync(join(root, file), "utf8");
+            expect(text, `${file} 应含 {{NODE_ENGINES}} 占位符`).toContain(
+                "{{NODE_ENGINES}}",
+            );
+            expect(text, `${file} 含写死的 Node 版本区间`).not.toMatch(RANGE_LITERAL);
+        }
+    });
+
     it("settings-card 素材槽位键与 manifest 配对", () => {
         // 槽键 2026-09-30 晋升后两轨同形(Plugins 页签槽),素材必须与所属轨 manifest 一致
         const owners = [
@@ -147,11 +179,19 @@ describe("生成守门:版本注入与 manifest 一致", () => {
                 }
                 const readme = readFileSync(join(target, "README.md"), "utf8");
                 expect(readme).toContain(`dsh@${manifest.version}`);
+                // Node 版本要求与 package.json 的 engines 同源(都在 manifest 里)
+                expect(
+                    (pkg as { engines?: { node?: string } }).engines?.node,
+                    "生成案例的 engines.node",
+                ).toBe(manifest.engines);
+                expect(readme, "生成案例 README 应含 manifest 的 Node 要求").toContain(
+                    manifest.engines,
+                );
 
                 // 全目录零占位符残留(注入管线漏一刀就会被逮到)
                 for (const file of walkFiles(target)) {
                     const text = readFileSync(join(target, file), "utf8");
-                    for (const ph of ["__DSH_VERSION__", "__CORDIS_VERSION__", "__SCHEMASTERY_VERSION__"]) {
+                    for (const ph of ["__DSH_VERSION__", "__CORDIS_VERSION__", "__SCHEMASTERY_VERSION__", "__ENGINES__"]) {
                         expect(text, `${file} 残留占位符 ${ph}`).not.toContain(ph);
                     }
                 }
@@ -182,7 +222,7 @@ describe("manifest 自身健康度", () => {
 
     it("双轨字段齐备且 next 轨不落后于 latest 轨(晋升只单向前移)", () => {
         for (const m of TRACKS) {
-            for (const field of [m.version, m.cordisPeer, m.schemasteryVersion, m.settingsSlot]) {
+            for (const field of [m.version, m.cordisPeer, m.schemasteryVersion, m.settingsSlot, m.engines]) {
                 expect(field, `${m.target} 有空字段`).toBeTruthy();
             }
         }
