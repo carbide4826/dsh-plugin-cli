@@ -5,6 +5,17 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
 
 [中文](https://github.com/carbide4826/dsh-plugin-cli/blob/main/CHANGELOG.md) · English
 
+## [0.2.1] - 2026-11-07
+
+### Added
+
+- **"More menu" UI surfaces**: a plugin can now sit in the left sidebar's panel-row More menu, the conversation View tabs' More menu, and the right sidebar's guide-card More menu. Usage: `--ui-surfaces sidebar-actions` / `session-views-actions` / `right-guide-actions`; both tracks offer them.
+
+### Changed
+
+- **Host version follow**: both tracks move to dsh `0.2.2-rc.1` (cordis `~4.1.0` / schemastery `~3.19.0`). Usage: the generated project already pins the new peer — install the host at the version written in the generated `package.json`.
+- **Node version requirement**: the generated `engines` now matches the host at `node >=24.9.0`. Usage: upgrade Node before installing dependencies.
+
 ## [0.2.0] - 2026-10-25
 
 ### Added

@@ -33,7 +33,7 @@
     "docs/dsh-command-builder.html"
   ],
   "engines": {
-    "node": "^22.19.0 || >=24.0.0"
+    "node": ">=24.9.0"
   },
   "scripts": {
     "build": "tsdown",

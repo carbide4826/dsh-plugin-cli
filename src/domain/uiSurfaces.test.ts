@@ -1,8 +1,9 @@
-// 界面位按轨分叉守门:清单分叉 / 槽键与素材配对 / 依赖与 external 的按轨收集
+// 界面位清单守门:清单与轨的关系 / 槽键与素材配对 / 依赖与 external 的收集
 //
 // 为什么要有这层:槽位键是宿主契约 —— 宿主在某个版本才引入的键,老宿主没有它,
 // 选到就注册不上(静默不渲染,生成物看着正常但界面上什么都没有)。
-// 守门盯三件事:①清单按轨分叉没漂 ②素材里的槽位键与清单一致 ③依赖/external 按轨收集。
+// 守门盯四件事:①清单与轨的关系没漂 ②tracks 分叉机制没被改坏 ③素材槽位键与清单一致
+// ④依赖/external 收集齐。
 import { describe, expect, it } from "vitest";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -10,30 +11,40 @@ import {
     SURFACE_REQUIRES,
     UI_SURFACES,
     uiSurfacesFor,
+    isSurfaceAvailableOn,
     surfaceExternalPkgs,
     type UISurfaceId,
 } from "./uiSurfaces";
 import { knownDshPackages, LATEST_MANIFEST, NEXT_MANIFEST } from "./manifests";
 import { templatesRoot } from "../generate/project";
+import { SURFACE_WIRING } from "../atoms";
 
-/** 宿主在 0.2.1-rc.4 才引入的三个「更多菜单」槽位(只在 next 轨可选) */
-const NEXT_ONLY_SURFACES = [
+/** 宿主 0.2.1-rc.4 起引入的三个「更多菜单」槽位 */
+const MORE_MENU_SURFACES = [
     "sidebar-actions",
     "session-views-actions",
     "right-guide-actions",
 ] as const;
 
-describe("界面位清单按轨分叉", () => {
-    it("latest 轨看不到 next 轨专属界面位,next 轨全看得到", () => {
-        const latest = uiSurfacesFor("latest").map((s) => s.id);
-        const next = uiSurfacesFor("next").map((s) => s.id);
-        for (const id of NEXT_ONLY_SURFACES) {
-            expect(latest, `${id} 不该出现在 latest 轨`).not.toContain(id);
-            expect(next, `${id} 应出现在 next 轨`).toContain(id);
-        }
-        // latest 轨是 next 轨的真子集(只多不少)
-        expect(latest.length).toBeLessThan(next.length);
-        for (const id of latest) expect(next).toContain(id);
+/** 界面位 → 素材文件绝对路径(素材名与 id 不同名,如 sidebar → sidebar-panel) */
+function assetFile(target: "latest" | "next", id: string): string {
+    const wiring = SURFACE_WIRING[id as UISurfaceId];
+    return join(
+        templatesRoot(target),
+        "atoms",
+        "ui",
+        "src",
+        "client",
+        `${wiring.file}.ts`,
+    );
+}
+
+describe("界面位清单与轨的关系", () => {
+    it("两轨同钉一个宿主版本 ⇒ 两轨可选界面位集合相同", () => {
+        expect(LATEST_MANIFEST.version).toBe(NEXT_MANIFEST.version);
+        expect(uiSurfacesFor("latest").map((s) => s.id).sort()).toEqual(
+            uiSurfacesFor("next").map((s) => s.id).sort(),
+        );
     });
 
     it("每个界面位都声明了可用轨,tracks 非空且是合法轨名", () => {
@@ -43,6 +54,16 @@ describe("界面位清单按轨分叉", () => {
                 expect(["latest", "next"]).toContain(track);
             }
         }
+    });
+
+    it("tracks 决定可见性:不在该轨的界面位被挡下(分叉机制本身)", () => {
+        // 用假想条目测机制本身:上游再引入新槽位键时,按轨标注仍能挡住「老宿主选到新槽位」
+        const nextOnly = { tracks: ["next"] } as const;
+        expect(isSurfaceAvailableOn(nextOnly, "next")).toBe(true);
+        expect(isSurfaceAvailableOn(nextOnly, "latest")).toBe(false);
+        const both = { tracks: ["latest", "next"] } as const;
+        expect(isSurfaceAvailableOn(both, "latest")).toBe(true);
+        expect(isSurfaceAvailableOn(both, "next")).toBe(true);
     });
 
     it("SURFACE_REQUIRES 覆盖全部界面位(新增界面位必须登记依赖)", () => {
@@ -55,46 +76,39 @@ describe("界面位清单按轨分叉", () => {
 });
 
 describe("素材槽位键与清单配对", () => {
-    it("next 树的三个新界面位素材用的槽位键与清单一致", () => {
-        const root = templatesRoot("next");
-        for (const id of NEXT_ONLY_SURFACES) {
-            const surface = UI_SURFACES.find((s) => s.id === id);
-            expect(surface, `清单里没有 ${id}`).toBeDefined();
-            const slots = surface!.slots;
-            expect(slots.length, `${id} 没声明槽位键`).toBeGreaterThan(0);
-            // 素材文件名 = 界面位 id 的 kebab 形式
-            const file = join(root, "atoms", "ui", "src", "client", "surfaces", `${id}.ts`);
-            expect(existsSync(file), `next 树缺素材 ${file}`).toBe(true);
+    it.each(["latest", "next"] as const)("%s 树的九个界面位素材都在,槽位键与清单一致", (target) => {
+        for (const s of UI_SURFACES) {
+            const file = assetFile(target, s.id);
+            expect(existsSync(file), `${target} 树缺素材 ${file}`).toBe(true);
             const text = readFileSync(file, "utf8");
-            for (const slot of slots) {
+            for (const slot of s.slots) {
                 expect(text, `${file} 的槽位键与清单不符`).toContain(slot);
             }
         }
     });
 
-    it("latest 树不含 next 轨专属界面位的素材(选不到 ⇒ 不会拷到不存在的文件)", () => {
-        const root = templatesRoot("latest");
-        for (const id of NEXT_ONLY_SURFACES) {
-            const file = join(root, "atoms", "ui", "src", "client", "surfaces", `${id}.ts`);
-            expect(existsSync(file), `latest 树不该有 ${file}`).toBe(false);
+    it("素材里 import 的槽型声明包就是该界面位的 owner 包", () => {
+        for (const target of ["latest", "next"] as const) {
+            for (const s of UI_SURFACES) {
+                const file = assetFile(target, s.id);
+                const text = readFileSync(file, "utf8");
+                expect(text, `${file} 未 import owner 包的槽型声明`).toContain(
+                    `${s.pkg}/client`,
+                );
+            }
         }
     });
 
-    it("素材里 import 的槽型声明包就是该界面位的 owner 包", () => {
-        // 槽型声明(type-only)来自声明该槽位的那个包,import 错包则类型解析不到该槽位
-        const root = templatesRoot("next");
-        for (const id of NEXT_ONLY_SURFACES) {
-            const surface = UI_SURFACES.find((s) => s.id === id)!;
-            const file = join(root, "atoms", "ui", "src", "client", "surfaces", `${id}.ts`);
-            const text = readFileSync(file, "utf8");
-            expect(text, `${file} 未 import owner 包的槽型声明`).toContain(
-                `${surface.pkg}/client`,
-            );
+    it("三个「更多菜单」界面位两棵树都有(两轨同版 ⇒ 两轨同素材)", () => {
+        for (const target of ["latest", "next"] as const) {
+            for (const id of MORE_MENU_SURFACES) {
+                expect(existsSync(assetFile(target, id)), `${target} 树缺 ${id}`).toBe(true);
+            }
         }
     });
 });
 
-describe("依赖与 external 按轨收集", () => {
+describe("依赖与 external 收集", () => {
     it("external 集合是 extra 的子集,且都在已知子包清单里", () => {
         for (const s of UI_SURFACES) {
             const extra = "extraPkgs" in s ? s.extraPkgs : [];
@@ -110,13 +124,11 @@ describe("依赖与 external 按轨收集", () => {
 
     it("external 按勾选的界面位收集(不勾就不 external)", () => {
         expect(surfaceExternalPkgs("next", [])).toEqual([]);
-        const all = surfaceExternalPkgs("next", [...NEXT_ONLY_SURFACES]);
+        const all = surfaceExternalPkgs("next", [...MORE_MENU_SURFACES]);
         expect(all).toContain("@deepseek-ai/dsh-client-ui-primitives");
-        // latest 轨压根选不到这三个界面位 ⇒ 永远收集不到 external
-        expect(surfaceExternalPkgs("latest", [...NEXT_ONLY_SURFACES])).toEqual([]);
     });
 
-    it("knownDshPackages 含 next 轨新增的两个宿主包", () => {
+    it("knownDshPackages 含「更多菜单」界面位要的两个宿主包", () => {
         expect(knownDshPackages).toContain("@deepseek-ai/dsh-client-ui-primitives");
         expect(knownDshPackages).toContain("@deepseek-ai/dsh-client-ui-sidebar-right");
     });

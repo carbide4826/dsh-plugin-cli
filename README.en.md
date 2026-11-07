@@ -9,8 +9,8 @@
 An interactive scaffolding CLI that sets up a [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (`dsh`) plugin project skeleton in one shot.
 
 - npm package: `create-dsh-plugin-cli`, bin command: `dshp`
-- Dual-track pairing: the latest track pairs dsh `0.2.1-rc.2`, the next track pairs `0.2.1-rc.4`; choose via `--target`, default latest
-  - Note: the official npm `latest` tag is `0.2.1-rc.2` and `next` is `0.2.1-rc.4`; each of our tracks matches its own tag; track names are stable containers and never change with the version
+- Dual-track pairing: both the latest and next tracks pair dsh `0.2.2-rc.1`; choose via `--target`, default latest
+  - Note: the official npm `latest` and `next` tags are both `0.2.2-rc.1`; each of our tracks matches its own tag; track names are stable containers and never change with the version
 - Node requirement: `^22.19.0 || >=24.0.0`
 
 > Development and verification are based on the web host (`dsh web`); other host profiles are unverified — please open an [issue](https://github.com/carbide4826/dsh-plugin-cli/issues) if you hit problems.
@@ -78,8 +78,8 @@ Interactive snapshot
 │  my-plugin
 │
 ◆  Which dsh host generation to pair with?
-│  ● latest · dsh 0.2.1-rc.2
-│  ○ next · dsh 0.2.1-rc.4
+│  ● latest · dsh 0.2.2-rc.1
+│  ○ next · dsh 0.2.2-rc.1
 │
 ◆  Where do you want to start?
 │
@@ -131,7 +131,7 @@ Atom combination (assembled from picked capabilities):
 dshp create my-llm --template llm --pkg-position library --author <name> --description <text>
 ```
 
-Pair with the next-track host (`--target next`; the project pins dsh 0.2.1-rc.4 — the latest track and interactive mode work the same way):
+Pair with the next-track host (`--target next`; the project pins dsh 0.2.2-rc.1 — the latest track and interactive mode work the same way):
 
 ```sh
 dshp create my-gw --template model-gateway -s --target next
@@ -166,7 +166,7 @@ dshp create my-orders --atoms tool,ui --ui-surfaces settings-card --config dynam
 | -------------------------- | ----------------------------------------------------------------- |
 | `--atoms <list>`           | `tool` / `events` / `service` / `ui` / `protocol` (comma-separated) |
 | `--event-domains <list>`   | `tools` / `agent` / `session` / `approval` / `fs` / `settings`    |
-| `--ui-surfaces <list>`     | `settings-card` / `chat-node` / `input-dock` / `sidebar` / `tool-view` / `session-header`;`sidebar-actions` / `session-views-actions` / `right-guide-actions` need `--target next` |
+| `--ui-surfaces <list>`     | `settings-card` / `chat-node` / `input-dock` / `sidebar` / `tool-view` / `session-header` / `sidebar-actions` / `session-views-actions` / `right-guide-actions` |
 | `--service-seams <list>`   | `llm` / `systemPrompt` / `subagents` / `web` / `commands` / `storage` |
 | `--new-service`            | boolean (create a new own service; pairs with `--atoms service`)   |
 
@@ -175,14 +175,14 @@ follows the language, the code does not): unknown id (`ATOM_UNKNOWN` /
 `EVENT_DOMAIN_UNKNOWN` / `UI_SURFACE_UNKNOWN` / `SEAM_UNKNOWN`), a surface missing its
 required atom (`SURFACE_REQUIRES_ATOM`, e.g. `tool-view` without `tool`),
 `settings-card` with `config=none` (`CONFIG_NONE_REQUIRES_SETTINGS_CARD`), and a surface the
-current track does not have (`UI_SURFACE_TRACK_UNAVAILABLE`, e.g. `sidebar-actions` on latest).
+current track does not have (`UI_SURFACE_TRACK_UNAVAILABLE`, when the host has no such slot key yet).
 
 ## After generation
 
 ```sh
 cd my-plugin
 pnpm install                                # ① install deps
-pnpm add -D @deepseek-ai/dsh@0.2.1-rc.2    # ② install the dsh host (take the version from the generated package.json's peer)
+pnpm add -D @deepseek-ai/dsh@0.2.2-rc.1    # ② install the dsh host (take the version from the generated package.json's peer)
 pnpm build                                  # ③ build
 pnpm dsh web --patch ./dev.patch.yml        # ④ launch the dsh host (direct source load)
 ```
@@ -293,12 +293,12 @@ Every failure carries a stable error code (such as `SURFACE_REQUIRES_ATOM` / `DI
 
 ## Version notes
 
-**Tracks and pairing** (chosen at generation time via `--target`, default latest; the official npm `latest` tag is `0.2.1-rc.2` and `next` is `0.2.1-rc.4`, and each of our tracks matches its own tag):
+**Tracks and pairing** (chosen at generation time via `--target`, default latest; the official npm `latest` and `next` tags are both `0.2.2-rc.1`, and each of our tracks matches its own tag):
 
 | Track | dsh host | Key pairing (cordis / schemastery) |
 | --- | --- | --- |
-| `latest` | `0.2.1-rc.2` | `~4.0.5` / `~3.18.5` |
-| `next` | `0.2.1-rc.4` | `~4.0.5` / `~3.18.5` |
+| `latest` | `0.2.2-rc.1` | `~4.1.0` / `~3.19.0` |
+| `next` | `0.2.2-rc.1` | `~4.1.0` / `~3.19.0` |
 
 Dependencies pair exactly with the host version; mismatched mixes can spawn a second instance in the install tree, breaking declaration merging and failing typecheck.
 

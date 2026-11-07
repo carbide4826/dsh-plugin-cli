@@ -5,6 +5,17 @@
 
 中文 · [English](https://github.com/carbide4826/dsh-plugin-cli/blob/main/CHANGELOG.en.md)
 
+## [0.2.1] - 2026-11-07
+
+### 新增
+
+- **「更多菜单」界面位**:插件可以挂到左侧栏面板行的 More 菜单、会话 View 页签的 More 菜单、右侧栏 guide 卡片的 More 菜单。用法:`--ui-surfaces sidebar-actions` / `session-views-actions` / `right-guide-actions`,两轨都可选。
+
+### 变更
+
+- **宿主版本跟随**:两轨都升到 dsh `0.2.2-rc.1`(cordis `~4.1.0` / schemastery `~3.19.0`)。用法:生成物已按新版本钉 peer,装宿主时用生成物 `package.json` 里写的版本。
+- **Node 版本要求**:生成物 `engines` 跟宿主对齐为 `node >=24.9.0`。用法:升级 Node 之后再装依赖。
+
 ## [0.2.0] - 2026-10-25
 
 ### 新增

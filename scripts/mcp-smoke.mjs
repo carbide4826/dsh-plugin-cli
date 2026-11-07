@@ -158,46 +158,26 @@ const bad = await client.callTool({
 check("界面位缺 ui 原子报错", bad.isError === true);
 check("带稳定错误码", payloadOf(bad)?.code === "SURFACE_REQUIRES_ATOM", textOf(bad).slice(0, 120));
 
-// 按轨的界面位:三个「更多菜单」界面位只有 next 轨可选(宿主 0.2.1-rc.4 起才有那些槽位键)
-console.log("dshp_create_plugin(按轨界面位):");
-if (track === "next") {
-    const actions = payloadOf(
-        await client.callTool({
-            name: "dshp_create_plugin",
-            arguments: {
-                mode: "free",
-                dirName: "mcp-actions",
-                atoms: ["ui"],
-                uiSurfaces: ["sidebar-actions", "session-views-actions", "right-guide-actions"],
-                target: track,
-                lang: "en",
-            },
-        }),
-    );
-    check("next 轨能选 next 专属界面位", actions?.ok === true, JSON.stringify(actions)?.slice(0, 160));
-    check(
-        "计划里带该界面位的实现文件",
-        (actions?.files ?? []).some((f) => f.includes("surfaces/sidebar-actions.ts")),
-    );
-} else {
-    const badTrack = await client.callTool({
+// 三个「更多菜单」界面位(宿主 0.2.1-rc.4 起才有那些槽位键;两轨同钉 0.2.2-rc.1 ⇒ 两轨都可选)
+console.log("dshp_create_plugin(更多菜单界面位):");
+const actions = payloadOf(
+    await client.callTool({
         name: "dshp_create_plugin",
         arguments: {
             mode: "free",
-            dirName: "mcp-bad-track",
+            dirName: "mcp-actions",
             atoms: ["ui"],
-            uiSurfaces: ["sidebar-actions"],
+            uiSurfaces: ["sidebar-actions", "session-views-actions", "right-guide-actions"],
             target: track,
             lang: "en",
         },
-    });
-    check("latest 轨选 next 专属界面位报错", badTrack.isError === true);
-    check(
-        "带稳定错误码",
-        payloadOf(badTrack)?.code === "UI_SURFACE_TRACK_UNAVAILABLE",
-        textOf(badTrack).slice(0, 120),
-    );
-}
+    }),
+);
+check("该轨能选「更多菜单」界面位", actions?.ok === true, JSON.stringify(actions)?.slice(0, 160));
+check(
+    "计划里带该界面位的实现文件",
+    (actions?.files ?? []).some((f) => f.includes("surfaces/sidebar-actions.ts")),
+);
 
 console.log("dshp_spec(访谈清单 + 缺项判定):");
 const emptySpec = payloadOf(await client.callTool({ name: "dshp_spec", arguments: {} }));

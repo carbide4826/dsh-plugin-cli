@@ -9,8 +9,8 @@
 交互式脚手架 CLI,一键搭建 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)(`dsh`)插件项目骨架。
 
 - npm 包名:`create-dsh-plugin-cli`,bin 命令:`dshp`
-- 双轨配套:latest 轨配 dsh `0.2.1-rc.2`、next 轨配 `0.2.1-rc.4`;`--target` 选择,默认 latest
-  - 注:官方 npm 的 latest 现为 `0.2.1-rc.2`、next 现为 `0.2.1-rc.4`,本 CLI 两轨各自追平;轨名是稳定容器,不随版本改名
+- 双轨配套:latest 轨与 next 轨现都配 dsh `0.2.2-rc.1`;`--target` 选择,默认 latest
+  - 注:官方 npm 的 latest 与 next 现均为 `0.2.2-rc.1`,本 CLI 两轨各自追平;轨名是稳定容器,不随版本改名
 - Node 要求:`^22.19.0 || >=24.0.0`
 
 > 开发与验证均基于 web(`dsh web`);其他宿主 profile 未经验证,遇到问题欢迎提 [issue](https://github.com/carbide4826/dsh-plugin-cli/issues)。
@@ -77,8 +77,8 @@ dshp create my-plugin              # 交互式问卷生成插件骨架
 │  my-plugin
 │
 ◆  配套哪一代 dsh 宿主?
-│  ● latest · dsh 0.2.1-rc.2
-│  ○ next · dsh 0.2.1-rc.4
+│  ● latest · dsh 0.2.2-rc.1
+│  ○ next · dsh 0.2.2-rc.1
 │
 ◆  从哪里开始?
 │
@@ -128,7 +128,7 @@ dshp create my-notes --template notebook -s --description <text> --author <name>
 dshp create my-llm --template llm --pkg-position library --author <name> --description <text>
 ```
 
-配套 next 轨宿主(`--target next`,生成项目按 dsh 0.2.1-rc.4 钉版;latest 轨与交互式生成同样适用):
+配套 next 轨宿主(`--target next`,生成项目按 dsh 0.2.2-rc.1 钉版;latest 轨与交互式生成同样适用):
 
 ```sh
 dshp create my-gw --template model-gateway -s --target next
@@ -163,7 +163,7 @@ dshp create my-orders --atoms tool,ui --ui-surfaces settings-card --config dynam
 | --------------------------- | ----------------------------------------------------------- |
 | `--atoms <list>`            | `tool` / `events` / `service` / `ui` / `protocol`(逗号分隔) |
 | `--event-domains <list>`    | `tools` / `agent` / `session` / `approval` / `fs` / `settings` |
-| `--ui-surfaces <list>`      | `settings-card` / `chat-node` / `input-dock` / `sidebar` / `tool-view` / `session-header`;`sidebar-actions` / `session-views-actions` / `right-guide-actions` 仅 `--target next` |
+| `--ui-surfaces <list>`      | `settings-card` / `chat-node` / `input-dock` / `sidebar` / `tool-view` / `session-header` / `sidebar-actions` / `session-views-actions` / `right-guide-actions` |
 | `--service-seams <list>`    | `llm` / `systemPrompt` / `subagents` / `web` / `commands` / `storage` |
 | `--new-service`             | 布尔(新建自有服务,配合 `--atoms service`)                   |
 
@@ -171,14 +171,14 @@ dshp create my-orders --atoms tool,ui --ui-surfaces settings-card --config dynam
 (`ATOM_UNKNOWN` / `EVENT_DOMAIN_UNKNOWN` / `UI_SURFACE_UNKNOWN` / `SEAM_UNKNOWN`)、
 界面位缺依赖原子(`SURFACE_REQUIRES_ATOM`,如 `tool-view` 缺 `tool`)、
 `settings-card` 配 `config=none`(`CONFIG_NONE_REQUIRES_SETTINGS_CARD`)、
-界面位在当前轨不可用(`UI_SURFACE_TRACK_UNAVAILABLE`,如 latest 轨选 `sidebar-actions`)。
+界面位在当前轨不可用(`UI_SURFACE_TRACK_UNAVAILABLE`,宿主还没那个槽位键时)。
 
 ## 生成之后
 
 ```sh
 cd my-plugin
 pnpm install                                # ① 安装依赖
-pnpm add -D @deepseek-ai/dsh@0.2.1-rc.2    # ② 安装 dsh 宿主(版本以生成物 package.json 的 peer 为准)
+pnpm add -D @deepseek-ai/dsh@0.2.2-rc.1    # ② 安装 dsh 宿主(版本以生成物 package.json 的 peer 为准)
 pnpm build                                  # ③ 构建
 pnpm dsh web --patch ./dev.patch.yml        # ④ 启动 dsh 宿主(直载源码调试)
 ```
@@ -290,12 +290,12 @@ dshp mcp --lang zh     # 起 MCP server(--lang 指定生成物语言,缺省按�
 
 ## 版本说明
 
-**轨道与配套**(生成时以 `--target` 选择,默认 latest;官方 npm 的 latest 现为 `0.2.1-rc.2`、next 现为 `0.2.1-rc.4`,本 CLI 两轨各自追平):
+**轨道与配套**(生成时以 `--target` 选择,默认 latest;官方 npm 的 latest 与 next 现均为 `0.2.2-rc.1`,本 CLI 两轨各自追平):
 
 | 轨道 | dsh 宿主 | 关键配套(cordis / schemastery) |
 | --- | --- | --- |
-| `latest` | `0.2.1-rc.2` | `~4.0.5` / `~3.18.5` |
-| `next` | `0.2.1-rc.4` | `~4.0.5` / `~3.18.5` |
+| `latest` | `0.2.2-rc.1` | `~4.1.0` / `~3.19.0` |
+| `next` | `0.2.2-rc.1` | `~4.1.0` / `~3.19.0` |
 
 依赖与宿主版本精确配套;混用不配套的组合可能在安装树中产生双实例,导致类型声明合并冲突、typecheck 失败。
 

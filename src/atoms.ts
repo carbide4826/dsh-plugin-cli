@@ -62,8 +62,11 @@ const SEAM_WIRING: Record<SeamId, { file: string; fn: string }> = {
     storage: { file: "seams/storage", fn: "registerStorageSeam" },
 };
 
-/** 界面位 → 接线(component = 随附组件模板文件) */
-const SURFACE_WIRING: Record<
+/**
+ * 界面位 → 接线(component = 随附组件模板文件)。
+ * 导出:守门测试要用它把界面位 id 映射到真实素材文件名(素材名与 id 不同名,如 sidebar → sidebar-panel)。
+ */
+export const SURFACE_WIRING: Record<
     UISurfaceId,
     { file: string; fn: string; component: string }
 > = {
@@ -72,8 +75,7 @@ const SURFACE_WIRING: Record<
         fn: "registerSettingsCard",
         component: "surfaces/SettingsCard.tsx",
     },
-    // ── 以下三个界面位只在 next 轨可选(0.2.1-rc.4 起宿主才有那三个 actions 槽位);
-    //    实现文件只存在于 templates/next 树,latest 轨选不到它们 ⇒ 不会拷到不存在的文件 ──
+    // ── 以下三个是 0.2.1-rc.4 起才有的「更多菜单」槽位;两轨同钉 0.2.2-rc.1 ⇒ 两轨都有 ──
     "sidebar-actions": {
         file: "surfaces/sidebar-actions",
         fn: "registerSidebarActions",

@@ -329,7 +329,7 @@ program
     )
     .option(
         "--ui-surfaces <list>",
-        "comma-separated UI surfaces (settings-card, chat-node, input-dock, sidebar, tool-view, session-header; sidebar-actions, session-views-actions, right-guide-actions need --target next)",
+        "comma-separated UI surfaces (settings-card, chat-node, input-dock, sidebar, tool-view, session-header, sidebar-actions, session-views-actions, right-guide-actions)",
     )
     .option(
         "--service-seams <list>",

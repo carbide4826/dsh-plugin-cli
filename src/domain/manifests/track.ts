@@ -15,4 +15,6 @@ export interface TrackManifest {
     readonly schemasteryVersion: string;
     /** settings-card 界面位槽位键(2026-09-30 晋升后两轨同形=Plugins 页签槽;守门测试对照素材用) */
     readonly settingsSlot: string;
+    /** 生成物的 Node 版本要求:照抄官方元包 engines(0.2.2-rc.1 起官方才声明 engines) */
+    readonly engines: string;
 }

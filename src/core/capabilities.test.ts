@@ -116,22 +116,15 @@ describe("resolveCapabilities", () => {
         );
     });
 
-    it("某轨不可用的界面位被选中时报 UI_SURFACE_TRACK_UNAVAILABLE", () => {
-        // 槽位键是宿主契约:老宿主没有的键选到就注册不上(静默不渲染)
-        expectCode(
-            () =>
-                resolveCapabilities(
-                    { atoms: ["ui"], uiSurfaces: ["sidebar-actions"] },
-                    "latest",
-                ),
-            "UI_SURFACE_TRACK_UNAVAILABLE",
-        );
-        // 换到 next 轨(宿主有那个槽位)即通过
+    it("界面位按轨可用性判定后进清单(机制层覆盖见 uiSurfaces.test.ts)", () => {
+        // 两轨同钉一个宿主版本 ⇒ 同一批界面位在两轨都可选
         expect(
-            resolveCapabilities(
-                { atoms: ["ui"], uiSurfaces: ["sidebar-actions"] },
-                "next",
-            ).uiSurfaces,
+            resolveCapabilities({ atoms: ["ui"], uiSurfaces: ["sidebar-actions"] }, "latest")
+                .uiSurfaces,
+        ).toEqual(["sidebar-actions"]);
+        expect(
+            resolveCapabilities({ atoms: ["ui"], uiSurfaces: ["sidebar-actions"] }, "next")
+                .uiSurfaces,
         ).toEqual(["sidebar-actions"]);
     });
 });

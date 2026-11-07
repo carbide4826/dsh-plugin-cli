@@ -9,10 +9,10 @@
   change when the dsh version moves. A promotion only swaps the content (template tree +
   manifest), never the track name.
 - A track and its manifest are paired strictly: each track has one complete template tree and
-  one manifest (four fields: version / cordisPeer / schemasteryVersion / settingsSlot), so
+  one manifest (five fields: version / cordisPeer / schemasteryVersion / settingsSlot / engines), so
   generation does zero parsing and zero fallback.
-- The latest track pins dsh `0.2.1-rc.2` and the next track pins `0.2.1-rc.4` (snapshot
-  values — the generated `package.json` is the authority).
+- Both tracks pin dsh `0.2.2-rc.1` right now (snapshot values — the generated `package.json`
+  is the authority).
 - The generated project's peer version must **match** the host's dsh version, or the host's
   gate rejects it outright (see below).
 
@@ -34,8 +34,8 @@ schema in the webhook scenario fails typecheck outright.
 Two directions that were actually measured:
 
 - The official meta-package uses **exact pins / tilde alignment** for third-party dependencies
-  (read from 0.2.1-rc.4, unchanged from 0.2.1-rc.2: `cordis ~4.0.5` / `schemastery ~3.18.5` / `loader ~1.0.6` /
-  `timer ~1.1.7` / `include ~1.0.10`); the earlier version lines (e.g. 0.1.5-rc.2) pinned
+  (read from 0.2.2-rc.1: `cordis ~4.1.0` / `schemastery ~3.19.0` / `loader ~1.1.0` /
+  `timer ~1.2.0` / `include ~1.1.0`); the earlier version lines (e.g. 0.1.5-rc.2) pinned
   everything exactly (`cordis 4.0.2` / `schemastery 3.18.2` / `loader 1.0.3` /
   `hmr 1.0.17` / `timer 1.1.4` / `include 1.0.7`).
 - **Do not** write overrides for these packages in the template's `pnpm-workspace.yaml` — the
@@ -64,7 +64,7 @@ problem surfaces earliest.
 | The `settings.plugin.item` slot key was deleted repo-wide | The old settings-card entry point is gone | Use `settings.plugins.tab` (the Plugins tab slot) instead: `ctx.slots.inject('settings.plugins.tab', () => ctx.slots.register({name, id, order, label}, Component))`; the slot's type declaration lives in the `dsh-client-ui-settings` package |
 | `installSection` was removed | Dynamic config has no legacy wiring | Use the module's `Config` export instead, which the host projects into a form natively; fields that must hot-update go through the `.volatile()` chain (save → write a profile patch → re-run apply) |
 | The shared `'plugin'` kind was removed from `MessageSourceMap` | Messages produced by a plugin have no owning kind | The plugin declares its own kind with `declare module` in its own module (the official webhook declares `'webhook'` the same way); the generated project uses `'plugin-notice'` |
-| The three "More menu" slot keys appeared (`sidebar.panellist.actions`, `conversation.session.header.views.actions`, `sidebar.right.tab.guide.actions`) | They only exist on hosts from 0.2.1-rc.4 on | Pick them only with `--target next`; on an older host the key is unknown, so the registration silently never renders. The owner props carry `entries` / `onOpen` / `onPinnedChange` / `onDismiss` |
+| The three "More menu" slot keys appeared (`sidebar.panellist.actions`, `conversation.session.header.views.actions`, `sidebar.right.tab.guide.actions`) | They only exist on hosts from 0.2.1-rc.4 on | Both tracks pin 0.2.2-rc.1, so both can pick them; on an older host the key is unknown, so the registration silently never renders. The owner props carry `entries` / `onOpen` / `onPinnedChange` / `onDismiss` |
 
 ## Host gate (plugin add / load)
 
@@ -74,13 +74,12 @@ problem surfaces earliest.
   reject**: the `add` preflight refuses, and loading throws again.
 - ⚠️ **Upstream dist-tags roll, but this repo's two manifests don't follow automatically**
   (the canary only reports, it never acts — the rules are in
-  `docs/UPSTREAM-VERSION-POLICY.md`). Measured (2026-10-20): on npm both `latest` and `next`
-  are `0.2.1-rc.2` (latest) and `0.2.1-rc.4` (next), and this repo's manifests match them
-  (`latest` → `0.2.1-rc.2`, `next` → `0.2.1-rc.4`). **When upstream rolls a track again, that
-  track's manifest does not follow by itself** — the generated project's peer is still the old
-  version, and installing a new host gets hard-rejected (`0.2.1-rc.4` does not satisfy peer
-  `0.2.1-rc.2`). So always **install the host version pinned in the generated package.json**,
-  never a bare `latest`.
+  `docs/UPSTREAM-VERSION-POLICY.md`). Measured (2026-11-07): on npm both `latest` and `next`
+  are `0.2.2-rc.1`, and this repo's manifests match them (both tracks pin `0.2.2-rc.1`).
+  **When upstream rolls a track again, that track's manifest does not follow by itself** — the
+  generated project's peer is still the old version, and installing a new host gets hard-rejected.
+  So always **install the host version pinned in the generated package.json**, never a bare
+  `latest`.
 - Escape hatch: `dsh plugin allow-version` for an exact pairing.
 - ⚠️ **The version of the dsh CLI in the project you run `add` in is the judge** — not the
   version of the project under test. Don't run `add` from inside the project under test to

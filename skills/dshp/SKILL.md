@@ -239,8 +239,8 @@ pnpm add -D @deepseek-ai/dsh@<version>     # take the version from the generated
 
 ⚠️ **Don't just install npm's `latest`.** The generated project pins its peer exactly, and the
 host gate checks with `semver.satisfies(..., includePrerelease)` — the wrong version means
-"rejected at preflight, nothing was installed". Upstream dist-tags roll (measured 2026-10-28: npm's `latest` is `0.2.1-rc.2` and `next` is
-`0.2.1-rc.4`; this repo's latest track pins `0.2.1-rc.2` and its next track pins `0.2.1-rc.4`), but
+"rejected at preflight, nothing was installed". Upstream dist-tags roll (measured 2026-11-07: npm's `latest` and `next`
+are both `0.2.2-rc.1`; both of this repo's tracks pin `0.2.2-rc.1`), but
 **once upstream rolls again the artifact's peer stays on the old version and the new host
 rejects it**. Take the version from the generated `package.json`.
 
@@ -341,7 +341,7 @@ plugin id default to the directory name) and the start command (`pnpm dsh web --
 
 Input: "use the next track for a plugin that accepts an external webhook"
 Output: Need → recommend "`webhook-bridge` is exactly bridging external events into the
-session; the next track pairs with dsh 0.2.1-rc.4" → once confirmed,
+session; the next track pairs with dsh 0.2.2-rc.1" → once confirmed,
 `dshp create -s --template webhook-bridge my-hook --target next --lang zh`, then steps 7 and 8;
 when reporting, name the dsh version the next track currently pins (read it from the generated
 package.json).

@@ -50,7 +50,7 @@ const UI_SURFACE_DEFS = [
         pkg: "@deepseek-ai/dsh-client-ui-conversation",
         label: () => t("domain.ui.input-dock.label"),
         desc: () => t("domain.ui.input-dock.desc"),
-        slots: ["conversation.input.dock", "conversation.composer.bar"],
+        slots: ["conversation.input.dock"],
         tracks: ["latest", "next"],
     },
     {
@@ -77,14 +77,15 @@ const UI_SURFACE_DEFS = [
         slots: ["conversation.session.header"],
         tracks: ["latest", "next"],
     },
-    // ── 以下三个是 0.2.1-rc.4 起才有的「更多菜单」槽位,只在 next 轨可选 ──
+    // ── 以下三个是 0.2.1-rc.4 起才有的「更多菜单」槽位 ──
+    // (两轨同钉 0.2.2-rc.1 ⇒ 两轨宿主都有这些槽位 ⇒ 两轨通用)
     {
         id: "sidebar-actions",
         pkg: "@deepseek-ai/dsh-client-ui-sidebar",
         label: () => t("domain.ui.sidebar-actions.label"),
         desc: () => t("domain.ui.sidebar-actions.desc"),
         slots: ["sidebar.panellist.actions"],
-        tracks: ["next"],
+        tracks: ["latest", "next"],
         extraPkgs: ["@deepseek-ai/dsh-client-ui-primitives"],
         externalPkgs: ["@deepseek-ai/dsh-client-ui-primitives"],
     },
@@ -94,7 +95,7 @@ const UI_SURFACE_DEFS = [
         label: () => t("domain.ui.session-views-actions.label"),
         desc: () => t("domain.ui.session-views-actions.desc"),
         slots: ["conversation.session.header.views.actions"],
-        tracks: ["next"],
+        tracks: ["latest", "next"],
         extraPkgs: ["@deepseek-ai/dsh-client-ui-primitives"],
         externalPkgs: ["@deepseek-ai/dsh-client-ui-primitives"],
     },
@@ -104,7 +105,7 @@ const UI_SURFACE_DEFS = [
         label: () => t("domain.ui.right-guide-actions.label"),
         desc: () => t("domain.ui.right-guide-actions.desc"),
         slots: ["sidebar.right.tab.guide.actions"],
-        tracks: ["next"],
+        tracks: ["latest", "next"],
         extraPkgs: ["@deepseek-ai/dsh-client-ui-primitives"],
         externalPkgs: ["@deepseek-ai/dsh-client-ui-primitives"],
     },
@@ -116,6 +117,21 @@ export type UISurfaceId = (typeof UI_SURFACE_DEFS)[number]["id"];
 export const UI_SURFACES = UI_SURFACE_DEFS;
 
 /**
+ * 某界面位在某轨是否可选(机制层:由 tracks 决定)。
+ * 当前两轨同钉一个宿主版本 ⇒ 界面位集合相同;但机制保留 ——
+ * 上游再引入新槽位键时,按轨标注仍能挡住「老宿主选到新槽位」的哑界面。
+ * @param surface - 界面位定义(或其 tracks 子集)
+ * @param target - 目标轨
+ * @returns 该轨是否可选这个界面位
+ */
+export function isSurfaceAvailableOn(
+    surface: { readonly tracks: readonly TrackTarget[] },
+    target: TrackTarget,
+): boolean {
+    return (surface.tracks as readonly TrackTarget[]).includes(target);
+}
+
+/**
  * 按轨取界面位清单(生成路径必须走这里:某轨不可用的界面位不能出现在问卷/参数校验里,
  * 否则会生成注册到不存在槽位的哑界面)。
  * @param target - 目标轨
@@ -124,9 +140,7 @@ export const UI_SURFACES = UI_SURFACE_DEFS;
 export function uiSurfacesFor(
     target: TrackTarget,
 ): readonly (typeof UI_SURFACE_DEFS)[number][] {
-    return UI_SURFACE_DEFS.filter((s) =>
-        (s.tracks as readonly TrackTarget[]).includes(target),
-    );
+    return UI_SURFACE_DEFS.filter((s) => isSurfaceAvailableOn(s, target));
 }
 
 /**

@@ -117,9 +117,7 @@ Atoms: `tool` / `events` / `service` / `ui` / `protocol`
 Event domains: `tools` / `agent` / `session` / `approval` / `fs` / `settings`
 
 UI surfaces: `settings-card` / `chat-node` / `input-dock` / `sidebar` / `tool-view` /
-`session-header`;plus `sidebar-actions` / `session-views-actions` / `right-guide-actions`,
-which only exist on `--target next` (picking one on another track fails with
-`UI_SURFACE_TRACK_UNAVAILABLE`).
+`session-header` / `sidebar-actions` / `session-views-actions` / `right-guide-actions`.
 
 Capability seams: `llm` / `systemPrompt` / `subagents` / `web` / `commands` / `storage`
 
@@ -138,13 +136,13 @@ the current value):
 | --- | --- | --- | --- |
 | `settings-card` | `@deepseek-ai/dsh-client-ui-settings-plugins` | `settings.plugins.tab` | both |
 | `chat-node` | `@deepseek-ai/dsh-client-ui-chat` | `conversation.chat.node` | both |
-| `input-dock` | `@deepseek-ai/dsh-client-ui-conversation` | `conversation.input.dock` / `conversation.composer.bar` | both |
+| `input-dock` | `@deepseek-ai/dsh-client-ui-conversation` | `conversation.input.dock` | both |
 | `sidebar` | `@deepseek-ai/dsh-client-ui-sidebar` | `sidebar.panellist` | both |
 | `tool-view` | `@deepseek-ai/dsh-client-ui-tool` | `tool.call.toolview` | both |
 | `session-header` | `@deepseek-ai/dsh-client-ui-conversation` | `conversation.session.header` | both |
-| `sidebar-actions` | `@deepseek-ai/dsh-client-ui-sidebar` | `sidebar.panellist.actions` | next only |
-| `session-views-actions` | `@deepseek-ai/dsh-client-ui-conversation` | `conversation.session.header.views.actions` | next only |
-| `right-guide-actions` | `@deepseek-ai/dsh-client-ui-sidebar-right` | `sidebar.right.tab.guide.actions` | next only |
+| `sidebar-actions` | `@deepseek-ai/dsh-client-ui-sidebar` | `sidebar.panellist.actions` | both |
+| `session-views-actions` | `@deepseek-ai/dsh-client-ui-conversation` | `conversation.session.header.views.actions` | both |
+| `right-guide-actions` | `@deepseek-ai/dsh-client-ui-sidebar-right` | `sidebar.right.tab.guide.actions` | both |
 
 Also: `settings-card` must have a configuration (it cannot be `config: none`), and the
 `@deepseek-ai/schemastery` dependency only comes in when `config` is not `none`.

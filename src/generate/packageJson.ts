@@ -86,7 +86,7 @@ export function generatePackageJson(
         ...(answers.pkgPosition === "bundle" ? { icon: "icon.svg" } : {}),
         // 身份声明紧跟元数据:向 harness 宣告这个包是什么,不落到文件尾
         ...(Object.keys(dsh).length > 0 ? { dsh } : {}),
-        engines: { node: "^22.19.0 || >=24.0.0" },
+        engines: { node: manifest.engines },
         scripts: {
             // 入口在项目自带的 tsdown.config.ts(UI 双出口),就近优先、不被祖先配置劫持
             build: "tsdown",
