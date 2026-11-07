@@ -39,7 +39,9 @@ function gen(name: string, surfaces: string[], lang: "zh" | "en" = "zh"): string
  * 匹配路径本身而不是「组件文件:」那个词 —— 中英双版措辞不同,路径形态才稳定。
  */
 function componentPaths(readme: string): string[] {
-    return [...readme.matchAll(/`(src\/client\/surfaces\/[^`]+)`/g)].map((m) => m[1]);
+    return [...readme.matchAll(/`(src\/client\/surfaces\/[^`]+)`/g)]
+        .map((m) => m[1])
+        .filter((p): p is string => p !== undefined);
 }
 
 describe("README 界面位说明段", () => {
