@@ -10,6 +10,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
 ### Added
 
 - **"More menu" UI surfaces**: a plugin can now sit in the left sidebar's panel-row More menu, the conversation View tabs' More menu, and the right sidebar's guide-card More menu. Usage: `--ui-surfaces sidebar-actions` / `session-views-actions` / `right-guide-actions`; both tracks offer them.
+- **UI surface guide**: the generated README lists each chosen surface's host slot key, component file path and next step (bilingual). Usage: open the generated project's README, read the "UI surfaces" section and jump straight to the file to edit.
 
 ### Changed
 

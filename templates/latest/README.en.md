@@ -84,4 +84,6 @@ src/index.ts        plugin entry (name/inject/apply)
 
 {{EXTRA_STRUCTURE}}
 
-　　⑨ **The plugin inventory shows this plugin's card**: the host's plugin manager renders the icon from `package.json` (`icon.svg` ships with this project) and the title/description from the `meta` in `locale/*.json` (bilingual); edit `locale/zh.json` to change the copy.
+{{SURFACE_DOC}}
+
+　　⑨ **The plugin inventory shows this plugin's card**: the host's plugin manager renders the icon from `package.json` (`icon.svg` ships with this project) and the title/description from the `meta` in `locale/*.json` (bilingual); edit `locale/en.json` to change the copy.

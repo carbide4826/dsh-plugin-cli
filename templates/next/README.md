@@ -84,4 +84,6 @@ src/index.ts        插件入口(name/inject/apply)
 
 {{EXTRA_STRUCTURE}}
 
+{{SURFACE_DOC}}
+
 　　⑨ **插件清单会展示本插件的名片**:宿主插件管理页读取 `package.json` 的 `icon`(图标,本项目自带 `icon.svg`)与 `locale/*.json` 的 `meta`(名称/介绍,双语)渲染详情;想改名称文案,编辑 `locale/zh.json` 即可。

@@ -268,6 +268,11 @@ export const zh = {
         wireSeam: "缝",
         wireSurface: "界面位",
         mountService: "ctx.plugin(ExampleService) // 挂载自有服务",
+        surfaceDoc: {
+            title: "界面位说明",
+            component: "组件文件",
+            next: "打开组件文件,把里面的占位内容换成你自己的",
+        },
     },
     spec: {
         title: "dshp · 生成访谈清单(一次问全,每项可跳过)",

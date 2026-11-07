@@ -279,6 +279,7 @@ to start it. If a step didn't succeed, say which one and why.
 | typecheck is green but the code is obviously wrong | Without dependencies, `skipLibCheck` swallows resolution failures (false green) | Re-run where the dependencies are installed; only then is green real |
 | `ctx.slots` type errors / diverging Config types | A second instance of cordis or schemastery | Dependency versions must match the official meta-package exactly or by tilde — never loosen them to a floating range |
 | A UI surface doesn't render in the Web UI | You only used the `--patch` load | `pnpm build` + `pnpm dsh plugin --profile web add .` |
+| The `session-views-actions` surface never shows up | Its More menu lives in the Session View tab row, and the blank-session Hero renders no session header | Open a Session first (start a new one or pick an existing one), then look for the More button after the View tabs |
 | `dsh plugin add` is rejected | The host's peer gate compares the dsh / dsh-* entries in peerDependencies | Install a host version matching the artifact's pinned peer; if you truly need a cross-version install, pair it exactly with `dsh plugin allow-version` |
 | The generator reports the directory already exists | An occupied directory is a failure state | Pick another directory name; never overwrite |
 | `SURFACE_REQUIRES_ATOM` | A surface was picked without the `ui` atom (`tool-view` also needs `tool`) | Add the atom, or drop the surface |

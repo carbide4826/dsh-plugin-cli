@@ -271,6 +271,11 @@ Language:
         wireSeam: "seam",
         wireSurface: "surface",
         mountService: "ctx.plugin(ExampleService) // mount own service",
+        surfaceDoc: {
+            title: "UI surfaces",
+            component: "Component file",
+            next: "Open the component file and replace the placeholder with your own",
+        },
     },
     spec: {
         title: "dshp · generation interview checklist (ask everything, every item skippable)",

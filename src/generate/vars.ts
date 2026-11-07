@@ -3,6 +3,7 @@ import type { Answers } from "../domain/types";
 import type { TrackManifest } from "../domain/manifests";
 import { surfaceExternalPkgs } from "../domain/uiSurfaces";
 import type { Vars } from "../render/render";
+import { surfaceDoc } from "./surfaceDoc";
 
 /**
  * client 出口的 CSS 内联插件段(渲染进生成的 tsdown.config.ts)。
@@ -107,6 +108,8 @@ export function buildVars(
         DSH_VERSION: manifest.version,
         NODE_ENGINES: manifest.engines,
         EXTRA_STRUCTURE: extraStructure,
+        // README 的「界面位说明」段:选了界面位才有内容(空串不留残段)
+        SURFACE_DOC: surfaceDoc(answers.uiSurfaces),
         // 项目自带 tsdown 配置(就近优先),避免被祖先目录的 tsdown.config.ts 劫持 entry。
         // host 出口 UI 时用对象形式:key 即输出文件名(index → dist/index.js 平铺,
         // 数组形式会保持目录结构,与 exports 声明错位)

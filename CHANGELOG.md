@@ -10,6 +10,7 @@
 ### 新增
 
 - **「更多菜单」界面位**:插件可以挂到左侧栏面板行的 More 菜单、会话 View 页签的 More 菜单、右侧栏 guide 卡片的 More 菜单。用法:`--ui-surfaces sidebar-actions` / `session-views-actions` / `right-guide-actions`,两轨都可选。
+- **界面位说明**:生成物的 README 会逐条列出所选界面位的宿主槽位键、组件文件路径与下一步动作(中英双版)。用法:打开生成项目的 README 看「界面位说明」段,直接跳到要改的文件。
 
 ### 变更
 
